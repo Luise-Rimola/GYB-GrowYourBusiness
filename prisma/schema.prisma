@@ -1,0 +1,839 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum BusinessModelType {
+  saas
+  ecom
+  local
+  services
+  marketplace
+  mixed
+}
+
+enum CompanyStage {
+  pre_revenue
+  early_revenue
+  growth
+  scaling
+}
+
+enum IntakeStatus {
+  draft
+  complete
+}
+
+enum SourceType {
+  web
+  report
+  paper
+  internal
+  interview
+  estimate
+}
+
+enum KpiDomain {
+  growth
+  marketing
+  sales
+  product
+  customer
+  finance
+  ops
+  people
+  margin
+  monetization
+  conversion
+  acquisition
+  retention
+  risk
+}
+
+enum DocumentType {
+  revenue
+  costs
+  ads
+  analytics
+  crm
+  other
+}
+
+enum WorkflowStatus {
+  draft
+  running
+  incomplete
+  complete
+  approved
+}
+
+enum ArtifactReviewStatus {
+  open
+  released
+  marked_for_deletion
+}
+
+enum ArtifactType {
+  baseline
+  industry_research
+  market
+  menu_card
+  diagnostic
+  decision_pack
+  data_collection_plan
+  knowledge_digest
+  strategy_pack
+  best_practices
+  failure_analysis
+  business_plan
+  market_research
+  supplier_list
+  menu_cost
+  menu_preiskalkulation
+  real_estate
+  startup_guide
+  customer_validation
+  process_optimization
+  strategic_options
+  hr_planning
+  value_proposition
+  go_to_market
+  marketing_strategy
+  scaling_strategy
+  portfolio_management
+  scenario_analysis
+  operative_plan
+  swot_analysis
+  financial_planning
+  personnel_plan
+  strategic_planning
+  trend_analysis
+  competitor_analysis
+  kpi_estimation
+  work_processes
+  tech_digitalization
+  automation_roi
+  physical_automation
+  app_project_plan
+  app_requirements
+  app_tech_spec
+  app_mvp_guide
+  app_page_specs
+  app_db_schema
+}
+
+enum DecisionLever {
+  acquisition
+  conversion
+  monetization
+  retention
+  margin
+  ops
+  finance
+}
+
+enum DecisionStatus {
+  proposed
+  approved
+  in_progress
+  evaluating
+  scaled
+  stopped
+}
+
+enum ExperimentStatus {
+  planned
+  running
+  completed
+  stopped
+}
+
+enum ChatRole {
+  user
+  assistant
+}
+
+enum KnowledgeIngestionStatus {
+  new
+  processed
+  rejected
+}
+
+enum KnowledgeObjectType {
+  claim
+  benchmark
+  play
+  risk_pattern
+}
+
+enum EvidenceGrade {
+  A
+  B
+  C
+  D
+}
+
+enum KnowledgeStatus {
+  draft
+  active
+  deprecated
+}
+
+enum KnowledgeVersionStatus {
+  active
+  archived
+}
+
+enum LearningEventType {
+  decision_outcome
+  experiment_result
+}
+
+enum ContradictionSeverity {
+  low
+  medium
+  high
+}
+
+model Company {
+  id                           String   @id @default(cuid())
+  name                         String
+  locale                       String?
+  currency                     String?
+  createdAt                    DateTime @default(now())
+  inferredBusinessModelType    BusinessModelType?
+  inferredConfidence           Float?
+  stageGuess                   CompanyStage?
+  stageConfidence              Float?
+
+  user                         User?
+  settings                     CompanySettings?
+  profiles                     CompanyProfile[]
+  intakeSessions               IntakeSession[]
+  launchStages                 LaunchStage[]
+  documents                    Document[]
+  sources                      Source[]
+  kpiSets                      CompanyKpiSet[]
+  kpiValues                    KpiValue[]
+  benchmarks                   Benchmark[]
+  runs                         Run[]
+  artifacts                    Artifact[]
+  decisions                    Decision[]
+  experiments                  Experiment[]
+  chatThreads                  ChatThread[]
+  knowledgeSources             KnowledgeSource[]
+  learningEvents               LearningEvent[]
+  marketingActions             MarketingAction[]
+  useCaseEvaluations           UseCaseEvaluation[]
+  scenarioEvaluations          ScenarioEvaluation[]
+  studyParticipants            StudyParticipant[]
+}
+
+/// Ein Account pro Arbeitsbereich (Company); alle Daten hängen an companyId.
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String?
+  companyId    String   @unique
+  /// Nach Registrierung per E-Mail-Code bestätigen
+  emailVerified Boolean  @default(false)
+  emailVerificationCodeHash String?
+  emailVerificationExpiresAt  DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+}
+
+model CompanyProfile {
+  id                 String   @id @default(cuid())
+  companyId          String
+  version            Int
+  profileJson        Json
+  completenessScore  Float
+  createdAt          DateTime @default(now())
+  createdBy          String?
+
+  company            Company  @relation(fields: [companyId], references: [id])
+
+  @@index([companyId, version])
+}
+
+model CompanySettings {
+  id          String   @id @default(cuid())
+  companyId   String   @unique
+  llmApiUrl   String?
+  llmApiKey   String?
+  llmModel    String?  @default("gpt-4o-mini")
+  /// JSON map: phase id -> true, z. B. {"ideation":true} – Artefakte der Phase freigegeben
+  planningPhaseArtifactsReleased Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  company     Company  @relation(fields: [companyId], references: [id])
+}
+
+model IntakeSession {
+  id          String       @id @default(cuid())
+  companyId   String
+  status      IntakeStatus @default(draft)
+  answersJson Json
+  createdAt   DateTime     @default(now())
+
+  company     Company      @relation(fields: [companyId], references: [id])
+
+  @@index([companyId, status])
+}
+
+model LaunchStage {
+  id          String       @id @default(cuid())
+  companyId   String
+  name        String
+  sortOrder   Int          @default(0)
+  createdAt   DateTime     @default(now())
+
+  company     Company      @relation(fields: [companyId], references: [id])
+  steps       LaunchStep[]
+
+  @@index([companyId])
+}
+
+model LaunchStep {
+  id          String       @id @default(cuid())
+  stageId     String
+  label       String
+  sortOrder   Int          @default(0)
+  done        Boolean      @default(false)
+  fileUri     String?
+  createdAt   DateTime     @default(now())
+
+  stage       LaunchStage  @relation(fields: [stageId], references: [id])
+
+  @@index([stageId])
+}
+
+model Document {
+  id          String       @id @default(cuid())
+  companyId   String
+  filename    String
+  docType     DocumentType
+  periodStart DateTime?
+  periodEnd   DateTime?
+  tagsJson    Json?
+  storageUri  String
+  createdAt   DateTime     @default(now())
+
+  company     Company      @relation(fields: [companyId], references: [id])
+  extracts    DocumentExtract[]
+
+  @@index([companyId, docType])
+}
+
+model DocumentExtract {
+  id          String   @id @default(cuid())
+  documentId  String
+  extractJson Json
+  method      String
+  confidence  Float
+  createdAt   DateTime @default(now())
+
+  document    Document @relation(fields: [documentId], references: [id])
+
+  @@index([documentId])
+}
+
+model Source {
+  id            String     @id @default(cuid())
+  companyId     String?
+  type          SourceType
+  title         String
+  publisher     String?
+  url           String?
+  date          DateTime?
+  snippet       String?
+  keyPointsJson Json?
+  licenseNote   String?
+  confidence    Float?
+  createdAt     DateTime   @default(now())
+
+  company       Company?   @relation(fields: [companyId], references: [id])
+  benchmarks    Benchmark[]
+  knowledgeSource KnowledgeSource?
+  knowledgeChunks KnowledgeChunk[]
+  knowledgeObjects KnowledgeObject[]
+
+  @@index([companyId, type])
+}
+
+model KpiInputField {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  labelSimple String
+  unit        String
+  description String
+  version     Int      @default(1)
+}
+
+model KpiLibrary {
+  id                       String             @id @default(cuid())
+  businessModelType        BusinessModelType  @default(mixed)
+  businessModelsJson       Json?
+  domain                   KpiDomain
+  kpiKey                   String             @unique
+  nameSimple               String
+  nameAdvanced             String
+  definition               String
+  formulaText              String
+  proxyFormulaText         String?
+  unit                     String
+  defaultGranularity       String             @default("monthly")
+  defaultRefreshCadence    String             @default("monthly")
+  requiredInputsJson       Json
+  priorityWeight           Float
+  decisionWeight           Float?
+  defaultTargetsJson       Json
+  defaultTargetsByStageJson Json?
+  defaultGuardrailsJson    Json
+  leadingOrLagging         String?
+  whyForDecisions          String?
+  createdAt                DateTime           @default(now())
+  version                  Int
+}
+
+model StrategyIndicator {
+  id              String   @id @default(cuid())
+  indicatorKey    String   @unique
+  nameSimple      String
+  frameworkOrigin String
+  scale           String
+  definition      String
+  scoringRubricJson Json
+  outputsJson     Json
+  whyForDecisions String?
+  version         Int      @default(1)
+}
+
+model IndicatorMappingRule {
+  id                 String   @id @default(cuid())
+  ruleKey            String   @unique
+  conditionExpression String
+  actionsJson        Json
+  version            Int      @default(1)
+}
+
+model CompanyKpiSet {
+  id             String   @id @default(cuid())
+  companyId      String
+  version        Int
+  selectedKpisJson Json
+  kpiTreeJson    Json
+  rationaleJson  Json
+  createdAt      DateTime @default(now())
+
+  company        Company  @relation(fields: [companyId], references: [id])
+
+  @@index([companyId, version])
+}
+
+model KpiValue {
+  id             String   @id @default(cuid())
+  companyId      String
+  kpiKey         String
+  periodStart    DateTime?
+  periodEnd      DateTime?
+  value          Float
+  confidence     Float
+  qualityJson    Json
+  sourceRefJson  Json
+  createdAt      DateTime @default(now())
+
+  company        Company  @relation(fields: [companyId], references: [id])
+
+  @@index([companyId, kpiKey])
+}
+
+model MarketingAction {
+  id             String   @id @default(cuid())
+  companyId      String
+  actionDate     DateTime
+  description    String
+  category       String?   // e.g. "marketing", "sales", "product", "ads"
+  sourceRefJson  Json?     // { type: "manual"|"document_extraction"|"text_input", sourceId?: string }
+  createdAt      DateTime @default(now())
+
+  company        Company  @relation(fields: [companyId], references: [id])
+
+  @@index([companyId, actionDate])
+}
+
+model Benchmark {
+  id               String   @id @default(cuid())
+  companyId         String?
+  kpiKey            String
+  segmentJson       Json
+  valueLow          Float
+  valueMid          Float
+  valueHigh         Float
+  unit              String
+  sourceId          String?
+  knowledgeObjectId String?
+  confidence        Float
+  createdAt         DateTime @default(now())
+
+  company           Company? @relation(fields: [companyId], references: [id])
+  source            Source?  @relation(fields: [sourceId], references: [id])
+  knowledgeObject   KnowledgeObject? @relation(fields: [knowledgeObjectId], references: [id])
+
+  @@index([companyId, kpiKey])
+}
+
+model Workflow {
+  id             String   @id @default(cuid())
+  key            String   @unique
+  name           String
+  stepsJson      Json
+  gatingRulesJson Json
+  createdAt      DateTime @default(now())
+  prompts        PromptTemplate[]
+}
+
+model PromptTemplate {
+  id                String   @id @default(cuid())
+  workflowKey       String
+  stepKey           String
+  version           Int
+  templateText      String
+  outputSchemaKey   String
+  changeLog         String?
+  createdAt         DateTime @default(now())
+
+  workflow          Workflow @relation(fields: [workflowKey], references: [key])
+
+  @@unique([workflowKey, stepKey, version])
+}
+
+model Run {
+  id                 String       @id @default(cuid())
+  companyId          String
+  workflowKey        String
+  status             WorkflowStatus @default(draft)
+  inputSnapshotJson  Json
+  kbVersionUsed      String?
+  promptBundleVersion String?
+  userNotes          String?
+  ideaMode           String?      // "existing" | "new" für WF_APP_DEVELOPMENT
+  ideaArtifactId     String?
+  caseType           String?      // "A" | "B" (Launch vs. Scaling)
+  modus              String?      // "ohne_tool" | "mit_tool"
+  startedAt          DateTime?
+  finishedAt         DateTime?
+  createdAt          DateTime     @default(now())
+  createdBy          String?
+
+  company            Company      @relation(fields: [companyId], references: [id])
+  steps              RunStep[]
+  artifacts          Artifact[]
+  decisions          Decision[]
+  @@index([companyId, workflowKey])
+}
+
+model RunStep {
+  id                    String   @id @default(cuid())
+  runId                 String
+  stepKey               String
+  promptTemplateId      String?
+  promptTemplateVersion Int?
+  promptRendered        String
+  userPastedResponse    String?
+  parsedOutputJson      Json?
+  schemaValidationPassed Boolean
+  validationErrorsJson  Json?
+  verifiedByUser        Boolean @default(false)
+  verificationNotes     String?
+  createdAt             DateTime @default(now())
+
+  run                   Run      @relation(fields: [runId], references: [id])
+
+  @@index([runId, stepKey])
+}
+
+model Artifact {
+  id           String                @id @default(cuid())
+  companyId    String
+  runId        String?
+  type         ArtifactType
+  title        String
+  version      Int
+  contentJson  Json
+  exportHtml   String?
+  approved     Boolean               @default(false)
+  /// Freigabe-Workflow: offen, freigegeben (für Advisor/Kontext), zum Löschen markiert
+  reviewStatus ArtifactReviewStatus  @default(open)
+  createdAt    DateTime              @default(now())
+
+  company     Company      @relation(fields: [companyId], references: [id])
+  run         Run?         @relation(fields: [runId], references: [id])
+
+  @@index([companyId, type, version])
+}
+
+model Decision {
+  id             String        @id @default(cuid())
+  companyId      String
+  runId          String?
+  decisionKey    String
+  title          String
+  lever          DecisionLever
+  status         DecisionStatus @default(proposed)
+  owner          String?
+  startDate      DateTime?
+  dueDate        DateTime?
+  decisionJson   Json
+  scoringJson    Json
+  evidenceJson   Json
+  createdAt      DateTime      @default(now())
+
+  company        Company       @relation(fields: [companyId], references: [id])
+  run            Run?          @relation(fields: [runId], references: [id])
+  updates        DecisionUpdate[]
+  experiments    Experiment[]
+  learningEvents LearningEvent[]
+
+  @@index([companyId, status])
+}
+
+model DecisionUpdate {
+  id          String   @id @default(cuid())
+  decisionId  String
+  updateJson  Json
+  createdAt   DateTime @default(now())
+
+  decision    Decision @relation(fields: [decisionId], references: [id])
+
+  @@index([decisionId])
+}
+
+model Experiment {
+  id                 String   @id @default(cuid())
+  companyId          String
+  decisionId         String?
+  hypothesis         String
+  design             String
+  startDate          DateTime?
+  endDate            DateTime?
+  successCriteriaJson Json
+  stopGoJson         Json
+  status             ExperimentStatus
+  resultsJson        Json?
+  createdAt          DateTime @default(now())
+
+  company            Company  @relation(fields: [companyId], references: [id])
+  decision           Decision? @relation(fields: [decisionId], references: [id])
+  learningEvents     LearningEvent[]
+
+  @@index([companyId, status])
+}
+
+model ChatThread {
+  id          String   @id @default(cuid())
+  companyId   String
+  title       String
+  createdAt   DateTime @default(now())
+
+  company     Company  @relation(fields: [companyId], references: [id])
+  messages    ChatMessage[]
+
+  @@index([companyId])
+}
+
+model ChatMessage {
+  id            String   @id @default(cuid())
+  threadId      String
+  role          ChatRole
+  content       String
+  citationsJson Json?
+  createdAt     DateTime @default(now())
+
+  thread        ChatThread @relation(fields: [threadId], references: [id])
+
+  @@index([threadId])
+}
+
+model KnowledgeSource {
+  id              String                  @id @default(cuid())
+  companyId       String?
+  sourceId        String                  @unique
+  ingestionStatus KnowledgeIngestionStatus @default(new)
+  createdAt       DateTime                @default(now())
+
+  company         Company?                @relation(fields: [companyId], references: [id])
+  source          Source                  @relation(fields: [sourceId], references: [id])
+}
+
+model KnowledgeChunk {
+  id           String   @id @default(cuid())
+  sourceId     String
+  chunkIndex   Int
+  text         String
+  metadataJson Json
+  /// pgvector embedding, e.g. vector(1536) for OpenAI text-embedding-3-small
+  embedding    Unsupported("vector(1536)")?
+  createdAt    DateTime @default(now())
+
+  source       Source   @relation(fields: [sourceId], references: [id])
+  extractedTo  KnowledgeObject[] @relation("ChunkToObject")
+
+  @@index([sourceId, chunkIndex])
+}
+
+model KnowledgeObject {
+  id                    String            @id @default(cuid())
+  type                  KnowledgeObjectType
+  title                 String
+  contentJson           Json
+  sourceId              String
+  extractedFromChunkId  String?
+  evidenceScoreJson     Json
+  evidenceGrade         EvidenceGrade
+  confidence            Float
+  status                KnowledgeStatus   @default(draft)
+  createdAt             DateTime          @default(now())
+  version               Int
+
+  source                Source            @relation(fields: [sourceId], references: [id])
+  extractedFromChunk    KnowledgeChunk?   @relation("ChunkToObject", fields: [extractedFromChunkId], references: [id])
+  benchmarks            Benchmark[]
+  contradictionsA       KnowledgeContradiction[] @relation("ContradictionA")
+  contradictionsB       KnowledgeContradiction[] @relation("ContradictionB")
+
+  @@index([type, status])
+}
+
+model KnowledgeContradiction {
+  id                   String   @id @default(cuid())
+  knowledgeObjectIdA   String
+  knowledgeObjectIdB   String
+  reason               String
+  severity             ContradictionSeverity
+  createdAt            DateTime @default(now())
+
+  objectA              KnowledgeObject @relation("ContradictionA", fields: [knowledgeObjectIdA], references: [id])
+  objectB              KnowledgeObject @relation("ContradictionB", fields: [knowledgeObjectIdB], references: [id])
+
+  @@index([knowledgeObjectIdA, knowledgeObjectIdB])
+}
+
+model KnowledgeVersion {
+  id                    String              @id @default(cuid())
+  versionLabel          String
+  status                KnowledgeVersionStatus
+  includedObjectIdsJson Json
+  createdAt             DateTime            @default(now())
+}
+
+model LearningEvent {
+  id           String          @id @default(cuid())
+  companyId    String
+  decisionId   String?
+  experimentId String?
+  eventType    LearningEventType
+  payloadJson  Json
+  createdAt    DateTime        @default(now())
+
+  company      Company         @relation(fields: [companyId], references: [id])
+  decision     Decision?       @relation(fields: [decisionId], references: [id])
+  experiment   Experiment?     @relation(fields: [experimentId], references: [id])
+
+  @@index([companyId, eventType])
+}
+
+model UseCaseEvaluation {
+  id                  String   @id @default(cuid())
+  companyId           String
+  useCaseDescription  String
+  userDecisionApproach String
+  runId              String?
+  questionnaireJson  Json?
+  createdAt          DateTime @default(now())
+
+  company            Company  @relation(fields: [companyId], references: [id])
+
+  @@index([companyId])
+}
+
+model ScenarioEvaluation {
+  id                   String   @id @default(cuid())
+  companyId            String
+  scenarioId           Int
+  userAnswer           String
+  userConfidence       Int      // 0-100 %
+  aiAnswer             String?
+  aiConfidence         Int?     // 0-100 %
+  aiSourcesJson        Json?
+  userPrefers          String?
+  userConfidenceInAi   Int?     // 0-100 %
+  userEvaluationJson   Json?    // { sicherheit, verstaendlichkeit, relevanz, nuetzlichkeit }
+  aiEvaluationJson     Json?    // von Run
+  runId                String?  // Run für AI-Antwort
+  createdAt            DateTime @default(now())
+
+  company              Company  @relation(fields: [companyId], references: [id])
+
+  @@index([companyId, scenarioId])
+}
+
+model StudyParticipant {
+  id                    String   @id @default(cuid())
+  companyId             String
+  studyId               String   @default("DSR-2025-01")
+  externalId            String?  // Anonymisierte Teilnehmer-ID für Export
+  completedFb1          Boolean  @default(false)
+  completedFb2BeforeRuns Boolean  @default(false)
+  completedFb3AfterRuns Boolean  @default(false)
+  completedFb3          Boolean  @default(false)  // legacy
+  completedFb5          Boolean  @default(false)  // Abschlussfragebogen (Integration, Akzeptanz)
+  /// LLM-API nach FB1 im Studienablauf bestätigt
+  completedLlmSetup     Boolean  @default(false)
+  createdAt             DateTime @default(now())
+
+  company        Company  @relation(fields: [companyId], references: [id])
+  questionnaireResponses QuestionnaireResponse[]
+
+  @@unique([companyId, studyId])
+  @@index([companyId])
+}
+
+model QuestionnaireResponse {
+  id                String   @id @default(cuid())
+  participantId     String
+  questionnaireType String   // "fb1" | "fb2" | "fb3" | "fb4" | "fb5"
+  category          String?  // Für FB2/FB3 pro Kategorie: markt_geschaeftsmodell, produktstrategie, marketing, wachstum_expansion, investition_strategie
+  responsesJson     Json
+  createdAt         DateTime @default(now())
+
+  participant       StudyParticipant @relation(fields: [participantId], references: [id])
+  items             QuestionnaireResponseItem[]
+
+  @@index([participantId, questionnaireType])
+  @@index([participantId, questionnaireType, category])
+}
+
+/// Tabellarische Speicherung pro Indikator für statistische Auswertung (SPSS, R, Excel)
+model QuestionnaireResponseItem {
+  id         String   @id @default(cuid())
+  responseId String
+  itemKey    String   // z.B. A1, DQ1, COMP1, O1
+  valueNum   Int?     // Numerische Antwort (Likert 1-7, etc.)
+  valueStr   String?  // Textantwort (offene Fragen, Kategorien)
+
+  response   QuestionnaireResponse @relation(fields: [responseId], references: [id], onDelete: Cascade)
+
+  @@unique([responseId, itemKey])
+  @@index([responseId])
+  @@index([itemKey])
+}

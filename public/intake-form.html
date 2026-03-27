@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Business Intake – Company Profile</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, sans-serif; max-width: 720px; margin: 0 auto; padding: 2rem; background: #fafafa; color: #18181b; }
+    h1 { font-size: 1.5rem; margin-bottom: 0.5rem; }
+    h2 { font-size: 1.125rem; margin: 1.5rem 0 0.75rem; }
+    section { background: #fff; border: 1px solid #e4e4e7; border-radius: 1rem; padding: 1.5rem; margin-bottom: 1.5rem; }
+    label { display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 0.25rem; }
+    input, select, textarea { width: 100%; padding: 0.5rem 1rem; border: 1px solid #e4e4e7; border-radius: 0.75rem; font-size: 0.875rem; }
+    input[type="checkbox"] { width: auto; margin-right: 0.5rem; }
+    textarea { min-height: 4rem; resize: vertical; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .checkbox-group { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem; }
+    .checkbox-group label { display: flex; align-items: center; font-weight: 400; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+    th, td { padding: 0.5rem; text-align: left; border-bottom: 1px solid #e4e4e7; }
+    th { font-weight: 600; }
+    input.table-input { padding: 0.375rem 0.5rem; }
+    .btn { padding: 0.5rem 1rem; border-radius: 9999px; font-size: 0.875rem; font-weight: 600; cursor: pointer; border: none; }
+    .btn-primary { background: #18181b; color: #fff; }
+    .btn-primary:hover { background: #27272a; }
+    .btn-secondary { background: #fff; border: 1px solid #d4d4d8; }
+    .btn-secondary:hover { background: #f4f4f5; }
+    .btn-remove { color: #dc2626; font-size: 0.75rem; background: none; border: none; cursor: pointer; }
+    .hint { font-size: 0.75rem; color: #71717a; margin-top: 0.25rem; }
+  </style>
+</head>
+<body>
+  <h1>Business Intake – Company Profile</h1>
+  <p class="hint">Füllen Sie das Formular aus und senden Sie es ab. Die Daten werden als JSON an den angegebenen Endpunkt gesendet.</p>
+
+  <section style="margin-bottom: 1rem;">
+    <label>Webhook-URL (z.B. n8n, API) – leer lassen für JSON-Ausgabe in Konsole</label>
+    <input type="url" id="webhook-url" placeholder="https://your-n8n.app/webhook/intake" style="margin-top: 0.25rem;">
+  </section>
+
+  <form id="intake-form" method="POST" action="" enctype="multipart/form-data">
+    <!-- Section 0: Business state & goals -->
+    <section>
+      <h2>Business state & goals</h2>
+      <div>
+        <label>Where is your business right now?</label>
+        <select name="business_state">
+          <option value="">— Select —</option>
+          <option value="idea">Idea</option>
+          <option value="first_research">First research</option>
+          <option value="investor_search">Investor search</option>
+          <option value="launch">Launch / Startup</option>
+          <option value="young_business">Young business</option>
+          <option value="growing_business">Growing business</option>
+          <option value="scaling_business">Scaling business</option>
+          <option value="established">Established</option>
+        </select>
+      </div>
+      <div style="margin-top: 1rem;">
+        <label>Goals (select all that apply)</label>
+        <div class="checkbox-group">
+          <label><input type="checkbox" name="goals" value="validate_idea"> Validate idea</label>
+          <label><input type="checkbox" name="goals" value="market_research"> Market research</label>
+          <label><input type="checkbox" name="goals" value="secure_funding"> Secure funding</label>
+          <label><input type="checkbox" name="goals" value="launch_product"> Launch product/service</label>
+          <label><input type="checkbox" name="goals" value="grow_customers"> Grow customer base</label>
+          <label><input type="checkbox" name="goals" value="scale_operations"> Scale operations</label>
+          <label><input type="checkbox" name="goals" value="expand_markets"> Expand to new markets</label>
+          <label><input type="checkbox" name="goals" value="profitability"> Increase profitability</label>
+          <label><input type="checkbox" name="goals" value="build_team"> Build team</label>
+          <label><input type="checkbox" name="goals" value="supplier_list"> Supplier list</label>
+          <label><input type="checkbox" name="goals" value="real_estate"> Real estate</label>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 1: Company basics -->
+    <section>
+      <h2>1. Company basics</h2>
+      <div>
+        <label>Company name</label>
+        <input name="company_name" placeholder="Acme Inc">
+      </div>
+      <div style="margin-top: 1rem;">
+        <label>Location (city, country)</label>
+        <input name="location" placeholder="Berlin, Germany">
+        <label class="checkbox-group" style="margin-top: 0.5rem;"><input type="checkbox" name="ai_request" value="find_real_estate"> Find real estate for the business</label>
+      </div>
+      <div style="margin-top: 1rem;">
+        <label>Website URL</label>
+        <input name="website" type="url" placeholder="https://example.com">
+      </div>
+      <div style="margin-top: 1rem;">
+        <label>What do you offer?</label>
+        <textarea name="offer" rows="3" placeholder="Product/service description"></textarea>
+        <label class="checkbox-group" style="margin-top: 0.5rem;"><input type="checkbox" name="ai_request" value="research_market_pricing"> Research market pricing</label>
+        <label class="checkbox-group"><input type="checkbox" name="ai_request" value="find_best_positioning"> Find best product positioning</label>
+      </div>
+      <div style="margin-top: 1rem;">
+        <label>Unique Selling Proposition (USP)</label>
+        <textarea name="usp" rows="2" placeholder="What makes you different from competitors?"></textarea>
+        <label class="checkbox-group" style="margin-top: 0.5rem;"><input type="checkbox" name="ai_request" value="research_competitor_usps"> Research competitor USPs</label>
+        <label class="checkbox-group"><input type="checkbox" name="ai_request" value="find_best_usp"> Find best USP for market</label>
+      </div>
+      <div style="margin-top: 1rem;">
+        <label>Who are your customers?</label>
+        <input name="customers" placeholder="B2B SaaS, SMBs, etc.">
+        <label class="checkbox-group" style="margin-top: 0.5rem;"><input type="checkbox" name="ai_request" value="research_target_demographics"> Research target demographics</label>
+      </div>
+      <div style="margin-top: 1rem;">
+        <label>Market reach</label>
+        <select name="market_reach">
+          <option value="local">Local only</option>
+          <option value="national" selected>National</option>
+          <option value="international">International</option>
+        </select>
+      </div>
+    </section>
+
+    <!-- Section 2: Product catalogue -->
+    <section>
+      <h2>2. Product catalogue</h2>
+      <div id="products-container">
+        <table>
+          <thead>
+            <tr><th>Product name</th><th>SKU</th><th>Price</th><th>Unit</th><th>Notes</th><th></th></tr>
+          </thead>
+          <tbody id="products-tbody">
+            <tr data-index="0">
+              <td><input type="text" class="table-input" name="product_name_0" placeholder="Product name"></td>
+              <td><input type="text" class="table-input" name="product_sku_0" placeholder="SKU"></td>
+              <td><input type="number" class="table-input" name="product_price_0" placeholder="0" step="any"></td>
+              <td><input type="text" class="table-input" name="product_unit_0" placeholder="ea, kg"></td>
+              <td><input type="text" class="table-input" name="product_notes_0" placeholder="Notes"></td>
+              <td><button type="button" class="btn-remove" onclick="removeProduct(0)">Remove</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <button type="button" class="btn btn-secondary" onclick="addProduct()">+ Add product</button>
+    </section>
+
+    <!-- Section 3: Suppliers -->
+    <section>
+      <h2>3. Supplier materials & price per unit</h2>
+      <div id="suppliers-container">
+        <table>
+          <thead>
+            <tr><th>Material</th><th>Supplier</th><th>Price per unit</th><th>Unit</th><th>Notes</th><th></th></tr>
+          </thead>
+          <tbody id="suppliers-tbody">
+            <tr data-index="0">
+              <td><input type="text" class="table-input" name="supplier_material_0" placeholder="Material"></td>
+              <td><input type="text" class="table-input" name="supplier_name_0" placeholder="Supplier"></td>
+              <td><input type="number" class="table-input" name="supplier_price_0" placeholder="0" step="any"></td>
+              <td>
+                <select class="table-input" name="supplier_unit_0">
+                  <option value="g">g</option>
+                  <option value="kg" selected>kg</option>
+                  <option value="m">m</option>
+                  <option value="ft">ft</option>
+                  <option value="ea">ea</option>
+                  <option value="L">L</option>
+                </select>
+              </td>
+              <td><input type="text" class="table-input" name="supplier_notes_0" placeholder="Notes"></td>
+              <td><button type="button" class="btn-remove" onclick="removeSupplier(0)">Remove</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <button type="button" class="btn btn-secondary" onclick="addSupplier()">+ Add supplier</button>
+    </section>
+
+    <!-- Section 4: Production steps -->
+    <section>
+      <h2>4. Production steps</h2>
+      <label class="checkbox-group"><input type="checkbox" name="ai_request" value="suggest_production_workflow"> Suggest production workflow</label>
+      <textarea name="production_steps" rows="6" placeholder="List each production step, e.g.&#10;1. Sourcing raw materials&#10;2. Cutting & assembly&#10;3. Quality check&#10;4. Packaging"></textarea>
+    </section>
+
+    <!-- Section 5: Team -->
+    <section>
+      <h2>5. Team members & skills</h2>
+      <label class="checkbox-group"><input type="checkbox" name="ai_request" value="suggest_roles_salaries"> Suggest roles & salaries for location</label>
+      <div id="team-container">
+        <table>
+          <thead>
+            <tr><th>Name</th><th>Role</th><th>Skills</th><th>Hours/week</th><th>Salary</th><th></th></tr>
+          </thead>
+          <tbody id="team-tbody">
+            <tr data-index="0">
+              <td><input type="text" class="table-input" name="team_name_0" placeholder="Name"></td>
+              <td><input type="text" class="table-input" name="team_role_0" placeholder="Role"></td>
+              <td><input type="text" class="table-input" name="team_skills_0" placeholder="Skills (comma-separated)"></td>
+              <td><input type="number" class="table-input" name="team_hours_0" placeholder="40"></td>
+              <td><input type="number" class="table-input" name="team_salary_0" placeholder="45000" step="any"></td>
+              <td><button type="button" class="btn-remove" onclick="removeTeam(0)">Remove</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <button type="button" class="btn btn-secondary" onclick="addTeam()">+ Add team member</button>
+    </section>
+
+    <!-- Section 6: Financials -->
+    <section>
+      <h2>6. Financials & cost factors</h2>
+      <label class="checkbox-group"><input type="checkbox" name="ai_request" value="benchmark_industry"> Benchmark against industry</label>
+      <div class="grid2">
+        <div>
+          <label>Revenue last month</label>
+          <input name="revenue_last_month" type="number" step="any">
+        </div>
+        <div>
+          <label>Marketing spend (monthly)</label>
+          <input name="marketing_spend" type="number" step="any">
+        </div>
+        <div>
+          <label>Fixed costs (rent, utilities, etc.)</label>
+          <input name="fixed_costs" type="number" step="any" placeholder="Monthly">
+        </div>
+        <div>
+          <label>Variable costs (COGS, shipping, etc.)</label>
+          <input name="variable_costs" type="number" step="any" placeholder="Monthly">
+        </div>
+      </div>
+      <div style="margin-top: 1rem;">
+        <label>Upload Excel: one month revenue & costs</label>
+        <p class="hint">Upload a spreadsheet with revenue and cost breakdown (.xlsx, .xls, .csv)</p>
+        <input name="cost_excel" type="file" accept=".xlsx,.xls,.csv">
+      </div>
+    </section>
+
+    <!-- Section 7: Operations -->
+    <section>
+      <h2>7. Operations & growth</h2>
+      <div class="grid2">
+        <div>
+          <label>Team size</label>
+          <input name="team_size" type="number">
+        </div>
+        <div>
+          <label>Stage</label>
+          <select name="stage">
+            <option value="pre_revenue">Pre-revenue</option>
+            <option value="early_revenue" selected>Early revenue</option>
+            <option value="growth">Growth</option>
+            <option value="scaling">Scaling</option>
+          </select>
+        </div>
+      </div>
+      <div style="margin-top: 1rem;">
+        <label>Main competitors</label>
+        <textarea name="competitors" rows="2" placeholder="Who are your main competitors?"></textarea>
+        <label class="checkbox-group" style="margin-top: 0.5rem;"><input type="checkbox" name="ai_request" value="find_main_competitors"> Find main competitors</label>
+      </div>
+      <div style="margin-top: 1rem;">
+        <label>Biggest growth challenge right now</label>
+        <textarea name="growth_challenge" rows="2" placeholder="What is blocking growth?"></textarea>
+      </div>
+      <div style="margin-top: 1rem;">
+        <label>Key differentiators vs competitors</label>
+        <textarea name="differentiators" rows="2" placeholder="Price, quality, service, etc."></textarea>
+      </div>
+      <div style="margin-top: 1rem;">
+        <label>Sales channels (where do you sell?)</label>
+        <input name="sales_channels" placeholder="e.g. Website, Amazon, retail, wholesale">
+      </div>
+      <div style="margin-top: 1rem;">
+        <label>Lead time (order to delivery)</label>
+        <input name="lead_time" placeholder="e.g. 2 weeks, 24h">
+      </div>
+      <div style="margin-top: 1rem;">
+        <label>Constraints (budget, capacity, etc.)</label>
+        <textarea name="constraints" rows="2" placeholder="e.g. Limited budget, 2-person team"></textarea>
+      </div>
+    </section>
+
+    <!-- Section 8: Additional context -->
+    <section>
+      <h2>8. Additional context</h2>
+      <div>
+        <label>Funding / investment status</label>
+        <input name="funding_status" placeholder="Bootstrapped, seed, Series A, etc.">
+      </div>
+      <div style="margin-top: 1rem;">
+        <label>Legal structure</label>
+        <select name="legal_structure">
+          <option value="">—</option>
+          <option value="sole_proprietorship">Sole proprietorship</option>
+          <option value="partnership">Partnership</option>
+          <option value="llc">LLC</option>
+          <option value="corporation">Corporation</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div style="margin-top: 1rem;">
+        <label>Years in business</label>
+        <input name="years_in_business" type="number" step="0.5" placeholder="2.5">
+      </div>
+      <div style="margin-top: 1rem;">
+        <label>Target market size (TAM/SAM/SOM if known)</label>
+        <input name="target_market" placeholder="e.g. €50M TAM, €5M SAM">
+        <label class="checkbox-group" style="margin-top: 0.5rem;"><input type="checkbox" name="ai_request" value="research_tam_sam_som"> Research TAM/SAM/SOM</label>
+      </div>
+      <div style="margin-top: 1rem;">
+        <label>Main customer acquisition channels</label>
+        <input name="acquisition_channels" placeholder="e.g. Organic, paid ads, referrals">
+        <label class="checkbox-group" style="margin-top: 0.5rem;"><input type="checkbox" name="ai_request" value="find_best_acquisition_channels"> Find best acquisition channels</label>
+      </div>
+      <div style="margin-top: 1rem;">
+        <label>Average order value (AOV)</label>
+        <input name="aov" type="number" step="any" placeholder="e.g. 150">
+      </div>
+      <div style="margin-top: 1rem;">
+        <label>Customer retention / churn (if known)</label>
+        <input name="retention_churn" placeholder="e.g. 85% retention, 5% monthly churn">
+      </div>
+      <div style="margin-top: 1rem;">
+        <label>Anything else we should know?</label>
+        <textarea name="additional_notes" rows="4" placeholder="Other context that helps us understand your business"></textarea>
+      </div>
+    </section>
+
+    <button type="submit" class="btn btn-primary">Save & Continue</button>
+  </form>
+
+  <script>
+    let productCount = 1, supplierCount = 1, teamCount = 1;
+
+    function addProduct() {
+      const tbody = document.getElementById('products-tbody');
+      const tr = document.createElement('tr');
+      tr.dataset.index = productCount;
+      tr.innerHTML = `
+        <td><input type="text" class="table-input" name="product_name_${productCount}" placeholder="Product name"></td>
+        <td><input type="text" class="table-input" name="product_sku_${productCount}" placeholder="SKU"></td>
+        <td><input type="number" class="table-input" name="product_price_${productCount}" placeholder="0" step="any"></td>
+        <td><input type="text" class="table-input" name="product_unit_${productCount}" placeholder="ea, kg"></td>
+        <td><input type="text" class="table-input" name="product_notes_${productCount}" placeholder="Notes"></td>
+        <td><button type="button" class="btn-remove" onclick="removeProduct(${productCount})">Remove</button></td>
+      `;
+      tbody.appendChild(tr);
+      productCount++;
+    }
+    function removeProduct(i) {
+      document.querySelector(`#products-tbody tr[data-index="${i}"]`)?.remove();
+    }
+
+    function addSupplier() {
+      const tbody = document.getElementById('suppliers-tbody');
+      const tr = document.createElement('tr');
+      tr.dataset.index = supplierCount;
+      tr.innerHTML = `
+        <td><input type="text" class="table-input" name="supplier_material_${supplierCount}" placeholder="Material"></td>
+        <td><input type="text" class="table-input" name="supplier_name_${supplierCount}" placeholder="Supplier"></td>
+        <td><input type="number" class="table-input" name="supplier_price_${supplierCount}" placeholder="0" step="any"></td>
+        <td><select class="table-input" name="supplier_unit_${supplierCount}"><option value="g">g</option><option value="kg" selected>kg</option><option value="m">m</option><option value="ft">ft</option><option value="ea">ea</option><option value="L">L</option></select></td>
+        <td><input type="text" class="table-input" name="supplier_notes_${supplierCount}" placeholder="Notes"></td>
+        <td><button type="button" class="btn-remove" onclick="removeSupplier(${supplierCount})">Remove</button></td>
+      `;
+      tbody.appendChild(tr);
+      supplierCount++;
+    }
+    function removeSupplier(i) {
+      document.querySelector(`#suppliers-tbody tr[data-index="${i}"]`)?.remove();
+    }
+
+    function addTeam() {
+      const tbody = document.getElementById('team-tbody');
+      const tr = document.createElement('tr');
+      tr.dataset.index = teamCount;
+      tr.innerHTML = `
+        <td><input type="text" class="table-input" name="team_name_${teamCount}" placeholder="Name"></td>
+        <td><input type="text" class="table-input" name="team_role_${teamCount}" placeholder="Role"></td>
+        <td><input type="text" class="table-input" name="team_skills_${teamCount}" placeholder="Skills"></td>
+        <td><input type="number" class="table-input" name="team_hours_${teamCount}" placeholder="40"></td>
+        <td><input type="number" class="table-input" name="team_salary_${teamCount}" placeholder="45000" step="any"></td>
+        <td><button type="button" class="btn-remove" onclick="removeTeam(${teamCount})">Remove</button></td>
+      `;
+      tbody.appendChild(tr);
+      teamCount++;
+    }
+    function removeTeam(i) {
+      document.querySelector(`#team-tbody tr[data-index="${i}"]`)?.remove();
+    }
+
+    document.getElementById('intake-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+
+      const form = this;
+      const fd = new FormData(form);
+
+      // Build products_json from existing rows
+      const products = [];
+      document.querySelectorAll('#products-tbody tr').forEach(row => {
+        const i = row.dataset.index;
+        const name = form.querySelector(`[name="product_name_${i}"]`)?.value || '';
+        const price = form.querySelector(`[name="product_price_${i}"]`)?.value || '';
+        if (name || price) {
+          products.push({
+            name: String(name),
+            sku: String(form.querySelector(`[name="product_sku_${i}"]`)?.value || ''),
+            price: String(price),
+            unit: String(form.querySelector(`[name="product_unit_${i}"]`)?.value || ''),
+            notes: String(form.querySelector(`[name="product_notes_${i}"]`)?.value || ''),
+          });
+        }
+      });
+      fd.set('products_json', JSON.stringify(products));
+
+      // Build suppliers_json
+      const suppliers = [];
+      document.querySelectorAll('#suppliers-tbody tr').forEach(row => {
+        const i = row.dataset.index;
+        const material = form.querySelector(`[name="supplier_material_${i}"]`)?.value || '';
+        const price = form.querySelector(`[name="supplier_price_${i}"]`)?.value || '';
+        if (material || price) {
+          suppliers.push({
+            material: String(material),
+            supplier: String(form.querySelector(`[name="supplier_name_${i}"]`)?.value || ''),
+            pricePerUnit: String(price),
+            unit: String(form.querySelector(`[name="supplier_unit_${i}"]`)?.value || 'kg'),
+            notes: String(form.querySelector(`[name="supplier_notes_${i}"]`)?.value || ''),
+          });
+        }
+      });
+      fd.set('suppliers_json', JSON.stringify(suppliers));
+
+      // Build team_json
+      const team = [];
+      document.querySelectorAll('#team-tbody tr').forEach(row => {
+        const i = row.dataset.index;
+        const name = form.querySelector(`[name="team_name_${i}"]`)?.value || '';
+        const role = form.querySelector(`[name="team_role_${i}"]`)?.value || '';
+        const skills = form.querySelector(`[name="team_skills_${i}"]`)?.value || '';
+        const salary = form.querySelector(`[name="team_salary_${i}"]`)?.value || '';
+        if (name || role || skills || salary) {
+          team.push({
+            name: String(name),
+            role: String(role),
+            skills: String(skills),
+            hoursPerWeek: String(form.querySelector(`[name="team_hours_${i}"]`)?.value || ''),
+            salary: String(salary),
+          });
+        }
+      });
+      fd.set('team_json', JSON.stringify(team));
+
+      // Build JSON payload for API/n8n (alternative to FormData)
+      const payload = {
+        business_state: fd.get('business_state') || '',
+        goals: fd.getAll('goals'),
+        ai_requests: fd.getAll('ai_request'),
+        company_name: fd.get('company_name') || '',
+        location: fd.get('location') || '',
+        website: fd.get('website') || '',
+        offer: fd.get('offer') || '',
+        usp: fd.get('usp') || '',
+        customers: fd.get('customers') || '',
+        market_reach: fd.get('market_reach') || 'national',
+        products: JSON.parse(fd.get('products_json') || '[]'),
+        suppliers: JSON.parse(fd.get('suppliers_json') || '[]'),
+        production_steps: fd.get('production_steps') || '',
+        team: JSON.parse(fd.get('team_json') || '[]'),
+        revenue_last_month: parseFloat(fd.get('revenue_last_month') || '0') || 0,
+        marketing_spend: parseFloat(fd.get('marketing_spend') || '0') || 0,
+        fixed_costs: parseFloat(fd.get('fixed_costs') || '0') || 0,
+        variable_costs: parseFloat(fd.get('variable_costs') || '0') || 0,
+        team_size: parseInt(fd.get('team_size') || '0', 10) || 0,
+        stage: fd.get('stage') || 'early_revenue',
+        competitors: fd.get('competitors') || '',
+        growth_challenge: fd.get('growth_challenge') || '',
+        differentiators: fd.get('differentiators') || '',
+        sales_channels: fd.get('sales_channels') || '',
+        lead_time: fd.get('lead_time') || '',
+        constraints: fd.get('constraints') || '',
+        funding_status: fd.get('funding_status') || '',
+        legal_structure: fd.get('legal_structure') || '',
+        years_in_business: parseFloat(fd.get('years_in_business') || '0') || 0,
+        target_market: fd.get('target_market') || '',
+        acquisition_channels: fd.get('acquisition_channels') || '',
+        aov: parseFloat(fd.get('aov') || '0') || 0,
+        retention_churn: fd.get('retention_churn') || '',
+        additional_notes: fd.get('additional_notes') || '',
+      };
+
+      const webhookUrl = document.getElementById('webhook-url')?.value?.trim();
+      if (webhookUrl) {
+        fetch(webhookUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        })
+          .then(r => r.json().catch(() => r.text()))
+          .then(d => {
+            alert('Erfolgreich gesendet!');
+            console.log('Response:', d);
+          })
+          .catch(err => {
+            console.error('Fehler:', err);
+            console.log('JSON payload:', JSON.stringify(payload, null, 2));
+            alert('Fehler beim Senden. JSON in Konsole (F12).');
+          });
+      } else {
+        console.log('JSON payload for n8n webhook:');
+        console.log(JSON.stringify(payload, null, 2));
+        alert('JSON in Konsole ausgegeben (F12). Fügen Sie eine Webhook-URL ein, um direkt zu senden.');
+      }
+    });
+  </script>
+</body>
+</html>

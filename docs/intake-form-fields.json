@@ -1,0 +1,242 @@
+{
+  "formId": "intake",
+  "version": "1.0",
+  "sections": [
+    {
+      "id": "business_state_goals",
+      "title": "Business state & goals",
+      "fields": [
+        {
+          "name": "business_state",
+          "label": "Where is your business right now?",
+          "type": "select",
+          "htmlType": "select",
+          "options": [
+            { "value": "idea", "label": "Idea" },
+            { "value": "first_research", "label": "First research" },
+            { "value": "investor_search", "label": "Investor search" },
+            { "value": "launch", "label": "Launch / Startup" },
+            { "value": "young_business", "label": "Young business" },
+            { "value": "growing_business", "label": "Growing business" },
+            { "value": "scaling_business", "label": "Scaling business" },
+            { "value": "established", "label": "Established" }
+          ],
+          "outputType": "string",
+          "default": ""
+        },
+        {
+          "name": "goals",
+          "label": "Goals (select all that apply)",
+          "type": "checkbox_multiple",
+          "htmlType": "checkbox",
+          "nameAttribute": "goals",
+          "options": [
+            { "value": "validate_idea", "label": "Validate idea" },
+            { "value": "market_research", "label": "Market research" },
+            { "value": "secure_funding", "label": "Secure funding" },
+            { "value": "launch_product", "label": "Launch product/service" },
+            { "value": "grow_customers", "label": "Grow customer base" },
+            { "value": "scale_operations", "label": "Scale operations" },
+            { "value": "expand_markets", "label": "Expand to new markets" },
+            { "value": "profitability", "label": "Increase profitability" },
+            { "value": "build_team", "label": "Build team" },
+            { "value": "supplier_list", "label": "Supplier list" },
+            { "value": "real_estate", "label": "Real estate" }
+          ],
+          "outputType": "string[]"
+        }
+      ]
+    },
+    {
+      "id": "company_basics",
+      "title": "1. Company basics",
+      "fields": [
+        { "name": "company_name", "label": "Company name", "type": "text", "htmlType": "text", "placeholder": "Acme Inc", "outputType": "string" },
+        { "name": "location", "label": "Location (city, country)", "type": "text", "htmlType": "text", "placeholder": "Berlin, Germany", "outputType": "string" },
+        { "name": "website", "label": "Website URL", "type": "url", "htmlType": "url", "placeholder": "https://example.com", "outputType": "string" },
+        { "name": "offer", "label": "What do you offer?", "type": "textarea", "htmlType": "textarea", "rows": 3, "outputType": "string" },
+        { "name": "usp", "label": "Unique Selling Proposition (USP)", "type": "textarea", "htmlType": "textarea", "rows": 2, "outputType": "string" },
+        { "name": "customers", "label": "Who are your customers?", "type": "text", "htmlType": "text", "outputType": "string" },
+        {
+          "name": "market_reach",
+          "label": "Market reach",
+          "type": "select",
+          "htmlType": "select",
+          "options": [
+            { "value": "local", "label": "Local only" },
+            { "value": "national", "label": "National" },
+            { "value": "international", "label": "International" }
+          ],
+          "outputType": "string",
+          "default": "national"
+        },
+        {
+          "name": "ai_request",
+          "label": "AI requests (section 1)",
+          "type": "checkbox_multiple",
+          "htmlType": "checkbox",
+          "nameAttribute": "ai_request",
+          "options": [
+            { "value": "find_real_estate", "label": "Find real estate" },
+            { "value": "research_market_pricing", "label": "Research market pricing" },
+            { "value": "find_best_positioning", "label": "Find best product positioning" },
+            { "value": "research_competitor_usps", "label": "Research competitor USPs" },
+            { "value": "find_best_usp", "label": "Find best USP for market" },
+            { "value": "research_target_demographics", "label": "Research target demographics" }
+          ],
+          "outputType": "string[]"
+        }
+      ]
+    },
+    {
+      "id": "products",
+      "title": "2. Product catalogue",
+      "fields": [
+        {
+          "name": "products",
+          "outputName": "products_json",
+          "label": "Products",
+          "type": "repeatable_table",
+          "outputType": "object[]",
+          "columns": [
+            { "key": "name", "label": "Product name", "type": "text", "htmlType": "text" },
+            { "key": "sku", "label": "SKU", "type": "text", "htmlType": "text" },
+            { "key": "price", "label": "Price", "type": "number", "htmlType": "number", "step": "any" },
+            { "key": "unit", "label": "Unit", "type": "text", "htmlType": "text" },
+            { "key": "notes", "label": "Notes", "type": "text", "htmlType": "text" }
+          ],
+          "includeRowIf": "name | price"
+        }
+      ]
+    },
+    {
+      "id": "suppliers",
+      "title": "3. Supplier materials",
+      "fields": [
+        {
+          "name": "suppliers",
+          "outputName": "suppliers_json",
+          "label": "Suppliers",
+          "type": "repeatable_table",
+          "outputType": "object[]",
+          "columns": [
+            { "key": "material", "label": "Material", "type": "text", "htmlType": "text" },
+            { "key": "supplier", "label": "Supplier", "type": "text", "htmlType": "text" },
+            { "key": "pricePerUnit", "label": "Price per unit", "type": "number", "htmlType": "number", "step": "any" },
+            { "key": "unit", "label": "Unit", "type": "select", "htmlType": "select", "options": ["g", "kg", "m", "ft", "ea", "L"], "default": "kg" },
+            { "key": "notes", "label": "Notes", "type": "text", "htmlType": "text" }
+          ],
+          "includeRowIf": "material | pricePerUnit"
+        }
+      ]
+    },
+    {
+      "id": "production",
+      "title": "4. Production steps",
+      "fields": [
+        { "name": "production_steps", "label": "Production steps", "type": "textarea", "htmlType": "textarea", "rows": 6, "outputType": "string" }
+      ]
+    },
+    {
+      "id": "team",
+      "title": "5. Team members & skills",
+      "fields": [
+        {
+          "name": "team",
+          "outputName": "team_json",
+          "label": "Team",
+          "type": "repeatable_table",
+          "outputType": "object[]",
+          "columns": [
+            { "key": "name", "label": "Name", "type": "text", "htmlType": "text" },
+            { "key": "role", "label": "Role", "type": "text", "htmlType": "text" },
+            { "key": "skills", "label": "Skills", "type": "text", "htmlType": "text" },
+            { "key": "hoursPerWeek", "label": "Hours/week", "type": "number", "htmlType": "number" },
+            { "key": "salary", "label": "Salary", "type": "number", "htmlType": "number", "step": "any" }
+          ],
+          "includeRowIf": "name | role | skills | salary"
+        }
+      ]
+    },
+    {
+      "id": "financials",
+      "title": "6. Financials & cost factors",
+      "fields": [
+        { "name": "revenue_last_month", "label": "Revenue last month", "type": "number", "htmlType": "number", "step": "any", "outputType": "number", "parse": "parseFloat" },
+        { "name": "marketing_spend", "label": "Marketing spend (monthly)", "type": "number", "htmlType": "number", "step": "any", "outputType": "number", "parse": "parseFloat" },
+        { "name": "fixed_costs", "label": "Fixed costs", "type": "number", "htmlType": "number", "step": "any", "outputType": "number", "parse": "parseFloat" },
+        { "name": "variable_costs", "label": "Variable costs", "type": "number", "htmlType": "number", "step": "any", "outputType": "number", "parse": "parseFloat" },
+        { "name": "cost_excel", "label": "Upload Excel (costs)", "type": "file", "htmlType": "file", "accept": ".xlsx,.xls,.csv", "outputType": "File" }
+      ]
+    },
+    {
+      "id": "operations",
+      "title": "7. Operations & growth",
+      "fields": [
+        { "name": "team_size", "label": "Team size", "type": "number", "htmlType": "number", "outputType": "number", "parse": "parseInt" },
+        {
+          "name": "stage",
+          "label": "Stage",
+          "type": "select",
+          "htmlType": "select",
+          "options": [
+            { "value": "pre_revenue", "label": "Pre-revenue" },
+            { "value": "early_revenue", "label": "Early revenue" },
+            { "value": "growth", "label": "Growth" },
+            { "value": "scaling", "label": "Scaling" }
+          ],
+          "outputType": "string",
+          "default": "early_revenue"
+        },
+        { "name": "competitors", "label": "Main competitors", "type": "textarea", "htmlType": "textarea", "rows": 2, "outputType": "string" },
+        { "name": "growth_challenge", "label": "Biggest growth challenge", "type": "textarea", "htmlType": "textarea", "rows": 2, "outputType": "string" },
+        { "name": "differentiators", "label": "Key differentiators", "type": "textarea", "htmlType": "textarea", "rows": 2, "outputType": "string" },
+        { "name": "sales_channels", "label": "Sales channels", "type": "text", "htmlType": "text", "outputType": "string" },
+        { "name": "lead_time", "label": "Lead time", "type": "text", "htmlType": "text", "outputType": "string" },
+        { "name": "constraints", "label": "Constraints", "type": "textarea", "htmlType": "textarea", "rows": 2, "outputType": "string" }
+      ]
+    },
+    {
+      "id": "additional",
+      "title": "8. Additional context",
+      "fields": [
+        { "name": "funding_status", "label": "Funding / investment status", "type": "text", "htmlType": "text", "outputType": "string" },
+        {
+          "name": "legal_structure",
+          "label": "Legal structure",
+          "type": "select",
+          "htmlType": "select",
+          "options": [
+            { "value": "", "label": "—" },
+            { "value": "sole_proprietorship", "label": "Sole proprietorship" },
+            { "value": "partnership", "label": "Partnership" },
+            { "value": "llc", "label": "LLC" },
+            { "value": "corporation", "label": "Corporation" },
+            { "value": "other", "label": "Other" }
+          ],
+          "outputType": "string"
+        },
+        { "name": "years_in_business", "label": "Years in business", "type": "number", "htmlType": "number", "step": 0.5, "outputType": "number", "parse": "parseFloat" },
+        { "name": "target_market", "label": "Target market size (TAM/SAM/SOM)", "type": "text", "htmlType": "text", "outputType": "string" },
+        { "name": "acquisition_channels", "label": "Main acquisition channels", "type": "text", "htmlType": "text", "outputType": "string" },
+        { "name": "aov", "label": "Average order value (AOV)", "type": "number", "htmlType": "number", "step": "any", "outputType": "number", "parse": "parseFloat" },
+        { "name": "retention_churn", "label": "Customer retention / churn", "type": "text", "htmlType": "text", "outputType": "string" },
+        { "name": "additional_notes", "label": "Anything else we should know?", "type": "textarea", "htmlType": "textarea", "rows": 4, "outputType": "string" }
+      ]
+    }
+  ],
+  "processing": {
+    "completenessScore": {
+      "fields": ["company_name", "offer", "revenue_last_month", "location", "usp", "website"],
+      "formula": "Math.min(1, filledCount / 6 + 0.2)"
+    },
+    "artifactTriggers": {
+      "real_estate": {
+        "condition": "ai_requests.includes('find_real_estate') || goals.includes('real_estate')"
+      },
+      "supplier_list": {
+        "condition": "ai_requests.includes('find_supplier_whitelabel') || ai_requests.includes('find_supplier_ingredients') || goals.includes('supplier_list')"
+      }
+    }
+  }
+}
