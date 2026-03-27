@@ -7,7 +7,8 @@ const RESEND_API = "https://api.resend.com/emails";
 
 export async function sendVerificationEmail(to: string, code: string, locale: "en" | "de" = "de") {
   const key = process.env.RESEND_API_KEY;
-  const from = process.env.EMAIL_FROM ?? "Growth DSS <onboarding@resend.dev>";
+  const from =
+    process.env.EMAIL_FROM ?? "Grow Your Business <noreply@grow-your-business.online>";
 
   const subject =
     locale === "en" ? "Your verification code" : "Ihr Bestätigungscode";
@@ -39,7 +40,7 @@ export async function sendVerificationEmail(to: string, code: string, locale: "e
 
   if (process.env.NODE_ENV === "production") {
     throw new Error(
-      "E-Mail-Versand nicht konfiguriert: RESEND_API_KEY und EMAIL_FROM in .env setzen (siehe .env.example)."
+      "E-Mail-Versand nicht konfiguriert: RESEND_API_KEY setzen (lokal in .env, auf Vercel unter Environment Variables). Optional EMAIL_FROM; siehe .env.example."
     );
   }
 
