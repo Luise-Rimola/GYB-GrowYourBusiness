@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { Badge } from "@/components/Badge";
 import { KpiInfoButton } from "@/components/KpiInfoButton";
+import type { Locale } from "@/lib/i18n";
+import { getKpiLibraryDisplay } from "@/lib/kpiLibraryLocale";
 
 type KpiValue = {
   kpiKey: string;
@@ -34,6 +36,7 @@ type KpiLibraryCardsProps = {
   kpiValues: KpiValue[];
   kpiEstimates?: KpiEstimate[];
   showEstimatesSection?: boolean;
+  locale: Locale;
   t: {
     infoDescription: string;
     infoCalculationMethod: string;
@@ -54,12 +57,20 @@ function KpiCard({
   displayValue,
   isEstimated,
   t,
+  locale,
 }: {
   kpi: LibKpi;
   displayValue: string;
   isEstimated: boolean;
   t: KpiLibraryCardsProps["t"];
+  locale: Locale;
 }) {
+  const display = getKpiLibraryDisplay(kpi.kpiKey, locale, {
+    kpiKey: kpi.kpiKey,
+    nameSimple: kpi.nameSimple,
+    nameAdvanced: kpi.nameAdvanced,
+    definition: kpi.definition,
+  });
   return (
     <Link
       href={`/insights/kpi/${encodeURIComponent(kpi.kpiKey)}`}
@@ -73,7 +84,7 @@ function KpiCard({
         <p
           className={`text-sm font-semibold ${isEstimated ? "text-zinc-600 dark:text-zinc-400" : "text-zinc-900 dark:text-zinc-50"}`}
         >
-          {kpi.nameSimple}
+          {display.title}
         </p>
         <p className={`text-xs ${isEstimated ? "text-zinc-500 dark:text-zinc-500" : "text-zinc-500 dark:text-zinc-400"}`}>
           {kpi.kpiKey}
@@ -97,10 +108,10 @@ function KpiCard({
           className="shrink-0"
         >
           <KpiInfoButton
-            aria-label={`${kpi.nameSimple}: ${t.infoDescription} & ${t.infoCalculationMethod}`}
+            aria-label={`${display.title}: ${t.infoDescription} & ${t.infoCalculationMethod}`}
             meaning={kpi.nameSimple !== kpi.nameAdvanced ? `${kpi.nameSimple} = ${kpi.nameAdvanced}` : undefined}
             meaningLabel={t.infoStandsFor}
-            description={kpi.definition}
+            description={display.definition}
             formula={kpi.formulaText}
             descriptionLabel={t.infoDescription}
             formulaLabel={t.infoCalculationMethod}
@@ -122,7 +133,7 @@ function formatEstimateDisplay(estimate: KpiEstimate): string {
   return `${v1 ?? "—"} ${u}`.trim();
 }
 
-export function KpiLibraryCards({ library, kpiValues, kpiEstimates = [], showEstimatesSection = true, t }: KpiLibraryCardsProps) {
+export function KpiLibraryCards({ library, kpiValues, kpiEstimates = [], showEstimatesSection = true, locale, t }: KpiLibraryCardsProps) {
   const valueByKey = Object.fromEntries(
     kpiValues
       .filter((v, i, arr) => arr.findIndex((x) => x.kpiKey === v.kpiKey) === i)
@@ -152,6 +163,7 @@ export function KpiLibraryCards({ library, kpiValues, kpiEstimates = [], showEst
               displayValue={displayValue}
               isEstimated={false}
               t={t}
+              locale={locale}
             />
           );
         })}
@@ -167,10 +179,10 @@ export function KpiLibraryCards({ library, kpiValues, kpiEstimates = [], showEst
         {withValues.map((kpi) => {
           const kv = valueByKey[kpi.kpiKey];
           const displayValue = `${kv!.value}${kv!.periodEnd ? ` (${new Date(kv.periodEnd).toLocaleDateString()})` : ""}`;
-          return <KpiCard key={kpi.id} kpi={kpi} displayValue={displayValue} isEstimated={false} t={t} />;
+          return <KpiCard key={kpi.id} kpi={kpi} displayValue={displayValue} isEstimated={false} t={t} locale={locale} />;
         })}
         {withNeither.map((kpi) => (
-          <KpiCard key={kpi.id} kpi={kpi} displayValue="—" isEstimated={false} t={t} />
+          <KpiCard key={kpi.id} kpi={kpi} displayValue="—" isEstimated={false} t={t} locale={locale} />
         ))}
       </div>
 
@@ -182,7 +194,7 @@ export function KpiLibraryCards({ library, kpiValues, kpiEstimates = [], showEst
               const estimate = matchEstimate(kpi.kpiKey, kpiEstimates)!;
               const displayValue = formatEstimateDisplay(estimate);
               return (
-                <KpiCard key={kpi.id} kpi={kpi} displayValue={displayValue} isEstimated t={t} />
+                <KpiCard key={kpi.id} kpi={kpi} displayValue={displayValue} isEstimated t={t} locale={locale} />
               );
             })}
           </div>

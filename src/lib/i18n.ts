@@ -421,24 +421,30 @@ export const translations = {
       progressTitle: "Your progress",
       progressDesc: "Form and workflow progress. Green = completed.",
       platformFlowTitle: "Overall app flow",
-      platformFlowDesc: "Current end-to-end flow from input to analysis.",
+      platformFlowDesc:
+        "End-to-end: profile and documents, optional knowledge ingest (text, chunks, embeddings, pgvector), dashboard runs, ContextPack with optional RAG chunks, LLM output with schema validation, artifacts, release/evaluation, KPIs with integrated AI analysis, early warnings, study/export.",
       runLifecycleTitle: "Run lifecycle",
-      runLifecycleDesc: "How a run is processed technically.",
+      runLifecycleDesc:
+        "Load base data, optional RAG (query embedding, vector search over knowledge chunks), assemble ContextPack, fill prompt templates with data, validation loop, save run step, create artifact/decision, extract indicators, evaluate rules, update run status.",
       dsrStudyTitle: "DSR study process",
-      dsrStudyDesc: "Questionnaire and evaluation logic in the study flow.",
+      dsrStudyDesc:
+        "FB1 → profile → LLM settings → sources (optional ingest) → per planning area: info, FB2, runs, artifacts, FB3, FB4 (direct comparison) → decisions → evaluation → FB5 → export.",
       kpiModelTitle: "KPI & evaluation model",
-      kpiModelDesc: "KPIs, strategy indicators, and mapping rules together.",
+      kpiModelDesc:
+        "KPI library and document-derived knowledge feed values; descriptive stats and history, integrated KPI AI (knowledge + KPIs + measures), strategy indicators, mapping rules, active rule hints.",
       earlyWarningTitle: "Early warning logic",
-      earlyWarningDesc: "Hints appear only when risk factors are met.",
+      earlyWarningDesc:
+        "Structured signals (indicator thresholds, risk_explanation, risk matrix) or heuristic keywords / sensitive artifact types — see `earlyWarning.ts`.",
       dependenciesTitle: "Workflow dependencies",
-      dependenciesDesc: "Simplified current dependencies between core workflows.",
+      dependenciesDesc:
+        "Simplified core workflow chain (English keys in the diagram). More workflows exist on the Dashboard.",
       toolFunctionsTitle: "Tools & functions",
       toolFunctionsDesc: "Which page covers which function.",
       toolBullet1: "`/dashboard`: Start workflows per phase, view artifacts per phase.",
-      toolBullet2: "`/runs`: Step-by-step creation and validation of outputs.",
+      toolBullet2: "`/runs`: Steps with ContextPack, optional RAG, prompts filled with data, schema validation.",
       toolBullet3: "`/artifacts`: Release, evaluation, early warnings with detail reasons.",
-      toolBullet4: "`/insights`: KPI library, real KPI data, strategy indicators, rule hints.",
-      toolBullet5: "`/study` + `/evaluation`: DSR questionnaires, direct comparison, use-case/scenario evaluation.",
+      toolBullet4: "`/insights`: KPI library, values, integrated KPI AI, strategy indicators, rule hints; links knowledge upload and artifacts.",
+      toolBullet5: "`/study` + `/evaluation`: DSR questionnaires FB1–FB5 (FB4 = per-area comparison), use-case/scenario evaluation.",
       riskFactorsTitle: "Risk factors & status trigger",
       riskFactorsDesc: "Definitions for hint + risk status.",
       riskFactorsIntro: "Defined risk factors (global)",
@@ -688,6 +694,17 @@ export const translations = {
       kpiInputDesc: "Add or edit KPI values (manual in MVP).",
       documentsData: "Documents & Data",
       kpiInputHelp: "KPI values are computed from intake answers, document extracts, or manual entry. Use the Documents & Data page to upload files or add sources.",
+      integratedTitle: "Integrated analysis",
+      integratedDesc:
+        "The AI reads your knowledge objects, latest KPI values (per key), and logged measures — then explains connections, gaps, and next steps. Uses your LLM settings (same as workflows).",
+      integratedButton: "Run integrated analysis",
+      integratedLoading: "Analyzing…",
+      integratedEmpty:
+        "Works best with processed knowledge sources, KPI values, and measures from the Knowledge page. Configure LLM under Settings.",
+      kpiRelatedMeasures: "Related measures",
+      kpiRelatedMeasuresHint:
+        "From the same document or text batch as your KPI values, or tagged with this KPI when extracted.",
+      kpiNoRelatedMeasures: "No linked measures yet. Extract KPIs and measures together on the Knowledge page, or process a document that contains both.",
     },
     knowledge: {
       title: "Knowledge Base",
@@ -1202,24 +1219,30 @@ export const translations = {
       progressTitle: "Ihr Fortschritt",
       progressDesc: "Formular- und Workflow-Fortschritt. Grün = abgeschlossen.",
       platformFlowTitle: "Gesamtprozess der App",
-      platformFlowDesc: "Aktueller End-to-End-Ablauf von Eingabe bis Auswertung.",
+      platformFlowDesc:
+        "End-to-End: Profil und Dokumente, optionales Wissen (Text, Chunks, Embeddings, pgvector), Dashboard-Runs, ContextPack mit optionalen RAG-Chunks, LLM-Output mit Schema-Validierung, Artefakte, Freigabe/Evaluation, KPIs inkl. KPI KI-Analyse, Frühwarnsignale, Study/Export.",
       runLifecycleTitle: "Run-Lifecycle",
-      runLifecycleDesc: "Wie ein Run technisch verarbeitet wird.",
+      runLifecycleDesc:
+        "Basisdaten laden, optionales RAG (Query-Embedding, Vektorsuche), ContextPack, Prompt-Vorlagen mit Daten füllen, Validierungsschleife, RunStep speichern, Artefakt/Decision, Indikatoren, Regeln, Run-Status.",
       dsrStudyTitle: "DSR-Studienprozess",
-      dsrStudyDesc: "Fragebogen- und Evaluationslogik im Studienfluss.",
+      dsrStudyDesc:
+        "FB1 → Profil → LLM → Quellen (optional Wissen) → je Bereich: Info, FB2, Runs, Artefakte, FB3, FB4 Direktvergleich → Entscheidungen → Evaluation → FB5 → Export.",
       kpiModelTitle: "KPI- & Auswertungsmodell",
-      kpiModelDesc: "KPIs, Strategy Indicators und Mapping Rules im Zusammenspiel.",
+      kpiModelDesc:
+        "KPI-Bibliothek und Wissen aus Dokumenten speisen KPI-Werte; Deskriptive Statistik/Verlauf, KPI KI-Analyse (Wissen + KPIs + Maßnahmen), Strategy Indicators, Mapping Rules, aktive Hinweise.",
       earlyWarningTitle: "Frühwarnsignal-Logik",
-      earlyWarningDesc: "Hinweise erscheinen nur bei erfüllten Risikofaktoren.",
+      earlyWarningDesc:
+        "Strukturierte Signale (Indikator-Schwellen, risk_explanation, Risikomatrix) oder Heuristik (Schlüsselwörter, Typen) — siehe `earlyWarning.ts`.",
       dependenciesTitle: "Workflow-Abhängigkeiten",
-      dependenciesDesc: "Vereinfachte aktuelle Abhängigkeiten zwischen Kern-Workflows.",
+      dependenciesDesc:
+        "Vereinfachte Kern-Kette (deutsche Kurznamen im Diagramm). Weitere Workflows im Dashboard.",
       toolFunctionsTitle: "Tools & Funktionen",
       toolFunctionsDesc: "Welche Seite welche Funktion übernimmt.",
       toolBullet1: "`/dashboard`: Workflows je Phase starten, Artefakte je Phase einsehen.",
-      toolBullet2: "`/runs`: Schrittweise Erstellung und Validierung von Outputs.",
+      toolBullet2: "`/runs`: Steps mit ContextPack, optionalem RAG, Prompts mit Daten, Schema-Validierung.",
       toolBullet3: "`/artifacts`: Freigabe, Evaluation, Frühwarnhinweise mit Detailgründen.",
-      toolBullet4: "`/insights`: KPI-Bibliothek, echte KPI-Daten, Strategy Indicators, Rule-Hinweise.",
-      toolBullet5: "`/study` + `/evaluation`: DSR-Bögen, Direktvergleich, Use-Case-/Szenario-Evaluation.",
+      toolBullet4: "`/insights`: KPI-Bibliothek, Werte, KPI KI-Analyse, Strategy Indicators, Rule-Hinweise; verknüpft Wissen-Upload und Artefakte.",
+      toolBullet5: "`/study` + `/evaluation`: DSR-Bögen FB1–FB5 (FB4 = Direktvergleich je Bereich), Use-Case-/Szenario-Evaluation.",
       riskFactorsTitle: "Risikofaktoren & Statusauslösung",
       riskFactorsDesc: "Definitionen für Hinweis + Status „Risiko“.",
       riskFactorsIntro: "Definierte Risikofaktoren (global)",
@@ -1470,6 +1493,18 @@ export const translations = {
       kpiInputDesc: "KPI-Werte hinzufügen oder bearbeiten (manuell im MVP).",
       documentsData: "Dokumente & Daten",
       kpiInputHelp: "KPI-Werte werden aus Intake-Antworten, Dokument-Extrakten oder manueller Eingabe berechnet. Nutzen Sie die Seite Dokumente & Daten zum Hochladen von Dateien oder Hinzufügen von Quellen.",
+      integratedTitle: "Integrierte KI-Analyse",
+      integratedDesc:
+        "Die KI liest Wissensobjekte, aktuelle KPI-Werte (pro Kennzahl) und erfasste Maßnahmen — und ordnet Zusammenhänge, Lücken und nächste Schritte. Nutzt dieselbe LLM-Konfiguration wie die Workflows (Einstellungen).",
+      integratedButton: "Analyse starten",
+      integratedLoading: "Analyse läuft…",
+      integratedEmpty:
+        "Am hilfreichsten mit verarbeiteten Quellen auf der Wissensseite, KPI-Werten und Maßnahmen. LLM unter Einstellungen hinterlegen.",
+      kpiRelatedMeasures: "Zugeordnete Maßnahmen",
+      kpiRelatedMeasuresHint:
+        "Aus derselben Dokument- oder Text-Batch-Verarbeitung wie Ihre KPI-Werte, oder mit diesem KPI beim Extrahieren markiert.",
+      kpiNoRelatedMeasures:
+        "Noch keine verknüpften Maßnahmen. KPIs und Maßnahmen gemeinsam auf der Wissensseite erfassen oder ein Dokument verarbeiten, das beides enthält.",
     },
     knowledge: {
       title: "Wissensdatenbank",

@@ -7,6 +7,8 @@ import { KpiHistoryChart } from "@/components/KpiHistoryChart";
 import { getTranslations } from "@/lib/i18n";
 import { getServerLocale } from "@/lib/locale";
 import { evaluateCompanyIndicatorRules } from "@/lib/indicatorMappingRulesEngine";
+import { getMarketingActionsForKpi } from "@/lib/marketingActionsForKpi";
+import { getKpiLibraryDisplay } from "@/lib/kpiLibraryLocale";
 
 async function addKpiValueAction(formData: FormData) {
   "use server";
@@ -47,12 +49,13 @@ export default async function KpiDetailPage({
   const locale = await getServerLocale();
   const t = getTranslations(locale);
 
-  const [kpiValues, libraryEntry] = await Promise.all([
+  const [kpiValues, libraryEntry, relatedMeasures] = await Promise.all([
     prisma.kpiValue.findMany({
       where: { companyId: company.id, kpiKey: decodedKey },
       orderBy: [{ periodEnd: "asc" }, { createdAt: "asc" }],
     }),
     prisma.kpiLibrary.findFirst({ where: { kpiKey: decodedKey } }),
+    getMarketingActionsForKpi(company.id, decodedKey),
   ]);
 
   if (!libraryEntry) {
@@ -66,7 +69,12 @@ export default async function KpiDetailPage({
     rawDate: v.periodEnd ?? v.createdAt,
   })).sort((a, b) => new Date(a.rawDate).getTime() - new Date(b.rawDate).getTime());
 
-  const name = libraryEntry?.nameSimple ?? decodedKey;
+  const kpiDisplay = getKpiLibraryDisplay(decodedKey, locale, {
+    kpiKey: libraryEntry.kpiKey,
+    nameSimple: libraryEntry.nameSimple,
+    nameAdvanced: libraryEntry.nameAdvanced,
+    definition: libraryEntry.definition,
+  });
 
   return (
     <div className="space-y-6">
@@ -79,16 +87,48 @@ export default async function KpiDetailPage({
         </Link>
       </div>
       <div className="rounded-2xl border border-[var(--card-border)] bg-[var(--card)] p-6">
-        <h1 className="text-xl font-semibold text-[var(--foreground)]">{name}</h1>
+        <h1 className="text-xl font-semibold text-[var(--foreground)]">{kpiDisplay.title}</h1>
         <p className="mt-1 text-sm text-[var(--muted)]">{decodedKey}</p>
-        {libraryEntry?.definition && (
-          <p className="mt-2 text-sm text-[var(--muted)]">{libraryEntry.definition}</p>
-        )}
+        {kpiDisplay.definition ? (
+          <p className="mt-2 text-sm text-[var(--muted)]">{kpiDisplay.definition}</p>
+        ) : null}
       </div>
       <div className="rounded-2xl border border-[var(--card-border)] bg-[var(--card)] p-6">
         <h2 className="mb-4 text-lg font-semibold text-[var(--foreground)]">Verlauf</h2>
         <KpiHistoryChart data={chartData} />
       </div>
+
+      <div className="rounded-2xl border border-[var(--card-border)] bg-[var(--card)] p-6">
+        <h2 className="mb-2 text-lg font-semibold text-[var(--foreground)]">{t.insights.kpiRelatedMeasures}</h2>
+        <p className="mb-4 text-xs text-[var(--muted)]">{t.insights.kpiRelatedMeasuresHint}</p>
+        {relatedMeasures.length === 0 ? (
+          <p className="text-sm text-[var(--muted)]">{t.insights.kpiNoRelatedMeasures}</p>
+        ) : (
+          <ul className="space-y-3">
+            {relatedMeasures.map((m) => (
+              <li
+                key={m.id}
+                className="flex flex-col gap-0.5 rounded-xl border border-[var(--card-border)] bg-[var(--background)]/40 px-4 py-3 text-sm sm:flex-row sm:items-start sm:justify-between"
+              >
+                <span className="shrink-0 font-medium text-[var(--foreground)] tabular-nums">
+                  {m.actionDate.toLocaleDateString(locale === "en" ? "en-GB" : "de-DE", {
+                    year: "numeric",
+                    month: "short",
+                    day: "numeric",
+                  })}
+                </span>
+                <div className="min-w-0 flex-1 sm:pl-4">
+                  <p className="text-[var(--foreground)]">{m.description}</p>
+                  {m.category && (
+                    <p className="mt-1 text-xs text-[var(--muted)]">{m.category}</p>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
       <div className="rounded-2xl border border-[var(--card-border)] bg-[var(--card)] p-6">
         <h2 className="mb-4 text-lg font-semibold text-[var(--foreground)]">Statistik</h2>
         {kpiValues.length === 0 ? (

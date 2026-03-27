@@ -26,8 +26,9 @@ const MARKETING_ACTION_EXTRACTION_PROMPT = `Extract marketing/business measures 
 - action_date: ISO date string (YYYY-MM-DD) if identifiable, else YYYY-MM-01
 - description: short description of the measure (max 200 chars)
 - category: "marketing"|"sales"|"product"|"ads"|"ops"|"other"
+- related_kpi_keys: optional string array — library KPI keys this measure targets (e.g. cac, north_star_revenue, logo_churn_rate). Use [] if unclear.
 
-Return ONLY valid JSON array. Example: [{"action_date":"2024-01-15","description":"Google Ads Kampagne gestartet","category":"marketing"}]`;
+Return ONLY valid JSON array. Example: [{"action_date":"2024-01-15","description":"Google Ads Kampagne gestartet","category":"marketing","related_kpi_keys":["cac"]}]`;
 const DEFAULT_EMBEDDING_MODEL = "text-embedding-3-small";
 
 async function extractTextFromFile(url: string): Promise<string | null> {
@@ -265,20 +266,34 @@ export const KnowledgeService = {
         const actionPrompt = `${MARKETING_ACTION_EXTRACTION_PROMPT}\n\nDocument text:\n${text.slice(0, 12000)}`;
         const actionContent = await callLlmForExtraction(actionPrompt, companyId);
         const actionMatch = actionContent.match(/\[[\s\S]*\]/);
-        const actionArr = actionMatch ? (JSON.parse(actionMatch[0]) as Array<{ action_date?: string; description?: string; category?: string }>) : [];
+        const actionArr = actionMatch
+          ? (JSON.parse(actionMatch[0]) as Array<{
+              action_date?: string;
+              description?: string;
+              category?: string;
+              related_kpi_keys?: string[];
+            }>)
+          : [];
         for (const item of actionArr) {
           const desc = String(item.description ?? "").trim().slice(0, 500);
           if (!desc) continue;
           const d = item.action_date ? new Date(item.action_date) : new Date();
           if (isNaN(d.getTime())) continue;
           const category = ["marketing", "sales", "product", "ads", "ops", "other"].includes(String(item.category ?? "")) ? item.category : "other";
+          const relatedKpiKeys = Array.isArray(item.related_kpi_keys)
+            ? [...new Set(item.related_kpi_keys.map((k) => String(k).trim().toLowerCase().replace(/-/g, "_")).filter(Boolean))]
+            : [];
           await prisma.marketingAction.create({
             data: {
               companyId,
               actionDate: d,
               description: desc,
               category: category ?? "other",
-              sourceRefJson: { type: "document_extraction", sourceId },
+              sourceRefJson: {
+                type: "document_extraction",
+                sourceId,
+                ...(relatedKpiKeys.length > 0 ? { relatedKpiKeys } : {}),
+              },
             },
           });
           actionsCreated++;
@@ -307,13 +322,13 @@ export const KnowledgeService = {
     const prompt = `Extract from this German or English text. Be generous – extract KPIs, measures, AND corrections.
 
 1) kpis: KPI values – revenue (Umsatz, verdient, €), customers (Kunden), margin (Marge). Map to: north_star_revenue, new_customers, gross_margin_pct, etc. Parse "100e" or "100€" as 100.
-2) actions: Business measures (Maßnahmen) – e.g. "Mittagskarte reduziert", "Kampagne gestartet". Category: marketing|sales|product|ads|ops|other.
+2) actions: Business measures (Maßnahmen) – e.g. "Mittagskarte reduziert", "Kampagne gestartet". Category: marketing|sales|product|ads|ops|other. Each action may include related_kpi_keys: string[] (KPI keys from the kpis list or standard keys like cac, north_star_revenue) when the measure clearly targets those metrics; else [].
 3) corrections: User CORRECTIONS/overrides – when they say "X ist Y, aber ich denke Z" or "ändern von Y auf Z". Each: field_key ("personnel_costs"|"rent"|"menu_cost"|"revenue"|"other"), new_value (number), old_value (if mentioned), month ("YYYY-MM" only if explicit), scope ("all_months"|"single_month"|"overall"), change_magnitude ("small"|"large" – "large" for personnel_costs, rent, menu_cost as they cascade).
 
 Dates: ONLY use date from text if EXPLICITLY written. Else use today: ${today}.
 
 Examples:
-"Mittagskarte reduziert, 100€" → kpis:[{kpi_key:"north_star_revenue",value:100,period:"${today.slice(0, 7)}"}], actions:[{action_date:"${today}",description:"Mittagskarte reduziert",category:"product"}]
+"Mittagskarte reduziert, 100€" → kpis:[{kpi_key:"north_star_revenue",value:100,period:"${today.slice(0, 7)}"}], actions:[{action_date:"${today}",description:"Mittagskarte reduziert",category:"product",related_kpi_keys:["north_star_revenue"]}]
 "Personalkosten sind 7000, ich denke 4000" → corrections:[{field_key:"personnel_costs",new_value:4000,old_value:7000,scope:"all_months",change_magnitude:"large"}]
 
 Return ONLY valid JSON: { "kpis": [...], "actions": [...], "corrections": [...] }`;
@@ -346,7 +361,7 @@ Return ONLY valid JSON: { "kpis": [...], "actions": [...], "corrections": [...] 
     const parsed = jsonMatch
       ? (JSON.parse(jsonMatch[0]) as {
           kpis?: Array<{ kpi_key?: string; value?: number; period?: string; confidence?: number }>;
-          actions?: Array<{ action_date?: string; description?: string; category?: string }>;
+          actions?: Array<{ action_date?: string; description?: string; category?: string; related_kpi_keys?: string[] }>;
           corrections?: ExtractedCorrection[];
         })
       : { kpis: [], actions: [], corrections: [] };
@@ -390,13 +405,21 @@ Return ONLY valid JSON: { "kpis": [...], "actions": [...], "corrections": [...] 
         const d = item.action_date ? new Date(item.action_date) : new Date();
         if (isNaN(d.getTime())) continue;
         const category = ["marketing", "sales", "product", "ads", "ops", "other"].includes(String(item.category ?? "")) ? item.category : "other";
+        const relatedKpiKeys = Array.isArray(item.related_kpi_keys)
+          ? [...new Set(item.related_kpi_keys.map((k) => String(k).trim().toLowerCase().replace(/-/g, "_")).filter(Boolean))]
+          : [];
         await prisma.marketingAction.create({
           data: {
             companyId,
             actionDate: d,
             description: desc,
             category: category ?? "other",
-            sourceRefJson: { type: "text_input", batchId, inputPreview: text.slice(0, 100) },
+            sourceRefJson: {
+              type: "text_input",
+              batchId,
+              inputPreview: text.slice(0, 100),
+              ...(relatedKpiKeys.length > 0 ? { relatedKpiKeys } : {}),
+            },
           },
         });
         actionsCreated++;

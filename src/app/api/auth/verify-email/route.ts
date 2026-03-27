@@ -44,7 +44,7 @@ export async function POST(req: Request) {
     });
     await setSessionCookie(token);
 
-    return NextResponse.json({ ok: true, redirect: "/study" });
+    return NextResponse.json({ ok: true, redirect: "/home" });
   } catch (err) {
     console.error("[auth/verify-email]", err);
     return NextResponse.json({ error: "Bestätigung fehlgeschlagen." }, { status: 500 });

@@ -39,7 +39,7 @@ export function VerifyEmailForm() {
       if (!res.ok) {
         throw new Error(typeof data.error === "string" ? data.error : t.auth.verifyInvalidCode);
       }
-      router.push(typeof data.redirect === "string" ? data.redirect : "/study");
+      router.push(typeof data.redirect === "string" ? data.redirect : "/home");
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : t.auth.errorGeneric);

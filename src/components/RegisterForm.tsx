@@ -41,7 +41,7 @@ export function RegisterForm() {
         router.refresh();
         return;
       }
-      router.push(typeof data.redirect === "string" ? data.redirect : "/study");
+      router.push(typeof data.redirect === "string" ? data.redirect : "/home");
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : t.auth.errorGeneric);

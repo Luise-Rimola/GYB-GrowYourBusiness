@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { Badge } from "@/components/Badge";
 import { ReadableDataView } from "@/components/ReadableDataView";
+import type { Locale } from "@/lib/i18n";
+import { getKpiLibraryDisplay } from "@/lib/kpiLibraryLocale";
 
 type KpiValue = {
   id: string;
@@ -17,6 +19,7 @@ type KpiValue = {
 type LibKpi = {
   kpiKey: string;
   nameSimple: string;
+  nameAdvanced: string;
   definition: string;
   formulaText: string;
 };
@@ -34,6 +37,7 @@ type KpiValueCardsProps = {
   kpiValues: KpiValue[];
   library: LibKpi[];
   kpiEstimates?: KpiEstimate[];
+  locale: Locale;
   t: {
     viewDetails: string;
     formula: string;
@@ -59,7 +63,7 @@ function groupByKpiKey(kpiValues: KpiValue[]): Map<string, KpiValue> {
   return map;
 }
 
-export function KpiValueCards({ kpiValues, library, kpiEstimates = [], t }: KpiValueCardsProps) {
+export function KpiValueCards({ kpiValues, library, kpiEstimates = [], locale, t }: KpiValueCardsProps) {
   if (kpiValues.length === 0) return null;
 
   const latestByKey = groupByKpiKey(kpiValues);
@@ -72,6 +76,15 @@ export function KpiValueCards({ kpiValues, library, kpiEstimates = [], t }: KpiV
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       {Array.from(latestByKey.entries()).map(([kpiKey, kv]) => {
         const libKpi = library.find((k) => k.kpiKey === kv.kpiKey);
+        const title =
+          libKpi != null
+            ? getKpiLibraryDisplay(kv.kpiKey, locale, {
+                kpiKey: libKpi.kpiKey,
+                nameSimple: libKpi.nameSimple,
+                nameAdvanced: libKpi.nameAdvanced,
+                definition: libKpi.definition,
+              }).title
+            : kv.kpiKey;
         const sourceRef = kv.sourceRefJson as { type?: string } | null;
         const isManual = sourceRef?.type === "manual_input";
         const estimate = kpiEstimates.find((e) => e.kpi_key === kv.kpiKey);
@@ -84,7 +97,7 @@ export function KpiValueCards({ kpiValues, library, kpiEstimates = [], t }: KpiV
           >
             <div className="flex items-center justify-between">
               <p className="font-semibold text-zinc-900 dark:text-zinc-50">
-                {libKpi?.nameSimple ?? kv.kpiKey}
+                {title}
               </p>
               <Badge
                 label={isManual ? t.manualLabel : `${Math.round(kv.confidence * 100)}% ${t.confidenceLabel}`}

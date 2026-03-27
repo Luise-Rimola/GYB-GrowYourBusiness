@@ -10,6 +10,7 @@ import { getTranslations } from "@/lib/i18n";
 import { AutoKpiService } from "@/services/autoKpi";
 import { getLatestStrategyIndicatorValues } from "@/lib/strategyIndicatorValues";
 import { getActiveIndicatorRuleAlerts } from "@/lib/indicatorMappingRulesEngine";
+import { IntegratedInsightAnalysis } from "@/components/IntegratedInsightAnalysis";
 
 export default async function InsightsPage() {
   const locale = await getServerLocale();
@@ -78,8 +79,21 @@ export default async function InsightsPage() {
     })
     .filter((v): v is { rank: number; key: string; description: string; blockedKpis: string[]; minimalDataToFix: string[] } => v !== null);
 
+  const insightLocale = locale === "en" ? "en" : "de";
+
   return (
     <div className="space-y-8">
+      <Section title={t.insights.integratedTitle} description={t.insights.integratedDesc}>
+        <IntegratedInsightAnalysis
+          locale={insightLocale}
+          labels={{
+            button: t.insights.integratedButton,
+            loading: t.insights.integratedLoading,
+            emptyHint: t.insights.integratedEmpty,
+          }}
+        />
+      </Section>
+
       <Section
         title={t.insights.title}
         description={t.insights.description}
@@ -98,6 +112,7 @@ export default async function InsightsPage() {
             kpiValues={kpiValues.map((kv) => ({ ...kv, sourceRefJson: (kv.sourceRefJson ?? {}) as object }))}
             library={library}
             kpiEstimates={kpiEstimates}
+            locale={locale}
             t={{
               viewDetails: t.insights.viewDetails,
               formula: t.insights.formula,
@@ -145,6 +160,7 @@ export default async function InsightsPage() {
                           }))}
                           kpiEstimates={kpiEstimates}
                           showEstimatesSection={false}
+                          locale={locale}
                           t={{
                             infoDescription: t.insights.infoDescription,
                             infoCalculationMethod: t.insights.infoCalculationMethod,
@@ -174,6 +190,7 @@ export default async function InsightsPage() {
                   }))}
                   kpiEstimates={kpiEstimates}
                   showEstimatesSection={false}
+                  locale={locale}
                   t={{
                     infoDescription: t.insights.infoDescription,
                     infoCalculationMethod: t.insights.infoCalculationMethod,
@@ -195,6 +212,7 @@ export default async function InsightsPage() {
                   kpiValues={[]}
                   kpiEstimates={kpiEstimates}
                   showEstimatesSection={true}
+                  locale={locale}
                   t={{
                     infoDescription: t.insights.infoDescription,
                     infoCalculationMethod: t.insights.infoCalculationMethod,
