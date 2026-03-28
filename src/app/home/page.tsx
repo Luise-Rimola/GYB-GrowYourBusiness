@@ -94,13 +94,13 @@ export default async function Home({
       common: { viewArtifacts: t.common.viewArtifacts },
       home: { companyProfile: t.home.companyProfile, stepLlm: t.home.stepLlm, step2: t.home.step2, step5: t.home.step5, step6: t.home.step6 },
       study: {
-        studyFb1Btn: t.study.studyFb1Btn,
+        fb1Title: t.study.fb1Title,
         studyInfoStep: t.study.studyInfoStep,
-        studyFb2BeforeCategory: t.study.studyFb2BeforeCategory,
+        fb2Title: t.study.fb2Title,
         studyWorkflowStep: t.study.studyWorkflowStep,
-        studyFb3AfterCategory: t.study.studyFb3AfterCategory,
-        studyFb4Btn: t.study.studyFb4Btn,
-        studyFb5Btn: t.study.studyFb5Btn,
+        fb3Title: t.study.fb3Title,
+        fb4Title: t.study.fb4Title,
+        fb5Title: t.study.fb5Title,
       },
     },
   });

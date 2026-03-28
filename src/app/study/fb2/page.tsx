@@ -13,6 +13,7 @@ import { Fragebogen2Form } from "@/components/Fragebogen2Form";
 import { WORKFLOW_NAMES } from "@/lib/planningFramework";
 import { type ScenarioCategory } from "@/lib/scenarios";
 import { AssistantSubmitBridge } from "@/components/AssistantSubmitBridge";
+import { dashboardUrlAfterFb2Assistant } from "@/lib/studyAssistantEmbed";
 import { getStudyCategoryContext } from "@/lib/studyCategoryContext";
 
 function parseFb2FormData(formData: FormData) {
@@ -43,6 +44,11 @@ async function saveFb2(formData: FormData) {
 
   if (!category) {
     await updateStudyParticipantById(participant.id, { completedFb2BeforeRuns: true });
+  }
+
+  const assistantEmbed = formData.get("assistant_embed") === "1";
+  if (assistantEmbed && category) {
+    redirect(dashboardUrlAfterFb2Assistant(category));
   }
 
   redirect(
@@ -102,6 +108,7 @@ export default async function Fragebogen2Page({
         t={t.study}
         category={category ?? null}
         initialValues={initialValues}
+        assistantEmbed={isEmbed}
         submitLabel={isEmbed ? t.study.embedSubmitDone : undefined}
         hideSubmitButton={isEmbed}
       />

@@ -1,9 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useRef, useState } from "react";
-import { useEffect } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { NAV_TRANSITION_EVENT } from "@/components/NavigationTransition";
+import { iframeShowsStepCompletion } from "@/lib/assistantIframeCompletion";
 import { SUBMIT_BUTTON_PENDING_CLASS } from "@/lib/submitButtonStyle";
+
+const ASSISTANT_DONE_HREFS_KEY = "gyb-assistant-done-hrefs-v1";
 
 type AssistantStep = {
   href: string;
@@ -11,36 +14,99 @@ type AssistantStep = {
   completed: boolean;
 };
 
+function dispatchAssistantPulse(phase: "start" | "end") {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent(NAV_TRANSITION_EVENT, { detail: { phase } }));
+}
+
+function readPersistedDoneHrefs(): Set<string> {
+  try {
+    const raw = localStorage.getItem(ASSISTANT_DONE_HREFS_KEY);
+    const arr = raw ? (JSON.parse(raw) as string[]) : [];
+    return new Set(arr);
+  } catch {
+    return new Set();
+  }
+}
+
+function persistDoneHref(href: string) {
+  try {
+    const s = readPersistedDoneHrefs();
+    s.add(href);
+    localStorage.setItem(ASSISTANT_DONE_HREFS_KEY, JSON.stringify([...s]));
+  } catch {
+    /* ignore */
+  }
+}
+
 export function WorkflowAssistantFrame({
   steps,
 }: {
   steps: AssistantStep[];
 }) {
-  const firstOpen = steps.findIndex((s) => !s.completed);
+  const persistedDone = useMemo(() => {
+    if (typeof window === "undefined") return new Set<string>();
+    return readPersistedDoneHrefs();
+  }, []);
+
+  const firstOpen = steps.findIndex(
+    (s) => !s.completed && !persistedDone.has(s.href),
+  );
   const initialIndex = firstOpen >= 0 ? firstOpen : Math.max(steps.length - 1, 0);
   const [index, setIndex] = useState(initialIndex);
+  const indexRef = useRef(initialIndex);
+  indexRef.current = index;
   const [locallyDone, setLocallyDone] = useState<Record<number, boolean>>({});
+  const [doneTick, setDoneTick] = useState(0);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
+  const hydratedFromStorage = useRef(false);
 
   const [pendingSubmit, setPendingSubmit] = useState(false);
   const pendingNextIndexRef = useRef<number | null>(null);
   const pendingTimeoutRef = useRef<number | null>(null);
+  const lastCompletionUrlRef = useRef<string | null>(null);
+  const stepsRef = useRef(steps);
+  stepsRef.current = steps;
+
+  useEffect(() => {
+    if (hydratedFromStorage.current) return;
+    hydratedFromStorage.current = true;
+    try {
+      const done = readPersistedDoneHrefs();
+      const i = steps.findIndex((s) => !s.completed && !done.has(s.href));
+      if (i >= 0) setIndex(i);
+    } catch {
+      /* ignore */
+    }
+  }, [steps]);
+
+  useEffect(() => {
+    lastCompletionUrlRef.current = null;
+  }, [index]);
 
   const current = steps[index];
-  const completedCount = useMemo(
-    () => steps.filter((s, i) => s.completed || locallyDone[i]).length,
-    [steps, locallyDone]
-  );
+  const completedCount = useMemo(() => {
+    const doneHref = readPersistedDoneHrefs();
+    return steps.filter(
+      (s, i) => s.completed || locallyDone[i] || doneHref.has(s.href),
+    ).length;
+  }, [steps, locallyDone, doneTick]);
 
   function isDoneAt(i: number, doneMap: Record<number, boolean>) {
-    return Boolean(steps[i]?.completed || doneMap[i]);
+    const st = stepsRef.current;
+    const href = st[i]?.href;
+    if (!href) return true;
+    return Boolean(
+      st[i]?.completed || doneMap[i] || readPersistedDoneHrefs().has(href),
+    );
   }
 
   function findNextOpenIndex(fromIndex: number, doneMap: Record<number, boolean>) {
-    for (let i = Math.max(0, fromIndex); i < steps.length; i++) {
+    const st = stepsRef.current;
+    for (let i = Math.max(0, fromIndex); i < st.length; i++) {
       if (!isDoneAt(i, doneMap)) return i;
     }
-    return Math.max(steps.length - 1, 0);
+    return Math.max(st.length - 1, 0);
   }
 
   function getIframeHref() {
@@ -63,8 +129,41 @@ export function WorkflowAssistantFrame({
     );
   }
 
+  function clearPendingTimers() {
+    if (pendingTimeoutRef.current) window.clearTimeout(pendingTimeoutRef.current);
+    pendingTimeoutRef.current = null;
+  }
+
+  function tryCompleteFromIframe() {
+    const href = getIframeHref();
+    if (!href) return;
+    const idx = indexRef.current;
+    const stepHref = stepsRef.current[idx]?.href ?? "";
+    if (!iframeShowsStepCompletion(stepHref, href)) return;
+    if (lastCompletionUrlRef.current === href) return;
+    lastCompletionUrlRef.current = href;
+
+    clearPendingTimers();
+    const savedPendingNext = pendingNextIndexRef.current;
+    pendingNextIndexRef.current = null;
+    setPendingSubmit(false);
+    persistDoneHref(stepHref);
+    setDoneTick((t) => t + 1);
+
+    setLocallyDone((d) => {
+      const nextDone = { ...d, [idx]: true };
+      const nextIndex = savedPendingNext ?? findNextOpenIndex(idx + 1, nextDone);
+      queueMicrotask(() => {
+        setIndex(nextIndex);
+        dispatchAssistantPulse("end");
+      });
+      return nextDone;
+    });
+  }
+
   function goNext(markDone: boolean) {
     if (pendingSubmit) return;
+    dispatchAssistantPulse("start");
 
     let nextDone = locallyDone;
     if (markDone) {
@@ -79,18 +178,20 @@ export function WorkflowAssistantFrame({
 
     if (!markDone) {
       setIndex(nextIndex);
+      requestAnimationFrame(() => dispatchAssistantPulse("end"));
       return;
     }
 
     const iframeHref = getIframeHref();
     const shouldSubmit = iframeAppearsToBeFbForm(iframeHref);
     if (!shouldSubmit) {
+      persistDoneHref(current.href);
+      setDoneTick((t) => t + 1);
       setIndex(nextIndex);
+      requestAnimationFrame(() => dispatchAssistantPulse("end"));
       return;
     }
 
-    // Wir überlassen das iframe dem echten Submit/Redirect-Prozess.
-    // Danach wechseln wir erst zur nächsten Step.
     pendingNextIndexRef.current = nextIndex;
     setPendingSubmit(true);
 
@@ -99,23 +200,17 @@ export function WorkflowAssistantFrame({
     try {
       iframeRef.current?.contentWindow?.postMessage({ type: "assistant-submit", token }, targetOrigin);
     } catch {
-      // Fallback: falls postMessage nicht klappt, nicht endlos warten.
+      /* ignore */
     }
 
-    if (pendingTimeoutRef.current) window.clearTimeout(pendingTimeoutRef.current);
+    clearPendingTimers();
     pendingTimeoutRef.current = window.setTimeout(() => {
-      if (pendingNextIndexRef.current != null) {
-        setPendingSubmit(false);
-        setIndex(pendingNextIndexRef.current);
-      } else {
-        setPendingSubmit(false);
-      }
-      pendingNextIndexRef.current = null;
-    }, 3500);
+      tryCompleteFromIframe();
+    }, 4000);
   }
 
-  if (!current) return null;
-  const iframeSrc = toEmbedHref(current.href);
+  const tryCompleteRef = useRef(tryCompleteFromIframe);
+  tryCompleteRef.current = tryCompleteFromIframe;
 
   useEffect(() => {
     return () => {
@@ -123,26 +218,29 @@ export function WorkflowAssistantFrame({
     };
   }, []);
 
+  useEffect(() => {
+    function onMsg(e: MessageEvent) {
+      const d = e.data as { type?: string } | null;
+      if (d?.type === "assistant-iframe-done") {
+        lastCompletionUrlRef.current = null;
+        tryCompleteRef.current();
+      }
+    }
+    window.addEventListener("message", onMsg);
+    return () => window.removeEventListener("message", onMsg);
+  }, []);
+
   function onIframeLoad() {
-    if (!pendingSubmit) return;
-
-    const href = getIframeHref();
-    const saved =
-      href?.includes("saved=fb1") ||
-      href?.includes("saved=fb2") ||
-      href?.includes("saved=fb3") ||
-      href?.includes("saved=fb4");
-
-    if (!saved) return;
-    const nextIndex = pendingNextIndexRef.current;
-    if (nextIndex == null) return;
-
-    if (pendingTimeoutRef.current) window.clearTimeout(pendingTimeoutRef.current);
-    pendingTimeoutRef.current = null;
-    pendingNextIndexRef.current = null;
-    setPendingSubmit(false);
-    setIndex(nextIndex);
+    if (pendingSubmit) {
+      tryCompleteFromIframe();
+      return;
+    }
+    tryCompleteFromIframe();
+    requestAnimationFrame(() => dispatchAssistantPulse("end"));
   }
+
+  if (!current) return null;
+  const iframeSrc = toEmbedHref(current.href);
 
   return (
     <div className="flex h-[calc(100dvh-8rem)] flex-col gap-3 overflow-hidden sm:h-[calc(100vh-8.5rem)] sm:gap-5">
@@ -156,7 +254,7 @@ export function WorkflowAssistantFrame({
           </p>
         </div>
         <Link
-          href="/"
+          href="/study"
           className="shrink-0 self-start rounded-xl border border-[var(--card-border)] bg-[var(--card)] px-3 py-2 text-sm font-medium text-[var(--foreground)] transition hover:bg-[var(--background)] sm:self-auto"
         >
           Assistent beenden
@@ -167,6 +265,7 @@ export function WorkflowAssistantFrame({
         <p className="mb-[3px] text-sm font-medium text-[var(--foreground)] sm:mb-3">{current.label}</p>
         <div className="min-h-0 flex-1 overflow-hidden rounded-md border-[0.5px] border-[var(--card-border)] bg-white sm:rounded-xl sm:border">
           <iframe
+            key={`${index}-${iframeSrc}`}
             ref={iframeRef}
             title={current.label}
             src={iframeSrc}
@@ -179,7 +278,11 @@ export function WorkflowAssistantFrame({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <button
           type="button"
-          onClick={() => setIndex((i) => Math.max(i - 1, 0))}
+          onClick={() => {
+            dispatchAssistantPulse("start");
+            setIndex((i) => Math.max(i - 1, 0));
+            requestAnimationFrame(() => dispatchAssistantPulse("end"));
+          }}
           disabled={pendingSubmit || index === 0}
           className="rounded-xl border border-[var(--card-border)] px-4 py-2 text-sm font-medium text-[var(--foreground)] shadow-sm transition hover:bg-[var(--background)] disabled:opacity-50"
         >
@@ -212,8 +315,6 @@ export function WorkflowAssistantFrame({
 function toEmbedHref(href: string): string {
   const [baseWithQuery, hash] = href.split("#", 2);
   const base = baseWithQuery || "/";
-  const withEmbed = base.includes("?")
-    ? `${base}&embed=1`
-    : `${base}?embed=1`;
+  const withEmbed = base.includes("?") ? `${base}&embed=1` : `${base}?embed=1`;
   return hash ? `${withEmbed}#${hash}` : withEmbed;
 }

@@ -31,13 +31,13 @@ export async function loadAssistantSteps(params: {
     common: { viewArtifacts: string };
     home: { companyProfile: string; stepLlm: string; step2: string; step5: string; step6: string };
     study: {
-      studyFb1Btn: string;
+      fb1Title: string;
       studyInfoStep: string;
-      studyFb2BeforeCategory: string;
+      fb2Title: string;
       studyWorkflowStep: string;
-      studyFb3AfterCategory: string;
-      studyFb4Btn: string;
-      studyFb5Btn: string;
+      fb3Title: string;
+      fb4Title: string;
+      fb5Title: string;
     };
   };
 }): Promise<AssistantStep[]> {
@@ -109,7 +109,7 @@ export async function loadAssistantSteps(params: {
       },
       {
         href: `/study/fb2/${category}`,
-        label: `${t.study.studyFb2BeforeCategory} — ${categoryLabel}`,
+        label: `${t.study.fb2Title} — ${categoryLabel}`,
         completed: fb2DoneByCategory.has(category),
       },
       {
@@ -118,32 +118,32 @@ export async function loadAssistantSteps(params: {
         completed: hasCompletedRuns,
       },
       {
-        href: "/artifacts",
+        href: `/artifacts#artifacts-phase-${STUDY_CATEGORY_PHASE_ID[category]}`,
         label: `${t.common.viewArtifacts}: ${categoryLabel}`,
         completed: hasArtifacts,
       },
       {
         href: `/study/fb3/${category}`,
-        label: `${t.study.studyFb3AfterCategory} — ${categoryLabel}`,
+        label: `${t.study.fb3Title} — ${categoryLabel}`,
         completed: fb3DoneByCategory.has(category),
       },
       {
         href: `/study/fb4/${category}`,
-        label: `${t.study.studyFb4Btn} — ${categoryLabel}`,
+        label: `${t.study.fb4Title} — ${categoryLabel}`,
         completed: fb4DoneByCategory.has(category),
       },
     ];
   });
 
   return [
-    { href: "/study/fb1", label: t.study.studyFb1Btn, completed: participantCompletedFb1 },
+    { href: "/study/fb1", label: t.study.fb1Title, completed: participantCompletedFb1 },
     { href: "/profile", label: t.home.companyProfile, completed: profileCompletePercent >= 50 },
-    { href: "/settings", label: t.home.stepLlm, completed: hasLlmConfigured },
+    { href: "/settings#llm-api", label: t.home.stepLlm, completed: hasLlmConfigured },
     { href: "/knowledge", label: t.home.step2, completed: hasDocsUploaded },
     ...studyFlowSteps,
     { href: "/decisions", label: t.home.step5, completed: hasDecisions },
     { href: "/evaluation", label: t.home.step6, completed: hasEvaluation },
-    { href: "/study/fb5", label: t.study.studyFb5Btn, completed: fb5Done },
+    { href: "/study/fb5", label: t.study.fb5Title, completed: fb5Done },
   ];
 }
 

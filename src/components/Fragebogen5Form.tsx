@@ -8,6 +8,7 @@ type Fragebogen5FormProps = {
   initialValues?: Partial<Record<string, number | string>>;
   submitLabel?: string;
   hideSubmitButton?: boolean;
+  assistantEmbed?: boolean;
 };
 
 function likertDefault(initial: Partial<Record<string, number | string>> | undefined, key: string): number {
@@ -50,6 +51,7 @@ export function Fragebogen5Form({
   initialValues,
   submitLabel,
   hideSubmitButton,
+  assistantEmbed,
 }: Fragebogen5FormProps) {
   const shouldHideSubmitButton = Boolean(hideSubmitButton);
   const labels: Record<(typeof LIKERT_KEYS)[number], string> = {
@@ -62,6 +64,7 @@ export function Fragebogen5Form({
 
   return (
     <form action={action} data-assistant-form="1" className="space-y-8">
+      {assistantEmbed ? <input type="hidden" name="assistant_embed" value="1" /> : null}
       <div className="space-y-6">
         <section className="rounded-xl border border-[var(--card-border)] p-6">
           <h3 className="mb-2 text-sm font-semibold text-[var(--foreground)]">{t.fb5LikertSection}</h3>

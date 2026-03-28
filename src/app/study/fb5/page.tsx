@@ -46,6 +46,10 @@ async function saveFb5(formData: FormData) {
 
   await updateStudyParticipantById(participant.id, { completedFb5: true });
 
+  const assistantEmbed = formData.get("assistant_embed") === "1";
+  if (assistantEmbed) {
+    redirect("/study?saved=fb5&embed=1");
+  }
   redirect("/study?saved=fb5");
 }
 
@@ -78,7 +82,14 @@ export default async function Fragebogen5Page({
         <h1 className="mt-4 text-3xl font-bold tracking-tight text-[var(--foreground)]">{t.study.fb5Title}</h1>
         <p className="mt-2 text-[var(--muted)]">{t.study.fb5Desc}</p>
       </header>
-      <Fragebogen5Form action={saveFb5} t={t.study} initialValues={initialValues} submitLabel={t.study.fb5Submit} hideSubmitButton={isEmbed} />
+      <Fragebogen5Form
+        action={saveFb5}
+        t={t.study}
+        initialValues={initialValues}
+        submitLabel={t.study.fb5Submit}
+        hideSubmitButton={isEmbed}
+        assistantEmbed={isEmbed}
+      />
       <AssistantSubmitBridge />
     </div>
   );

@@ -14,6 +14,7 @@ import { SCENARIO_CATEGORIES, type ScenarioCategory } from "@/lib/scenarios";
 import { Fragebogen3Form } from "@/components/Fragebogen3Form";
 import { WORKFLOW_NAMES } from "@/lib/planningFramework";
 import { AssistantSubmitBridge } from "@/components/AssistantSubmitBridge";
+import { artifactsUrlAfterFb3Assistant } from "@/lib/studyAssistantEmbed";
 import { getStudyCategoryContext } from "@/lib/studyCategoryContext";
 
 const VALID_CATEGORIES: ScenarioCategory[] = [
@@ -48,6 +49,10 @@ async function saveFb3Category(category: string, formData: FormData) {
   });
   await createQuestionnaireItems(response.id, "fb3", responses as Record<string, unknown>);
 
+  const assistantEmbed = formData.get("assistant_embed") === "1";
+  if (assistantEmbed) {
+    redirect(artifactsUrlAfterFb3Assistant(category));
+  }
   redirect(`/study?saved=fb3&category=${encodeURIComponent(category)}`);
 }
 
@@ -102,6 +107,7 @@ export default async function Fragebogen3CategoryPage({
         t={t.study}
         category={category}
         initialValues={initialValues}
+        assistantEmbed={isEmbed}
         submitLabel={isEmbed ? t.study.embedSubmitDone : undefined}
         hideSubmitButton={isEmbed}
       />

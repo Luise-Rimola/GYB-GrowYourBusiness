@@ -42,6 +42,7 @@ type Fragebogen1FormProps = {
   };
   submitLabel?: string;
   hideSubmitButton?: boolean;
+  assistantEmbed?: boolean;
 };
 
 const A1_OPTIONS = [
@@ -91,6 +92,7 @@ export function Fragebogen1Form({
   initialData,
   submitLabel,
   hideSubmitButton,
+  assistantEmbed,
 }: Fragebogen1FormProps) {
   const shouldHideSubmitButton = Boolean(hideSubmitButton);
 
@@ -101,6 +103,7 @@ export function Fragebogen1Form({
 
   return (
     <form action={action} data-assistant-form="1" className="space-y-8">
+      {assistantEmbed ? <input type="hidden" name="assistant_embed" value="1" /> : null}
       <Section title={t.fb1CategoryA} description="">
         <div className="grid gap-4 sm:grid-cols-2">
           <div>

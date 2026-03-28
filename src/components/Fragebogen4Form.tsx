@@ -14,6 +14,7 @@ type Fragebogen4FormProps = {
   t: Record<string, string>;
   initialValues?: Partial<Record<string, number | string>>;
   hideSubmitButton?: boolean;
+  assistantEmbed?: boolean;
 };
 
 function likertDefault(initial: Partial<Record<string, number | string>> | undefined, key: string): number {
@@ -48,12 +49,19 @@ function LikertSelect({
   );
 }
 
-export function Fragebogen4Form({ action, t, initialValues, hideSubmitButton }: Fragebogen4FormProps) {
+export function Fragebogen4Form({
+  action,
+  t,
+  initialValues,
+  hideSubmitButton,
+  assistantEmbed,
+}: Fragebogen4FormProps) {
   const shouldHideSubmitButton = Boolean(hideSubmitButton);
   const iv = initialValues;
 
   return (
     <form action={action} data-assistant-form="1" className="space-y-8">
+      {assistantEmbed ? <input type="hidden" name="assistant_embed" value="1" /> : null}
       <section className="rounded-xl border border-[var(--card-border)] p-6">
         <h3 className="mb-4 text-sm font-semibold text-[var(--foreground)]">{t.fb4SectionUsability}</h3>
         <p className="mb-4 text-xs text-[var(--muted)]">{t.fb4CompareIntro}</p>

@@ -15,6 +15,7 @@ import { Fragebogen4Form } from "@/components/Fragebogen4Form";
 import { WORKFLOW_NAMES } from "@/lib/planningFramework";
 import { getStudyCategoryContext, VALID_STUDY_CATEGORIES } from "@/lib/studyCategoryContext";
 import { AssistantSubmitBridge } from "@/components/AssistantSubmitBridge";
+import { urlAfterFb4Assistant } from "@/lib/studyAssistantEmbed";
 
 const VALID_CATEGORIES: ScenarioCategory[] = VALID_STUDY_CATEGORIES;
 
@@ -67,6 +68,11 @@ async function saveFb4Category(category: string, formData: FormData) {
     responsesJson: responses,
   });
   await createQuestionnaireItems(response.id, "fb4", responses as Record<string, unknown>);
+
+  const assistantEmbed = formData.get("assistant_embed") === "1";
+  if (assistantEmbed) {
+    redirect(urlAfterFb4Assistant(category));
+  }
   redirect(`/study?saved=fb4&category=${encodeURIComponent(category)}`);
 }
 
@@ -120,6 +126,7 @@ export default async function Fragebogen4CategoryPage({
         t={t.study}
         initialValues={initialValues}
         hideSubmitButton={isEmbed}
+        assistantEmbed={isEmbed}
       />
       <AssistantSubmitBridge />
     </div>

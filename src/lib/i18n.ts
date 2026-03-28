@@ -183,7 +183,7 @@ export const translations = {
     },
     study: {
       title: "DSR Study",
-      fb1Title: "Questionnaire 1",
+      fb1Title: "Company survey on AI use",
       fb1Desc:
         "This questionnaire is part of a study on AI-supported strategic decision-making. It records your experience with AI and your current decision-making context as a baseline for later comparison — not tied to specific tool workflows.",
       fb1Submit: "Submit",
@@ -253,11 +253,11 @@ export const translations = {
         "After working through the areas: compare methods (usability, TAM/UTAUT, open questions, fit & governance).",
       studyInfoStep: "Info",
       studyWorkflowStep: "Workflow",
-      fb2Title: "Questionnaire 2",
+      fb2Title: "Company survey: Decision-making without an AI tool",
       fb2Desc: "Decision quality, evidence, traceability, confidence, cognitive load — process without the AI tool.",
-      fb3Title: "Questionnaire 3",
+      fb3Title: "Company survey: Decision-making with an AI tool",
       fb3Desc: "Same core scales as questionnaire 2 — rate the process with the AI tool after the runs. Usability, TAM/UTAUT, comparison questions, and fit/governance are in questionnaire 4.",
-      fb4Title: "Questionnaire 4: Comparison of both methods",
+      fb4Title: "Company survey: Comparing both decision approaches",
       fb4Desc: "Direct comparison: usability, TAM/UTAUT, open questions, fit & governance, plus qualitative notes.",
       fb4ContextHint:
         "Answer from an overall perspective: what helped, where are risks, and what should change for the next iteration?",
@@ -277,7 +277,7 @@ export const translations = {
       fb4Submit: "Submit",
       studyFb5Btn: "Questionnaire 5: Wrap-up (integration & adoption)",
       studyFb5PhaseTitle: "Study wrap-up",
-      fb5Title: "Questionnaire 5: Integration, phases & everyday use",
+      fb5Title: "Company survey: Integration, phases & AI in daily work",
       fb5Desc:
         "Closing questions on whether the tool makes sense for you, which phases helped most, acceptance and usability in day-to-day business.",
       fb5LikertSection: "Scales (1 = strongly disagree, 7 = strongly agree)",
@@ -993,7 +993,7 @@ export const translations = {
     },
     study: {
       title: "DSR-Studie",
-      fb1Title: "Fragebogen 1",
+      fb1Title: "Unternehmensumfrage zur KI-Nutzung",
       fb1Desc:
         "Dieser Fragebogen ist Teil einer Studie zur KI-gestützten strategischen Entscheidungsunterstützung. Er erfasst Ihre Erfahrung mit KI und Ihr aktuelles Entscheidungsumfeld als Ausgangslage für spätere Vergleiche — ohne Bezug auf konkrete Tool-Workflows.",
       fb1Submit: "Absenden",
@@ -1064,11 +1064,11 @@ export const translations = {
       studyFb3AfterCategory: "Fragebogen 3: Entscheidung mit Tool",
       studyInfoStep: "Info",
       studyWorkflowStep: "Workflow",
-      fb2Title: "Fragebogen 2: Entscheidung ohne Tool",
+      fb2Title: "Unternehmensumfrage: Entscheidungsprozess ohne KI-Tool",
       fb2Desc: "Entscheidungsqualität, Belegbarkeit, Nachvollziehbarkeit, Konfidenz, kognitive Belastung — Prozess ohne KI-Tool.",
-      fb3Title: "Fragebogen 3: Entscheidung mit Tool",
+      fb3Title: "Unternehmensumfrage: Entscheidungsprozess mit KI-Tool",
       fb3Desc: "Gleiche Kernskalen wie Fragebogen 2 — Bewertung des Ablaufs mit KI-Tool nach den Runs. Usability, TAM/UTAUT, Vergleichsfragen und Fit & Governance stehen in Fragebogen 4.",
-      fb4Title: "Fragebogen 4: Vergleich beider Methoden",
+      fb4Title: "Unternehmensumfrage: Vergleich ohne und mit KI-Tool",
       fb4Desc: "Direktvergleich: Usability, TAM/UTAUT, offene Fragen, Fit & Governance sowie qualitative Zusatzfragen.",
       fb4ContextHint:
         "Bitte aus Gesamtperspektive: Was hat geholfen, wo bestehen Risiken und welche Anpassungen sind für die nächste Iteration nötig?",
@@ -1088,7 +1088,7 @@ export const translations = {
       fb4Submit: "Absenden",
       studyFb5Btn: "Fragebogen 5: Abschluss (Integration & Akzeptanz)",
       studyFb5PhaseTitle: "Studienabschluss",
-      fb5Title: "Fragebogen 5: Integration, Phasen & Alltag",
+      fb5Title: "Unternehmensumfrage: Integration, Phasen und KI im Alltag",
       fb5Desc: "Abschlussfragen: Trägt das Tool für Sie, welche Phasen waren am hilfreichsten, Akzeptanz und Nutzbarkeit im Unternehmensalltag.",
       fb5LikertSection: "Skalen (1 = stimme gar nicht zu, 7 = stimme voll zu)",
       fb5LikertIntro: "Bitte aus Gesamtsicht nach Abschluss der Studien-Workflows.",

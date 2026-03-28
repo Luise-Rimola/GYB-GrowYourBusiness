@@ -201,7 +201,7 @@ export default async function StudyPage({
       title: t.study.studyPhaseConfigTitle,
       items: [
         {
-          label: t.study.studyFb1Btn,
+          label: t.study.fb1Title,
           href: "/study/fb1",
           completed: completed.fb1,
         },
@@ -212,17 +212,17 @@ export default async function StudyPage({
       infoHref: `/study/info/${cat}`,
       items: [
         {
-          label: t.study.studyFb2Btn,
+          label: t.study.fb2Title,
           href: `/study/fb2/${cat}`,
           completed: fb2DoneByCategory.has(cat),
         },
         {
-          label: t.study.studyFb3Btn,
+          label: t.study.fb3Title,
           href: `/study/fb3/${cat}`,
           completed: fb3DoneByCategory.has(cat),
         },
         {
-          label: t.study.studyFb4Btn,
+          label: t.study.fb4Title,
           href: `/study/fb4/${cat}`,
           completed: fb4DoneByCategory.has(cat),
         },
@@ -232,7 +232,7 @@ export default async function StudyPage({
       title: t.study.studyFb5PhaseTitle,
       items: [
         {
-          label: t.study.studyFb5Btn,
+          label: t.study.fb5Title,
           href: "/study/fb5",
           completed: completed.fb5,
         },
@@ -402,7 +402,7 @@ export default async function StudyPage({
                       href={`/study/fb4/${category}`}
                       className="font-medium text-teal-700 underline decoration-transparent hover:decoration-current"
                     >
-                      {phase} — {t.study.studyFb4Btn}
+                      {phase} — {t.study.fb4Title}
                     </Link>
                   </td>
                   {FB4_LIKERT_COMPARE_COLUMNS.map((col) => (
@@ -425,7 +425,7 @@ export default async function StudyPage({
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="rounded-xl border border-[var(--card-border)] p-5">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-            <h3 className="text-sm font-semibold text-[var(--foreground)]">{t.study.studyFb1Btn}</h3>
+            <h3 className="text-sm font-semibold text-[var(--foreground)]">{t.study.fb1Title}</h3>
             <Link href="/study/fb1" className="text-xs font-medium text-teal-700 hover:underline">
               →
             </Link>
@@ -441,7 +441,7 @@ export default async function StudyPage({
         </div>
         <div className="rounded-xl border border-[var(--card-border)] p-5">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-            <h3 className="text-sm font-semibold text-[var(--foreground)]">{t.study.studyFb5Btn}</h3>
+            <h3 className="text-sm font-semibold text-[var(--foreground)]">{t.study.fb5Title}</h3>
             <Link href="/study/fb5" className="text-xs font-medium text-teal-700 hover:underline">
               →
             </Link>

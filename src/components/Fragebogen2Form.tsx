@@ -17,6 +17,7 @@ type Fragebogen2FormProps = {
   initialValues?: Partial<Record<string, number | string>>;
   submitLabel?: string;
   hideSubmitButton?: boolean;
+  assistantEmbed?: boolean;
 };
 
 function likertDefault(initial: Partial<Record<string, number | string>> | undefined, key: string): number {
@@ -58,11 +59,13 @@ export function Fragebogen2Form({
   initialValues,
   submitLabel,
   hideSubmitButton,
+  assistantEmbed,
 }: Fragebogen2FormProps) {
   const shouldHideSubmitButton = Boolean(hideSubmitButton);
 
   return (
     <form action={action} data-assistant-form="1" className="space-y-8">
+      {assistantEmbed ? <input type="hidden" name="assistant_embed" value="1" /> : null}
       {category && <input type="hidden" name="category" value={category} />}
       <div className="space-y-6">
         <section className="rounded-xl border border-[var(--card-border)] p-6">

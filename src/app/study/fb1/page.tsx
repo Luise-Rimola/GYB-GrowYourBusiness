@@ -54,7 +54,11 @@ async function saveFb1(formData: FormData) {
 
   await updateStudyParticipantById(participant.id, { completedFb1: true });
 
-  redirect("/study?saved=1");
+  const assistantEmbed = formData.get("assistant_embed") === "1";
+  if (assistantEmbed) {
+    redirect("/profile?embed=1&afterFb1=1");
+  }
+  redirect("/study?saved=fb1");
 }
 
 export default async function Fragebogen1Page({
@@ -104,6 +108,7 @@ export default async function Fragebogen1Page({
       <Fragebogen1Form
         action={saveFb1}
         t={t.study}
+        assistantEmbed={isEmbed}
         submitLabel={isEmbed ? "Erledigt & weiter" : undefined}
         hideSubmitButton={isEmbed}
         initialData={initialData}

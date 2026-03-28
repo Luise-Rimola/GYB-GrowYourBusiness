@@ -13,6 +13,7 @@ import { Fragebogen3Form } from "@/components/Fragebogen3Form";
 import { WORKFLOW_NAMES } from "@/lib/planningFramework";
 import { type ScenarioCategory } from "@/lib/scenarios";
 import { AssistantSubmitBridge } from "@/components/AssistantSubmitBridge";
+import { artifactsUrlAfterFb3Assistant } from "@/lib/studyAssistantEmbed";
 
 const CATEGORY_CONTEXT: Record<ScenarioCategory, { phase: string; workflowKeys: string[] }> = {
   markt_geschaeftsmodell: { phase: "Ideations- / Konzeptphase", workflowKeys: ["WF_VALUE_PROPOSITION", "WF_COMPETITOR_ANALYSIS", "WF_SWOT", "WF_TREND_ANALYSIS"] },
@@ -49,6 +50,11 @@ async function saveFb3(formData: FormData) {
 
   if (!category) {
     await updateStudyParticipantById(participant.id, { completedFb3AfterRuns: true });
+  }
+
+  const assistantEmbed = formData.get("assistant_embed") === "1";
+  if (assistantEmbed && category) {
+    redirect(artifactsUrlAfterFb3Assistant(category));
   }
 
   redirect(
@@ -108,6 +114,7 @@ export default async function Fragebogen3Page({
         t={t.study}
         category={category ?? null}
         initialValues={initialValues}
+        assistantEmbed={isEmbed}
         submitLabel={isEmbed ? "Erledigt & weiter" : undefined}
         hideSubmitButton={isEmbed}
       />

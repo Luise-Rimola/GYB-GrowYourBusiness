@@ -7,6 +7,9 @@ const FALLBACK_MS = 12_000;
 
 type Phase = "off" | "loading" | "exit";
 
+/** Overlay nur für Assistenten-Schritte (ohne Routenwechsel der Parent-Seite). */
+export const NAV_TRANSITION_EVENT = "app-nav-transition";
+
 function shouldTriggerAnchorNav(
   a: HTMLAnchorElement,
   ev: MouseEvent,
@@ -36,6 +39,7 @@ function NavigationTransitionClient() {
   const routeKey = `${pathname}?${searchKey}`;
 
   const [phase, setPhase] = useState<Phase>("off");
+  const overlaySourceRef = useRef<"route" | "assistant" | null>(null);
   const fallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const clearFallback = useCallback(() => {
@@ -47,19 +51,53 @@ function NavigationTransitionClient() {
 
   const startLoading = useCallback(() => {
     clearFallback();
+    overlaySourceRef.current = "route";
     setPhase("loading");
     fallbackTimerRef.current = setTimeout(() => {
       setPhase("off");
+      overlaySourceRef.current = null;
       fallbackTimerRef.current = null;
     }, FALLBACK_MS);
   }, [clearFallback]);
 
   useEffect(() => {
-    setPhase((p) => (p === "loading" ? "exit" : p));
+    setPhase((p) => {
+      if (p !== "loading") return p;
+      if (overlaySourceRef.current !== "route") return p;
+      return "exit";
+    });
   }, [routeKey]);
 
   useEffect(() => {
     return () => clearFallback();
+  }, [clearFallback]);
+
+  useEffect(() => {
+    function onAssistantNav(e: Event) {
+      const ce = e as CustomEvent<{ phase?: string }>;
+      const p = ce.detail?.phase;
+      if (p === "start") {
+        clearFallback();
+        overlaySourceRef.current = "assistant";
+        setPhase("loading");
+        fallbackTimerRef.current = setTimeout(() => {
+          setPhase("off");
+          overlaySourceRef.current = null;
+          fallbackTimerRef.current = null;
+        }, FALLBACK_MS);
+        return;
+      }
+      if (p === "end") {
+        if (fallbackTimerRef.current) {
+          clearTimeout(fallbackTimerRef.current);
+          fallbackTimerRef.current = null;
+        }
+        overlaySourceRef.current = "assistant";
+        setPhase("exit");
+      }
+    }
+    window.addEventListener(NAV_TRANSITION_EVENT, onAssistantNav as EventListener);
+    return () => window.removeEventListener(NAV_TRANSITION_EVENT, onAssistantNav as EventListener);
   }, [clearFallback]);
 
   useEffect(() => {
@@ -79,6 +117,7 @@ function NavigationTransitionClient() {
     setPhase((p) => {
       if (p === "exit") {
         clearFallback();
+        overlaySourceRef.current = null;
         return "off";
       }
       return p;
