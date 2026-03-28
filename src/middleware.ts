@@ -4,6 +4,16 @@ import { jwtVerify } from "jose";
 
 const SESSION_COOKIE = "gds_session";
 
+/** Damit das Root-Layout horizontale Außenabstände reduzieren kann (Assistent-Iframe, volle Breite). */
+function nextWithOptionalEmbed(req: NextRequest) {
+  if (req.nextUrl.searchParams.get("embed") !== "1") {
+    return NextResponse.next();
+  }
+  const requestHeaders = new Headers(req.headers);
+  requestHeaders.set("x-app-embed", "1");
+  return NextResponse.next({ request: { headers: requestHeaders } });
+}
+
 function isPublicPath(pathname: string) {
   if (pathname === "/") return true;
   if (pathname === "/login" || pathname === "/register" || pathname === "/verify-email") return true;
@@ -13,14 +23,14 @@ function isPublicPath(pathname: string) {
 
 export async function middleware(req: NextRequest) {
   if (process.env.DEV_AUTH_BYPASS === "1") {
-    return NextResponse.next();
+    return nextWithOptionalEmbed(req);
   }
 
   const pathname = req.nextUrl.pathname;
   if (pathname.startsWith("/_next")) return NextResponse.next();
   if (pathname === "/favicon.ico") return NextResponse.next();
 
-  if (isPublicPath(pathname)) return NextResponse.next();
+  if (isPublicPath(pathname)) return nextWithOptionalEmbed(req);
 
   const secret = process.env.AUTH_SECRET;
   if (!secret || secret.length < 16) {
@@ -39,7 +49,7 @@ export async function middleware(req: NextRequest) {
 
   try {
     await jwtVerify(token, new TextEncoder().encode(secret));
-    return NextResponse.next();
+    return nextWithOptionalEmbed(req);
   } catch {
     const url = req.nextUrl.clone();
     url.pathname = "/login";

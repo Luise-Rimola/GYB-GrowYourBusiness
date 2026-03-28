@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
 import { useEffect } from "react";
+import { SUBMIT_BUTTON_PENDING_CLASS } from "@/lib/submitButtonStyle";
 
 type AssistantStep = {
   href: string;
@@ -144,25 +145,27 @@ export function WorkflowAssistantFrame({
   }
 
   return (
-    <div className="flex h-[calc(100vh-8.5rem)] flex-col gap-5 overflow-hidden">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-[var(--foreground)]">Workflow Assistent</h1>
+    <div className="flex h-[calc(100dvh-8rem)] flex-col gap-3 overflow-hidden sm:h-[calc(100vh-8.5rem)] sm:gap-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold tracking-tight text-[var(--foreground)] sm:text-3xl">
+            Workflow-Assistent
+          </h1>
           <p className="mt-1 text-sm text-[var(--muted)]">
-            Schritt {index + 1} von {steps.length} - {completedCount} erledigt
+            Schritt {index + 1} von {steps.length} — {completedCount} erledigt
           </p>
         </div>
         <Link
           href="/"
-          className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] px-3 py-2 text-sm font-medium text-[var(--foreground)] transition hover:bg-[var(--background)]"
+          className="shrink-0 self-start rounded-xl border border-[var(--card-border)] bg-[var(--card)] px-3 py-2 text-sm font-medium text-[var(--foreground)] transition hover:bg-[var(--background)] sm:self-auto"
         >
           Assistent beenden
         </Link>
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col rounded-2xl border border-[var(--card-border)] bg-[var(--card)] p-4">
-        <p className="mb-3 text-sm font-medium text-[var(--foreground)]">{current.label}</p>
-        <div className="min-h-0 flex-1 overflow-hidden rounded-xl border border-[var(--card-border)] bg-white">
+      <div className="flex min-h-0 flex-1 flex-col rounded-lg border-[0.5px] border-[var(--card-border)] bg-[var(--card)] p-[3px] sm:rounded-2xl sm:border sm:p-4">
+        <p className="mb-[3px] text-sm font-medium text-[var(--foreground)] sm:mb-3">{current.label}</p>
+        <div className="min-h-0 flex-1 overflow-hidden rounded-md border-[0.5px] border-[var(--card-border)] bg-white sm:rounded-xl sm:border">
           <iframe
             ref={iframeRef}
             title={current.label}
@@ -178,24 +181,25 @@ export function WorkflowAssistantFrame({
           type="button"
           onClick={() => setIndex((i) => Math.max(i - 1, 0))}
           disabled={pendingSubmit || index === 0}
-          className="rounded-xl border border-[var(--card-border)] px-4 py-2 text-sm font-medium text-[var(--foreground)] transition hover:bg-[var(--background)] disabled:opacity-50"
+          className="rounded-xl border border-[var(--card-border)] px-4 py-2 text-sm font-medium text-[var(--foreground)] shadow-sm transition hover:bg-[var(--background)] disabled:opacity-50"
         >
-          Zuruck
+          Zurück
         </button>
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
             onClick={() => goNext(false)}
             disabled={pendingSubmit || index >= steps.length - 1}
-            className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-800 transition hover:bg-amber-100 disabled:opacity-50"
+            className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-800 shadow-sm transition hover:bg-amber-100 disabled:opacity-50"
           >
-            Uberspringen
+            Überspringen
           </button>
           <button
             type="button"
             onClick={() => goNext(true)}
             disabled={pendingSubmit || index >= steps.length - 1}
-            className="rounded-xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-700 disabled:opacity-50"
+            aria-busy={pendingSubmit}
+            className={`rounded-xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-700 disabled:opacity-100 ${pendingSubmit ? SUBMIT_BUTTON_PENDING_CLASS : ""}`}
           >
             Erledigt & weiter
           </button>

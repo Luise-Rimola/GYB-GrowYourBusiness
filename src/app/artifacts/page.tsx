@@ -51,10 +51,10 @@ export default async function ArtifactsPage({
     yes: isEn ? "Yes" : "Ja",
     no: isEn ? "No" : "Nein",
     boardsTitle: isEn ? "Boards & Launch Plan" : "Boards & Launch Plan",
-    checklistTitle: isEn ? "Checklist" : "Checklist",
+    checklistTitle: isEn ? "Checklist" : "Checkliste",
     checklistDesc: isEn
-      ? "Launch Plan / Checklist (Logo, Website, Supplier, ...)"
-      : "Launch Plan / Checklist (Logo, Website, Supplier, ...)",
+      ? "Launch plan / checklist (logo, website, suppliers, …)"
+      : "Launch-Plan / Checkliste (Logo, Website, Lieferanten, …)",
     checklistProgressLabel: isEn ? "Progress" : "Fortschritt",
     checklistInit: isEn
       ? "Initialized on first open (not auto-completed)."

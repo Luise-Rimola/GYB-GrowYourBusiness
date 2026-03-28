@@ -5,7 +5,7 @@ const landingCopy = {
   de: {
     heroTitle: "Grow Your Business",
     heroSubtitle:
-      "AI-Powered Growth System fuer Strategie, Priorisierung und Umsetzung. Du bekommst klare Phasen, verstaendliche Workflows und belastbare Ergebnisse.",
+      "AI-Powered Growth System für Strategie, Priorisierung und Umsetzung. Du bekommst klare Phasen, verständliche Workflows und belastbare Ergebnisse.",
     ctaPrimary: "Kostenlos starten",
     ctaLogin: "Login",
     ctaContinue: "Weiter zur App",
@@ -13,19 +13,20 @@ const landingCopy = {
     trust2: "Transparente KPI- und Quellenlogik",
     trust3: "Auditierbare Ergebnisse für Teams",
     flowTitle: "So funktioniert der Ablauf",
-    flowSubtitle: "Ein klarer End-to-End-Prozess fuer bessere Entscheidungen.",
+    flowSubtitle: "Ein klarer End-to-End-Prozess für bessere Entscheidungen.",
     whyTitle: "Warum Grow Your Business",
-    whySubtitle: "Entwickelt fuer Teams, die schnell entscheiden muessen und trotzdem Qualitaet brauchen.",
+    whySubtitle:
+      "Entwickelt für Teams, die schnell entscheiden müssen und trotzdem Qualität brauchen.",
     securityTitle: "Data Security",
     securitySubtitle:
-      "Deine Daten werden geschuetzt verarbeitet. Du kontrollierst jederzeit, was verwendet wird.",
+      "Deine Daten werden geschützt verarbeitet. Du kontrollierst jederzeit, was verwendet wird.",
     securityPoints: [
-      "Daten werden abgesichert verarbeitet und nur fuer den gewaehlten Zweck genutzt.",
-      "Uebertragungen koennen anonymisiert erfolgen, damit keine unnötigen Personenbezüge geteilt werden.",
-      "Du entscheidest selbst, welche Daten ins System einfliessen und was ausgeschlossen bleibt.",
+      "Daten werden abgesichert verarbeitet und nur für den gewählten Zweck genutzt.",
+      "Übertragungen können anonymisiert erfolgen, damit keine unnötigen Personenbezüge geteilt werden.",
+      "Du entscheidest selbst, welche Daten ins System einfließen und was ausgeschlossen bleibt.",
       "Ganz unverbindlich starten: erst testen, dann bei Bedarf schrittweise erweitern.",
     ],
-    finalTitle: "Bereit fuer bessere Entscheidungen?",
+    finalTitle: "Bereit für bessere Entscheidungen?",
     finalSubtitle:
       "Melde dich an und starte direkt im internen Home-Bereich mit Workflows, Entscheidungen und Artefakten.",
     finalPrimary: "Jetzt registrieren",
@@ -38,7 +39,7 @@ const landingCopy = {
       },
       {
         title: "Analyse & Workflow",
-        text: "Workflows fuehren dich Schritt fuer Schritt durch belastbare Entscheidungslogik.",
+        text: "Workflows führen dich Schritt für Schritt durch belastbare Entscheidungslogik.",
       },
       {
         title: "Entscheidung & Umsetzung",
@@ -48,7 +49,7 @@ const landingCopy = {
     features: [
       {
         title: "Guided Decision Engine",
-        text: "Von der Problemdefinition bis zur Entscheidung mit klarer Methodik und weniger Bauchgefuehl.",
+        text: "Von der Problemdefinition bis zur Entscheidung mit klarer Methodik und weniger Bauchgefühl.",
       },
       {
         title: "KPI- und Quellenklarheit",
@@ -56,7 +57,7 @@ const landingCopy = {
       },
       {
         title: "Artefakte mit Substanz",
-        text: "Business-relevante Ergebnisse statt nur Chat-Text: strukturierte Outputs fuer Team und Umsetzung.",
+        text: "Business-relevante Ergebnisse statt nur Chat-Text: strukturierte Outputs für Team und Umsetzung.",
       },
       {
         title: "Auditierbarer Verlauf",
@@ -209,17 +210,19 @@ export default async function LandingPage({
             {c.flowSubtitle}
           </p>
         </div>
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           {c.phases.map((phase, idx) => (
             <article
               key={phase.title}
-              className="rounded-2xl border border-[var(--card-border)] bg-[var(--card)] p-5 shadow-sm"
+              className="flex flex-col items-start gap-3 rounded-2xl border border-[var(--card-border)] bg-[var(--card)] p-5 shadow-sm"
             >
-              <div className="mb-3 inline-flex h-8 w-8 items-center justify-center rounded-full bg-teal-100 text-sm font-semibold text-teal-700 dark:bg-teal-900/40 dark:text-teal-300">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-teal-100 text-sm font-semibold text-teal-700 dark:bg-teal-900/40 dark:text-teal-300">
                 {idx + 1}
               </div>
-              <h3 className="text-lg font-semibold text-[var(--foreground)]">{phase.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">{phase.text}</p>
+              <div className="min-w-0 w-full">
+                <h3 className="text-lg font-semibold text-[var(--foreground)]">{phase.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">{phase.text}</p>
+              </div>
             </article>
           ))}
         </div>

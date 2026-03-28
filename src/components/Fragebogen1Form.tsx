@@ -1,6 +1,7 @@
 "use client";
 
 import { Section } from "@/components/Section";
+import { PendingSubmitButton } from "@/components/PendingSubmitButton";
 
 type Fragebogen1FormProps = {
   action: (formData: FormData) => Promise<void>;
@@ -319,12 +320,7 @@ export function Fragebogen1Form({
 
       {!shouldHideSubmitButton && (
         <div className="flex justify-end">
-          <button
-            type="submit"
-            className="rounded-xl bg-teal-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-teal-700"
-          >
-            {submitLabel ?? t.fb1Submit}
-          </button>
+          <PendingSubmitButton>{submitLabel ?? t.fb1Submit}</PendingSubmitButton>
         </div>
       )}
     </form>

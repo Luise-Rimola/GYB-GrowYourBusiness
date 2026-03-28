@@ -3,6 +3,18 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+export type ChecklistClientLabels = {
+  addCategory: string;
+  newCategoryPlaceholder: string;
+  addCategoryButton: string;
+  allDoneMessage: string;
+  setAllNo: string;
+  fileAttached: string;
+  noFile: string;
+  newStepPlaceholder: string;
+  addStepButton: string;
+};
+
 type Step = {
   id: string;
   label: string;
@@ -19,9 +31,10 @@ type Stage = {
 type Props = {
   companyId: string;
   stages: Stage[];
+  labels: ChecklistClientLabels;
 };
 
-export function ChecklistClient({ companyId, stages }: Props) {
+export function ChecklistClient({ companyId, stages, labels }: Props) {
   const router = useRouter();
   const [newStageName, setNewStageName] = useState("");
   const [newStepByStage, setNewStepByStage] = useState<Record<string, string>>({});
@@ -72,12 +85,12 @@ export function ChecklistClient({ companyId, stages }: Props) {
   return (
     <div className="space-y-6">
       <div className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-4">
-        <p className="mb-2 text-sm font-semibold text-[var(--foreground)]">Add category</p>
+        <p className="mb-2 text-sm font-semibold text-[var(--foreground)]">{labels.addCategory}</p>
         <div className="flex gap-2">
           <input
             value={newStageName}
             onChange={(e) => setNewStageName(e.target.value)}
-            placeholder="New category name"
+            placeholder={labels.newCategoryPlaceholder}
             className="w-full rounded-lg border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm"
           />
           <button
@@ -85,14 +98,14 @@ export function ChecklistClient({ companyId, stages }: Props) {
             onClick={addStage}
             className="rounded-lg bg-teal-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-teal-700"
           >
-            + Category
+            {labels.addCategoryButton}
           </button>
         </div>
       </div>
 
       {allDone && (
         <p className="rounded-xl border border-teal-200 bg-teal-50 px-4 py-3 text-sm font-medium text-teal-800 dark:border-teal-800 dark:bg-teal-950/20 dark:text-teal-200">
-          ✓ All steps complete. Ready for launch!
+          ✓ {labels.allDoneMessage}
         </p>
       )}
 
@@ -106,9 +119,7 @@ export function ChecklistClient({ companyId, stages }: Props) {
               className="rounded-2xl border border-[var(--card-border)] bg-[var(--card)] p-5"
             >
               <div className="mb-4 flex items-center justify-between">
-                <h3 className="font-semibold text-[var(--foreground)]">
-                  {stage.name}
-                </h3>
+                <h3 className="font-semibold text-[var(--foreground)]">{stage.name}</h3>
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-[var(--muted)]">
                     {doneCount}/{stage.steps.length}
@@ -118,7 +129,7 @@ export function ChecklistClient({ companyId, stages }: Props) {
                     onClick={() => setStageAllNo(stage.id)}
                     className="rounded-lg border border-rose-200 px-2 py-1 text-xs font-medium text-rose-600 transition hover:bg-rose-50 dark:border-rose-800 dark:hover:bg-rose-950/30"
                   >
-                    Set all to No
+                    {labels.setAllNo}
                   </button>
                 </div>
               </div>
@@ -148,7 +159,7 @@ export function ChecklistClient({ companyId, stages }: Props) {
                       {step.label}
                     </span>
                     <span className="text-xs text-[var(--muted)]">
-                      {step.fileUri ? "📎 File" : "No file"}
+                      {step.fileUri ? `📎 ${labels.fileAttached}` : labels.noFile}
                     </span>
                   </li>
                 ))}
@@ -157,7 +168,7 @@ export function ChecklistClient({ companyId, stages }: Props) {
                 <input
                   value={newStepByStage[stage.id] ?? ""}
                   onChange={(e) => setNewStepByStage((prev) => ({ ...prev, [stage.id]: e.target.value }))}
-                  placeholder="New todo"
+                  placeholder={labels.newStepPlaceholder}
                   className="w-full rounded-lg border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm"
                 />
                 <button
@@ -165,7 +176,7 @@ export function ChecklistClient({ companyId, stages }: Props) {
                   onClick={() => addStep(stage.id)}
                   className="rounded-lg border border-teal-300 px-3 py-2 text-sm font-semibold text-teal-700 transition hover:bg-teal-50 dark:border-teal-700 dark:text-teal-300 dark:hover:bg-teal-950/30"
                 >
-                  + Todo
+                  {labels.addStepButton}
                 </button>
               </div>
             </div>

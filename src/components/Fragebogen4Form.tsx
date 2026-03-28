@@ -1,5 +1,6 @@
 "use client";
 
+import { PendingSubmitButton } from "@/components/PendingSubmitButton";
 import {
   COMP_ITEMS,
   FIT_ITEMS,
@@ -193,12 +194,7 @@ export function Fragebogen4Form({ action, t, initialValues, hideSubmitButton }: 
       </section>
       {!shouldHideSubmitButton && (
         <div className="flex justify-end">
-          <button
-            type="submit"
-            className="rounded-xl bg-teal-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-teal-700"
-          >
-            {t.fb4Submit ?? "Absenden"}
-          </button>
+          <PendingSubmitButton>{t.fb4Submit ?? "Absenden"}</PendingSubmitButton>
         </div>
       )}
     </form>

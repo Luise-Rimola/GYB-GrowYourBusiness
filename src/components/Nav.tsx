@@ -125,18 +125,7 @@ export default function Nav({ userEmail }: { userEmail?: string | null }) {
               </button>
               {settingsOpen && (
                 <div className="absolute right-0 top-full mt-1 w-56 rounded-xl border border-[var(--card-border)] bg-[var(--card)] py-2 shadow-xl">
-                  <div className="border-b border-[var(--card-border)] px-4 py-2">
-                    <label className="mb-1 block text-xs font-medium text-[var(--muted)]">{t.nav.language}</label>
-                    <select
-                      value={locale}
-                      onChange={(e) => setLocale(e.target.value as "en" | "de")}
-                      className="w-full rounded-lg border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm text-[var(--foreground)]"
-                    >
-                      <option value="en">English</option>
-                      <option value="de">Deutsch</option>
-                    </select>
-                  </div>
-                  <div className="px-2 pt-2">
+                  <div className="px-2">
                     {settingsNavItems.map((item) => {
                       const active = pathMatchesNav(pathname, item.href);
                       return (
@@ -164,6 +153,17 @@ export default function Nav({ userEmail }: { userEmail?: string | null }) {
                         {t.auth.logout}
                       </button>
                     </form>
+                  </div>
+                  <div className="mt-1 border-t border-[var(--card-border)] px-4 py-2">
+                    <label className="mb-1 block text-xs font-medium text-[var(--muted)]">{t.nav.language}</label>
+                    <select
+                      value={locale}
+                      onChange={(e) => setLocale(e.target.value as "en" | "de")}
+                      className="w-full rounded-lg border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm text-[var(--foreground)]"
+                    >
+                      <option value="en">English</option>
+                      <option value="de">Deutsch</option>
+                    </select>
                   </div>
                 </div>
               )}
@@ -243,17 +243,6 @@ export default function Nav({ userEmail }: { userEmail?: string | null }) {
             {isAuthed && (
               <div className="mt-2 border-t border-[var(--card-border)] pt-2">
                 <p className="mb-2 px-3 text-xs font-medium text-[var(--muted)]">{t.nav.settings}</p>
-                <div className="mb-2 px-3">
-                  <label className="mb-1 block text-xs text-[var(--muted)]">{t.nav.language}</label>
-                  <select
-                    value={locale}
-                    onChange={(e) => setLocale(e.target.value as "en" | "de")}
-                    className="w-full rounded-lg border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm"
-                  >
-                    <option value="en">English</option>
-                    <option value="de">Deutsch</option>
-                  </select>
-                </div>
                 {settingsNavItems.map((item) => {
                   const active = pathMatchesNav(pathname, item.href);
                   return (
@@ -281,6 +270,17 @@ export default function Nav({ userEmail }: { userEmail?: string | null }) {
                     {t.auth.logout}
                   </button>
                 </form>
+                <div className="mt-2 border-t border-[var(--card-border)] px-3 pt-3">
+                  <label className="mb-1 block text-xs text-[var(--muted)]">{t.nav.language}</label>
+                  <select
+                    value={locale}
+                    onChange={(e) => setLocale(e.target.value as "en" | "de")}
+                    className="w-full rounded-lg border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm"
+                  >
+                    <option value="en">English</option>
+                    <option value="de">Deutsch</option>
+                  </select>
+                </div>
               </div>
             )}
           </div>

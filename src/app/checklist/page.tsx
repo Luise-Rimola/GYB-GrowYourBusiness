@@ -4,8 +4,9 @@ import { getOrCreateDemoCompany } from "@/lib/demo";
 import { ChecklistClient } from "./ChecklistClient";
 import { getServerLocale } from "@/lib/locale";
 import { getTranslations } from "@/lib/i18n";
+import type { Locale } from "@/lib/i18n";
 
-const DEFAULT_STAGES = [
+const DEFAULT_STAGES_EN = [
   { name: "Brand & Identity", steps: ["Logo", "Brand colors", "Brand guidelines"] },
   { name: "Digital Presence", steps: ["Website", "Social media accounts", "Google Business Profile"] },
   { name: "Product & Menu", steps: ["Menu / product catalogue", "Pricing", "Packaging"] },
@@ -14,21 +15,31 @@ const DEFAULT_STAGES = [
   { name: "Launch Prep", steps: ["Soft launch / trial", "Marketing materials", "Opening day plan"] },
 ];
 
+const DEFAULT_STAGES_DE = [
+  { name: "Marke & Identität", steps: ["Logo", "Markenfarben", "Markenrichtlinien"] },
+  { name: "Digitale Präsenz", steps: ["Website", "Social-Media-Konten", "Google-Unternehmensprofil"] },
+  { name: "Produkt & Angebot", steps: ["Menü / Produktkatalog", "Preise", "Verpackung"] },
+  { name: "Betrieb", steps: ["Lieferanten gewinnen", "Lagerverwaltung", "Kasse / Bestellsystem"] },
+  { name: "Recht & Verwaltung", steps: ["Gewerbeanmeldung / Registrierung", "Steuern einrichten", "Versicherung"] },
+  { name: "Launch-Vorbereitung", steps: ["Softlaunch / Testlauf", "Marketingmaterial", "Plan für den Launch-Tag"] },
+];
+
+function defaultStagesForLocale(locale: Locale) {
+  return locale === "de" ? DEFAULT_STAGES_DE : DEFAULT_STAGES_EN;
+}
+
 export default async function ChecklistPage() {
   const company = await getOrCreateDemoCompany();
   const locale = await getServerLocale();
   const t = getTranslations(locale);
+  const c = t.checklist;
 
   if (!prisma.launchStage) {
     return (
       <div className="space-y-8">
         <header>
-          <h1 className="text-3xl font-bold tracking-tight text-[var(--foreground)]">
-            {t.checklist.title}
-          </h1>
-          <p className="mt-2 text-[var(--muted)]">
-            {t.checklist.prismaSync}
-          </p>
+          <h1 className="text-3xl font-bold tracking-tight text-[var(--foreground)]">{c.title}</h1>
+          <p className="mt-2 text-[var(--muted)]">{c.prismaSync}</p>
         </header>
       </div>
     );
@@ -41,8 +52,9 @@ export default async function ChecklistPage() {
   });
 
   if (stages.length === 0) {
-    for (let i = 0; i < DEFAULT_STAGES.length; i++) {
-      const s = DEFAULT_STAGES[i];
+    const defaults = defaultStagesForLocale(locale);
+    for (let i = 0; i < defaults.length; i++) {
+      const s = defaults[i];
       const stage = await prisma.launchStage.create({
         data: {
           companyId: company.id,
@@ -62,22 +74,28 @@ export default async function ChecklistPage() {
     }
   }
 
+  const labels = {
+    addCategory: c.addCategory,
+    newCategoryPlaceholder: c.newCategoryPlaceholder,
+    addCategoryButton: c.addCategoryButton,
+    allDoneMessage: c.allDoneMessage,
+    setAllNo: c.setAllNo,
+    fileAttached: c.fileAttached,
+    noFile: c.noFile,
+    newStepPlaceholder: c.newStepPlaceholder,
+    addStepButton: c.addStepButton,
+  };
+
   return (
     <div className="space-y-8">
       <header>
-        <h1 className="text-3xl font-bold tracking-tight text-[var(--foreground)]">
-          Checkliste
-        </h1>
-        <p className="mt-2 text-[var(--muted)]">
-          Launch Checklist (Example)
-        </p>
-        <p className="mt-1 text-[var(--muted)]">
-          Track pre-launch steps. Click a stage to set all steps to No. Upload files for LLM review.
-        </p>
+        <h1 className="text-3xl font-bold tracking-tight text-[var(--foreground)]">{c.title}</h1>
+        <p className="mt-2 text-[var(--muted)]">{c.exampleNote}</p>
+        <p className="mt-1 text-sm text-[var(--muted)]">{c.subtitle}</p>
       </header>
 
-      <Section title="Pre-launch Steps" description="Check off each step as you complete it.">
-        <ChecklistClient companyId={company.id} stages={stages} />
+      <Section title={c.preLaunchSteps} description={c.preLaunchStepsDesc}>
+        <ChecklistClient companyId={company.id} stages={stages} labels={labels} />
       </Section>
     </div>
   );

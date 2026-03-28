@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { getTranslations } from "@/lib/i18n";
+import { SUBMIT_BUTTON_PENDING_CLASS } from "@/lib/submitButtonStyle";
 
 export function VerifyEmailForm() {
   const { locale } = useLanguage();
@@ -41,9 +42,9 @@ export function VerifyEmailForm() {
       }
       router.push(typeof data.redirect === "string" ? data.redirect : "/home");
       router.refresh();
+      return;
     } catch (err) {
       setError(err instanceof Error ? err.message : t.auth.errorGeneric);
-    } finally {
       setLoading(false);
     }
   }
@@ -105,7 +106,8 @@ export function VerifyEmailForm() {
         <button
           type="submit"
           disabled={loading || code.length !== 6}
-          className="w-full rounded-xl bg-teal-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-700 disabled:opacity-50"
+          aria-busy={loading}
+          className={`w-full rounded-xl bg-teal-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-700 disabled:opacity-50 ${loading ? SUBMIT_BUTTON_PENDING_CLASS : ""}`}
         >
           {loading ? "…" : t.auth.verifySubmit}
         </button>
@@ -126,7 +128,8 @@ export function VerifyEmailForm() {
           <button
             type="submit"
             disabled={resendLoading || !password}
-            className="w-full rounded-xl border border-[var(--card-border)] px-4 py-2.5 text-sm font-medium transition hover:bg-teal-50 dark:hover:bg-teal-950/30 disabled:opacity-50"
+            aria-busy={resendLoading}
+            className={`w-full rounded-xl border border-[var(--card-border)] px-4 py-2.5 text-sm font-medium shadow-sm transition hover:bg-teal-50 dark:hover:bg-teal-950/30 disabled:opacity-50 ${resendLoading ? SUBMIT_BUTTON_PENDING_CLASS : ""}`}
           >
             {resendLoading ? "…" : t.auth.verifyResendButton}
           </button>

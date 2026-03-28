@@ -214,20 +214,20 @@ export default async function Home({
                 href={item.href}
                 className={
                   item.completed
-                    ? "flex items-center gap-3 rounded-xl border border-emerald-300 bg-emerald-50/70 px-4 py-3 text-sm font-medium text-emerald-900 transition hover:border-emerald-400 hover:bg-emerald-100/70 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-200 dark:hover:border-emerald-700 dark:hover:bg-emerald-900/40"
-                    : "flex items-center gap-3 rounded-xl border border-transparent px-4 py-3 text-sm font-medium text-[var(--foreground)] transition hover:border-teal-200 hover:bg-teal-50/50 dark:hover:border-teal-800 dark:hover:bg-teal-950/20"
+                    ? "flex items-start gap-3 rounded-xl border border-emerald-300 bg-emerald-50/70 px-4 py-3 text-sm font-medium text-emerald-900 transition hover:border-emerald-400 hover:bg-emerald-100/70 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-200 dark:hover:border-emerald-700 dark:hover:bg-emerald-900/40"
+                    : "flex items-start gap-3 rounded-xl border border-transparent px-4 py-3 text-sm font-medium text-[var(--foreground)] transition hover:border-teal-200 hover:bg-teal-50/50 dark:hover:border-teal-800 dark:hover:bg-teal-950/20"
                 }
               >
                 <span
                   className={
                     item.completed
-                      ? "flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100 text-xs font-semibold text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300"
-                      : "flex h-6 w-6 items-center justify-center rounded-full bg-teal-100 text-xs font-semibold text-teal-700 dark:bg-teal-900/50 dark:text-teal-300"
+                      ? "flex h-7 min-h-7 w-7 min-w-7 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-xs font-semibold text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300"
+                      : "flex h-7 min-h-7 w-7 min-w-7 shrink-0 items-center justify-center rounded-full bg-teal-100 text-xs font-semibold text-teal-700 dark:bg-teal-900/50 dark:text-teal-300"
                   }
                 >
                   {item.completed ? "✓" : i + 1}
                 </span>
-                {item.label}
+                <span className="min-w-0 flex-1 break-words leading-snug">{item.label}</span>
               </Link>
             </li>
           ))}

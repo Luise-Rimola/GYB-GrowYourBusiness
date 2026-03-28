@@ -8,7 +8,6 @@ import {
 } from "@/lib/questionnaireResponses";
 import { getServerLocale } from "@/lib/locale";
 import { getTranslations } from "@/lib/i18n";
-import { Section } from "@/components/Section";
 import { Fragebogen1Form } from "@/components/Fragebogen1Form";
 import { AssistantSubmitBridge } from "@/components/AssistantSubmitBridge";
 
@@ -93,25 +92,14 @@ export default async function Fragebogen1Page({
 
   return (
     <div className="space-y-8">
-      <header>
-        <h1 className="text-3xl font-bold tracking-tight text-[var(--foreground)]">
+      <header className="space-y-3">
+        <h1 className="text-2xl font-bold tracking-tight text-[var(--foreground)] sm:text-3xl">
           {t.study.fb1Title}
         </h1>
-        <p className="mt-2 text-[var(--muted)]">{t.study.fb1Desc}</p>
+        <p className="max-w-2xl text-sm leading-relaxed text-[var(--muted)] sm:text-base">
+          {t.study.fb1Desc}
+        </p>
       </header>
-
-      <Section
-        title="Kontext zur Beantwortung"
-        description="Aktuelle Phase und Einordnung der Fragen."
-      >
-        <div className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-4 text-sm">
-          <p><span className="font-semibold">Aktuelle Phase:</span> Konfigurationsphase</p>
-          <p className="mt-2"><span className="font-semibold">Typische Aufgaben/Workflows:</span> Business Form, Baseline & KPI-Set, Datenbasis und Ausgangslage klären.</p>
-          <p className="mt-2 text-[var(--muted)]">
-            Bitte antworte aus Sicht deiner aktuellen Ausgangssituation. Diese Angaben sind die Referenz für spätere Phasenvergleiche (vor/nach Workflows).
-          </p>
-        </div>
-      </Section>
 
       <Fragebogen1Form
         action={saveFb1}

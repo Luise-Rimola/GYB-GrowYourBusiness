@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { headers } from "next/headers";
 import "./globals.css";
 import Nav from "@/components/Nav";
 import { Providers } from "@/components/Providers";
@@ -31,6 +32,12 @@ export default async function RootLayout({
   const locale = await getServerLocale();
   const session =
     process.env.DEV_AUTH_BYPASS === "1" ? { email: "dev@local" } : await getSessionSafe();
+  const hdrs = await headers();
+  const embedFrame = hdrs.get("x-app-embed") === "1";
+
+  const mainClass = embedFrame
+    ? "mx-auto w-full max-w-none px-[3px] py-3 sm:px-4 sm:py-5 md:px-5 md:py-8"
+    : "mx-auto w-full max-w-6xl px-6 py-10";
 
   return (
     <html lang={locale} suppressHydrationWarning>
@@ -40,7 +47,7 @@ export default async function RootLayout({
         <Providers>
           <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)] bg-grid-pattern">
             <Nav userEmail={session?.email ?? null} />
-            <main className="mx-auto w-full max-w-6xl px-6 py-10">{children}</main>
+            <main className={mainClass}>{children}</main>
           </div>
         </Providers>
       </body>

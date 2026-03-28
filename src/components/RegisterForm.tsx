@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { getTranslations } from "@/lib/i18n";
+import { SUBMIT_BUTTON_PENDING_CLASS } from "@/lib/submitButtonStyle";
 
 export function RegisterForm() {
   const { locale } = useLanguage();
@@ -43,9 +44,9 @@ export function RegisterForm() {
       }
       router.push(typeof data.redirect === "string" ? data.redirect : "/home");
       router.refresh();
+      return;
     } catch (err) {
       setError(err instanceof Error ? err.message : t.auth.errorGeneric);
-    } finally {
       setLoading(false);
     }
   }
@@ -90,7 +91,8 @@ export function RegisterForm() {
       <button
         type="submit"
         disabled={loading}
-        className="w-full rounded-xl bg-teal-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-700 disabled:opacity-50"
+        aria-busy={loading}
+        className={`w-full rounded-xl bg-teal-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-700 disabled:opacity-100 ${loading ? SUBMIT_BUTTON_PENDING_CLASS : ""}`}
       >
         {loading ? "…" : t.auth.submitRegister}
       </button>

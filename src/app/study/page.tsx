@@ -247,19 +247,19 @@ export default async function StudyPage({
           <h3 className="text-lg font-semibold text-[var(--foreground)]">{phase.title}</h3>
           <div className="mt-4 space-y-3">
             {phase.items.map((it) => (
-              <div key={it.href + it.label} className="flex items-center gap-3">
+              <div key={it.href + it.label} className="flex items-start gap-3">
                 {it.completed ? (
-                  <span className="inline-flex items-center justify-center rounded-full bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-700">
+                  <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-xs font-semibold text-emerald-700">
                     ✓
                   </span>
                 ) : (
-                  <span className="inline-flex items-center justify-center rounded-full bg-zinc-100 px-2 py-1 text-xs font-semibold text-zinc-600">
+                  <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-xs font-semibold text-zinc-600">
                     —
                   </span>
                 )}
                 <Link
                   href={it.href}
-                  className="rounded-lg border border-[var(--card-border)] px-3 py-2 text-sm font-medium transition hover:border-teal-300 hover:bg-teal-50/50"
+                  className="min-w-0 flex-1 break-words rounded-lg border border-[var(--card-border)] px-3 py-2 text-sm font-medium leading-snug transition hover:border-teal-300 hover:bg-teal-50/50"
                 >
                   {it.label}
                 </Link>
