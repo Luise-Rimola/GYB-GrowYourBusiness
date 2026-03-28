@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getSessionSafe } from "@/lib/session";
 
 const landingCopy = {
   de: {
@@ -7,6 +8,7 @@ const landingCopy = {
       "AI-Powered Growth System fuer Strategie, Priorisierung und Umsetzung. Du bekommst klare Phasen, verstaendliche Workflows und belastbare Ergebnisse.",
     ctaPrimary: "Kostenlos starten",
     ctaLogin: "Login",
+    ctaContinue: "Weiter zur App",
     trust1: "Strukturierte Entscheidungsvorlagen",
     trust2: "Transparente KPI- und Quellenlogik",
     trust3: "Auditierbare Ergebnisse für Teams",
@@ -68,6 +70,7 @@ const landingCopy = {
       "AI-Powered Growth System for strategy, prioritization, and execution. Get clear phases, understandable workflows, and actionable outputs.",
     ctaPrimary: "Start free",
     ctaLogin: "Login",
+    ctaContinue: "Continue to app",
     trust1: "Structured decision templates",
     trust2: "Transparent KPI and source logic",
     trust3: "Auditable outcomes for teams",
@@ -133,6 +136,9 @@ export default async function LandingPage({
   const params = await searchParams;
   const locale = params.lang === "en" ? "en" : "de";
   const c = landingCopy[locale];
+  const session =
+    process.env.DEV_AUTH_BYPASS === "1" ? { email: "dev@local" } : await getSessionSafe();
+  const isAuthed = Boolean(session?.email);
 
   return (
     <div className="flex flex-col gap-14">
@@ -158,18 +164,29 @@ export default async function LandingPage({
             {c.heroSubtitle}
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
-            <Link
-              href="/register"
-              className="rounded-xl bg-teal-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-teal-700"
-            >
-              {c.ctaPrimary}
-            </Link>
-            <Link
-              href="/login"
-              className="rounded-xl border border-[var(--card-border)] bg-white/90 px-5 py-2.5 text-sm font-semibold text-[var(--foreground)] transition hover:border-teal-300 hover:text-teal-700 dark:bg-[var(--card)] dark:hover:text-teal-300"
-            >
-              {c.ctaLogin}
-            </Link>
+            {isAuthed ? (
+              <Link
+                href="/home"
+                className="rounded-xl bg-teal-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-teal-700"
+              >
+                {c.ctaContinue}
+              </Link>
+            ) : (
+              <>
+                <Link
+                  href="/register"
+                  className="rounded-xl bg-teal-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-teal-700"
+                >
+                  {c.ctaPrimary}
+                </Link>
+                <Link
+                  href="/login"
+                  className="rounded-xl border border-[var(--card-border)] bg-white/90 px-5 py-2.5 text-sm font-semibold text-[var(--foreground)] transition hover:border-teal-300 hover:text-teal-700 dark:bg-[var(--card)] dark:hover:text-teal-300"
+                >
+                  {c.ctaLogin}
+                </Link>
+              </>
+            )}
           </div>
           <div className="mt-7 grid gap-3 md:grid-cols-3">
             <div className="rounded-2xl border border-teal-200 bg-gradient-to-br from-white to-teal-50 px-4 py-3 shadow-sm dark:border-teal-800 dark:from-[var(--card)] dark:to-teal-950/20">
@@ -250,18 +267,29 @@ export default async function LandingPage({
             </p>
           </div>
           <div className="flex gap-3">
-            <Link
-              href="/register"
-              className="rounded-xl bg-teal-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-700"
-            >
-              {c.finalPrimary}
-            </Link>
-            <Link
-              href="/login"
-              className="rounded-xl border border-[var(--card-border)] px-5 py-2.5 text-sm font-semibold text-[var(--foreground)] transition hover:border-teal-300 hover:text-teal-700 dark:hover:text-teal-300"
-            >
-              {c.finalSecondary}
-            </Link>
+            {isAuthed ? (
+              <Link
+                href="/home"
+                className="rounded-xl bg-teal-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-700"
+              >
+                {c.ctaContinue}
+              </Link>
+            ) : (
+              <>
+                <Link
+                  href="/register"
+                  className="rounded-xl bg-teal-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-700"
+                >
+                  {c.finalPrimary}
+                </Link>
+                <Link
+                  href="/login"
+                  className="rounded-xl border border-[var(--card-border)] px-5 py-2.5 text-sm font-semibold text-[var(--foreground)] transition hover:border-teal-300 hover:text-teal-700 dark:hover:text-teal-300"
+                >
+                  {c.finalSecondary}
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </section>
