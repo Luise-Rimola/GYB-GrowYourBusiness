@@ -7,7 +7,6 @@ type Props = {
   labels: {
     button: string;
     loading: string;
-    emptyHint: string;
   };
 };
 
@@ -42,8 +41,7 @@ export function IntegratedInsightAnalysis({ locale, labels }: Props) {
   }
 
   return (
-    <div className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-5">
-      <p className="mb-4 text-xs text-[var(--muted)]">{labels.emptyHint}</p>
+    <div>
       <button
         type="button"
         onClick={run}

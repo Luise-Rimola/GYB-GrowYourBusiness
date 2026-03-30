@@ -100,7 +100,7 @@ export default async function Fragebogen1Page({
         <h1 className="text-2xl font-bold tracking-tight text-[var(--foreground)] sm:text-3xl">
           {t.study.fb1Title}
         </h1>
-        <p className="max-w-2xl text-sm leading-relaxed text-[var(--muted)] sm:text-base">
+        <p className="w-full text-sm leading-relaxed text-[var(--muted)] sm:text-base">
           {t.study.fb1Desc}
         </p>
       </header>

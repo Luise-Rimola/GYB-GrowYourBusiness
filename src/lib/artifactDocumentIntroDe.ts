@@ -4,101 +4,101 @@
  */
 const INTROS: Record<string, string> = {
   baseline:
-    "Startpunkt mit Zahlen und Annahmen zu eurem Betrieb. So könnt ihr später vergleichen, ob sich etwas verbessert hat.",
+    "Dieses Dokument bildet die Ausgangslage Ihres Unternehmens ab: zentrale Kennzahlen, Annahmen und Rahmenbedingungen zu Beginn der Analyse. Es dient als Referenzpunkt, um spätere Veränderungen strukturiert zu vergleichen.",
   industry_research:
-    "Was in eurer Branche gerade üblich ist: grobe Marktlage, Trends und Rahmen — damit ihr euch darin zurechtfindet.",
+    "Dieses Dokument fasst Branchenstruktur, Marktmechanismen und relevante Trends zusammen. Es hilft, Ihr Vorhaben im Branchenkontext einzuordnen und branchentypische Chancen sowie Risiken früh zu erkennen.",
   market:
-    "Wer könnte eure Kunden sein, wer macht ähnliches wie ihr, und wo gibt es Chancen — in groben Strichen erklärt.",
+    "Dieses Dokument beschreibt Zielgruppen, Kundensegmente, Wettbewerbsumfeld und Marktpotenziale in einer kompakten Übersicht. Es schafft die Grundlage für Positionierung und Priorisierung im Markteintritt.",
   market_research:
-    "Mehr zum Markt: Nachfrage, Preise und typische Wege zum Kunden. Gedacht zum Lesen, nicht zum Staunen mit Fachbegriffen.",
+    "Dieses Dokument vertieft die Marktsicht durch Nachfrageindikatoren, Preisniveaus, Kundenzugänge und beobachtbare Entwicklungen. Es dient als evidenzbasierte Basis für Vertriebs- und Angebotsentscheidungen.",
   diagnostic:
-    "Schaut, wo es bei euch hakt: Abläufe, Engpässe und Stellen, an denen ihr etwas verbessern könnt.",
+    "Dieses Dokument identifiziert operative Schwachstellen, Engpässe und Ursachen innerhalb Ihrer aktuellen Abläufe. Es zeigt, an welchen Punkten Verbesserungen den größten Hebel auf Qualität, Geschwindigkeit oder Kosten haben.",
   decision_pack:
-    "Hilft bei einer Entscheidung: welche Möglichkeiten es gibt, woran man sie messen kann und was dafür spricht.",
+    "Dieses Dokument bündelt Entscheidungsoptionen, Bewertungskriterien und eine nachvollziehbare Gegenüberstellung der Alternativen. Es unterstützt dabei, strategische Entscheidungen transparent und begründet zu treffen.",
   data_collection_plan:
-    "Ein Plan, welche Zahlen ihr sammeln solltet und warum — damit ihr später sauber auswerten könnt.",
+    "Dieses Dokument definiert, welche Daten in welcher Qualität, Frequenz und Verantwortlichkeit erhoben werden sollen. Es stellt sicher, dass spätere Auswertungen auf konsistenten und belastbaren Daten beruhen.",
   knowledge_digest:
-    "Die wichtigsten Infos aus eurer Wissensbasis, kurz zusammengefasst.",
+    "Dieses Dokument verdichtet die wichtigsten Erkenntnisse aus Quellen, Dokumenten und Wissenseinträgen in einer strukturierten Zusammenfassung. Es erleichtert den schnellen Überblick über den aktuellen Wissensstand.",
   strategy_pack:
-    "Verschiedene strategische Bausteine an einem Ort — zum Durchlesen und Priorisieren.",
+    "Dieses Dokument kombiniert zentrale strategische Bausteine in einem Gesamtbild und ordnet sie nach Relevanz. Es dient als Arbeitsgrundlage, um priorisierte Maßnahmen systematisch abzuleiten.",
   best_practices:
-    "Was andere in ähnlichen Fällen oft gut machen — als Ideensammlung, nicht als Gesetz.",
+    "Bewährte Vorgehensweisen aus vergleichbaren Situationen: konkrete Methoden, Abläufe und Entscheidungsmuster, die sich in der Praxis als wirksam erwiesen haben. Dient als Orientierungsrahmen für die eigene Umsetzung.",
   failure_analysis:
-    "Was schiefgehen kann und warum — damit ihr Fallstricke früh seht.",
+    "Dieses Dokument analysiert potenzielle Fehlerquellen, Ausfallursachen und kritische Abhängigkeiten. Es unterstützt ein frühzeitiges Risikomanagement und verbessert die Robustheit geplanter Maßnahmen.",
   business_plan:
-    "Wie euer Geschäft gedacht ist: Idee, Zahlen grob, nächste Schritte. Gut zum Teilen mit anderen.",
+    "Dieses Dokument strukturiert Ihr Geschäftsmodell, zentrale Annahmen, finanzielle Eckpunkte und operative Umsetzungsschritte. Es dient als konsistente Entscheidungs- und Kommunikationsgrundlage für interne und externe Stakeholder.",
   menu_card:
-    "Eure Speisen oder Angebote übersichtlich — für Gäste oder interne Planung.",
+    "Dieses Dokument stellt Ihr Angebotsportfolio strukturiert dar, inklusive Produktgruppen und Ausprägungen. Es unterstützt sowohl die externe Darstellung als auch die interne Steuerung des Angebots.",
   supplier_list:
-    "Woher ihr was bezieht — Lieferanten und Stoffe auf einen Blick.",
+    "Dieses Dokument listet relevante Lieferanten, Beschaffungsquellen und zugehörige Abhängigkeiten auf. Es schafft Transparenz für Einkauf, Qualitätssicherung und Versorgungssicherheit.",
   menu_cost:
-    "Was eure Speisen ungefähr kosten — wichtig für Preise und Marge.",
+    "Dieses Dokument zeigt die Kostenstruktur einzelner Angebote und macht Kostentreiber sichtbar. Es bildet die Basis für fundierte Preis- und Margenentscheidungen.",
   menu_preiskalkulation:
-    "Wie sich Verkaufspreise aus den Kosten ergeben — damit ihr nicht zu knapp kalkuliert.",
+    "Dieses Dokument leitet Verkaufspreise aus Kosten, Zielmargen und Marktannahmen ab. Es unterstützt eine wirtschaftlich tragfähige Preisgestaltung.",
   real_estate:
-    "Zu Immobilien oder Standorten: Optionen, grobe Preise, was dazu passt.",
+    "Dieses Dokument bewertet Standort- oder Immobilienoptionen anhand relevanter Kriterien wie Kosten, Lagequalität und Nutzungsfit. Es dient als Entscheidungshilfe für Standortfragen.",
   startup_guide:
-    "Schritte und Hinweise für den Start — was oft als Nächstes ansteht.",
+    "Dieses Dokument beschreibt die wichtigsten Startschritte in sinnvoller Reihenfolge und mit konkreten Handlungshinweisen. Es unterstützt einen strukturierten Aufbau in der frühen Unternehmensphase.",
   customer_validation:
-    "Ob echte Kunden eure Idee wollen: Tests, Feedback und erste Signale — ohne Fachchinesisch.",
+    "Dieses Dokument prüft, wie gut Ihr Angebot reale Kundenbedarfe trifft, auf Basis von Tests und Rückmeldungen. Es liefert Evidenz für Produkt-Markt-Fit und Prioritäten in der Weiterentwicklung.",
   process_optimization:
-    "Wo Abläufe zu langsam oder teuer sind und was ihr dagegen tun könnt.",
+    "Dieses Dokument analysiert bestehende Prozesse hinsichtlich Effizienz, Qualität und Aufwand. Es zeigt konkrete Optimierungsansätze mit messbarer Wirkung auf Ablauf und Ergebnis.",
   strategic_options:
-    "Verschiedene Wege, die ihr einschlagen könnt — mit Vor- und Nachteilen in Kurzform.",
+    "Dieses Dokument beschreibt alternative strategische Handlungswege mit Vorteilen, Nachteilen und Voraussetzungen. Es dient der strukturierten Auswahl einer tragfähigen Stoßrichtung.",
   hr_planning:
-    "Wie viele Leute ihr braucht, welche Rollen und was das ungefähr bedeutet.",
+    "Dieses Dokument plant Personalbedarf, Rollenprofile und zeitliche Prioritäten entlang Ihrer Unternehmensziele. Es unterstützt eine realistische Kapazitäts- und Teamplanung.",
   value_proposition:
-    "In einfachen Worten: Welches Problem löst ihr? Für wen? Was macht euch anders als andere? Was wäre sinnvoll als Nächstes?",
+    "Dieses Dokument schärft Ihr Wertversprechen: welches Kundenproblem gelöst wird, für wen der Nutzen entsteht und wodurch Sie sich differenzieren. Es bildet die Grundlage für Positionierung und Kommunikation.",
   go_to_market:
-    "Wie ihr Kunden erreicht: Kanäle, Preise grob, erste Schritte Richtung Markt.",
+    "Dieses Dokument definiert Ihren Markteintrittsplan mit Zielsegmenten, Kanälen, Angebotslogik und ersten Umsetzungsmaßnahmen. Es dient als Leitlinie für den operativen Start im Markt.",
   marketing_strategy:
-    "Was ihr in den nächsten Wochen werblich tun könnt — Ziel, Botschaft und konkrete Ideen.",
+    "Dieses Dokument beschreibt Marketingziele, Kernbotschaften, Zielgruppenansprache und priorisierte Maßnahmen. Es unterstützt eine wirksame und konsistente Marktbearbeitung.",
   scaling_strategy:
-    "Wenn ihr wachsen wollt: woran es hängt, was zuerst dran ist und worauf ihr achten solltet.",
+    "Dieses Dokument zeigt, wie Wachstum strukturiert umgesetzt werden kann, inklusive Voraussetzungen, Engpässen und Prioritäten. Es hilft, Skalierung kontrolliert und ressourcenschonend zu gestalten.",
   portfolio_management:
-    "Wenn ihr mehrere Produkte oder Bereiche habt: was gut läuft, was weniger, was Priorität hat.",
+    "Dieses Dokument bewertet mehrere Produkte oder Geschäftsfelder anhand von Leistung, Potenzial und Ressourcenbedarf. Es unterstützt Entscheidungen zu Fokus, Ausbau oder Reduktion einzelner Portfolioteile.",
   scenario_analysis:
-    "Was passiert, wenn die Dinge gut, mittel oder schlecht laufen — grob durchgerechnet.",
+    "Dieses Dokument vergleicht mehrere Zukunftsszenarien mit unterschiedlichen Annahmen und Auswirkungen. Es macht sichtbar, wie robust Ihre Entscheidungen unter verschiedenen Entwicklungen sind.",
   operative_plan:
-    "Wer macht was und bis wann — Alltag und nächste Meilensteine.",
+    "Dieses Dokument übersetzt strategische Ziele in konkrete Aufgaben, Verantwortlichkeiten, Fristen und Meilensteine. Es schafft Verbindlichkeit für die operative Umsetzung.",
   swot_analysis:
-    "Vier Kästen: Was ihr gut könnt, wo ihr schwach seid, welche Chancen es gibt und was von außen drückt.",
+    "Dieses Dokument strukturiert interne Stärken und Schwächen sowie externe Chancen und Risiken. Es liefert ein klares Lagebild für strategische Priorisierung.",
   financial_planning:
-    "Geld grob im Blick: Einnahmen, Ausgaben, was ihr braucht und wo es eng werden könnte.",
+    "Dieses Dokument stellt die finanzielle Planung mit Erlösen, Kosten, Liquidität und Kapitalbedarf dar. Es unterstützt wirtschaftliche Steuerung und frühzeitige Erkennung finanzieller Engpässe.",
   personnel_plan:
-    "Personal: wer gebraucht wird, Kosten grob, wie das Team aussehen könnte.",
+    "Dieses Dokument konkretisiert Teamstruktur, Rollenanforderungen und Personalaufwand in der Zeitachse. Es dient als Grundlage für eine tragfähige Ressourcenplanung.",
   strategic_planning:
-    "Wo ihr hinwollt über längere Zeit und welche großen Schritte dazugehören.",
+    "Dieses Dokument beschreibt die langfristige Zielrichtung sowie die zentralen strategischen Initiativen zur Zielerreichung. Es stellt sicher, dass Einzelmaßnahmen auf eine gemeinsame Richtung einzahlen.",
   trend_analysis:
-    "Was sich am Markt oder in der Technik bewegt — und was das für euch heißen könnte.",
+    "Dieses Dokument analysiert relevante Markt-, Technologie- und Umfeldtrends und deren mögliche Auswirkungen auf Ihr Geschäft. Es unterstützt proaktive strategische Anpassungen.",
   competitor_analysis:
-    "Wer sonst noch da ist, was die können und wo ihr euch abheben könnt.",
+    "Dieses Dokument vergleicht Wettbewerber hinsichtlich Angebot, Positionierung und Leistungsfähigkeit. Es zeigt Differenzierungspotenziale und mögliche Wettbewerbsrisiken auf.",
   kpi_estimation:
-    "Schätzungen zu wichtigen Kennzahlen — damit ihr Größenordnungen im Kopf habt.",
+    "Dieses Dokument liefert begründete Schätzwerte für zentrale Kennzahlen, wenn noch keine vollständigen Ist-Daten vorliegen. Es ermöglicht belastbare Orientierung für Planung und Priorisierung.",
   work_processes:
-    "Wie eure Arbeit von Anfang bis Ende läuft — Schritt für Schritt, inklusive wer wofür zuständig ist.",
+    "Dieses Dokument beschreibt End-to-End-Abläufe inklusive Schnittstellen, Verantwortlichkeiten und Prozesslogik. Es schafft Transparenz für Steuerung, Übergaben und Qualitätskontrolle.",
   tech_digitalization:
-    "Welche Software oder Digitalisierung Sinn machen könnte und was das bringt.",
+    "Dieses Dokument bewertet Digitalisierungs- und Technologieoptionen im Hinblick auf Nutzen, Aufwand und Umsetzungsvoraussetzungen. Es unterstützt die Auswahl sinnvoller Technologiestufen.",
   automation_roi:
-    "Ob sich Automatisierung lohnt: Kosten, Einsparung, grobe Amortisation.",
+    "Dieses Dokument bewertet den wirtschaftlichen Nutzen geplanter Automatisierung anhand Kosten, Einsparpotenzial und Amortisationszeit. Es dient als Investitionsgrundlage für Automatisierungsentscheidungen.",
   physical_automation:
-    "Maschinen oder technische Hilfen: was sie kosten und was sie bringen sollen.",
+    "Dieses Dokument beschreibt Möglichkeiten physischer Automatisierung, z. B. durch Maschinen oder technische Assistenzsysteme. Es bewertet Nutzen, Integrationsaufwand und operative Auswirkungen.",
   app_project_plan:
-    "Plan für eine App: Umfang, Phasen und wie das Projekt organisiert werden kann.",
+    "Dieses Dokument strukturiert ein App-Vorhaben nach Umfang, Arbeitspaketen, Phasen und Steuerungslogik. Es schafft Klarheit über Vorgehen, Prioritäten und Umsetzungspfad.",
   app_requirements:
-    "Was die App können soll — aus Nutzersicht, ohne Programmierdetails.",
+    "Dieses Dokument definiert funktionale und fachliche Anforderungen aus Nutzer- und Geschäftssicht. Es legt fest, welche Fähigkeiten die App liefern muss.",
   app_tech_spec:
-    "Technische Seite der App: wie sie aufgebaut ist und mit was sie redet.",
+    "Dieses Dokument beschreibt die technische Architektur, Systemkomponenten, Schnittstellen und Integrationspunkte der App. Es dient als technische Umsetzungsgrundlage.",
   app_mvp_guide:
-    "Die kleinste sinnvolle Version eurer App: was zuerst rein muss, um zu lernen.",
+    "Dieses Dokument priorisiert den minimal notwendigen Funktionsumfang für eine erste marktfähige Version (MVP). Es fokussiert auf schnelles Lernen bei begrenztem Umsetzungsaufwand.",
   app_page_specs:
-    "Welche Bildschirme es gibt und was der Nutzer dort sieht und tun kann.",
+    "Dieses Dokument spezifiziert Seiten und Nutzerinteraktionen inklusive Inhalte, Aktionen und Navigationslogik. Es unterstützt eine konsistente UX-Umsetzung.",
   app_db_schema:
-    "Welche Daten gespeichert werden und wie sie zusammenhängen — für Entwicklung und Nachvollziehbarkeit.",
+    "Dieses Dokument beschreibt Datenobjekte, Beziehungen und Strukturregeln der Datenhaltung. Es ist die Grundlage für konsistente Datenspeicherung und nachvollziehbare Systemlogik.",
 };
 
 const FALLBACK =
-  "Kurzfassung von Ergebnissen aus eurem KI-gestützten Ablauf. Unten steht der Bericht zum Lesen; „PDF herunterladen“ speichert das für andere.";
+  "Dieses Dokument enthält die aufbereitete Ergebnisdarstellung eines Prozessschritts und dient als nachvollziehbare Grundlage für die weitere Analyse und Entscheidung.";
 
 export function getArtifactDocumentIntroDe(artifactType: string): string {
   return INTROS[artifactType] ?? FALLBACK;

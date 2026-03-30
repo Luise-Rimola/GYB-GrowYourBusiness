@@ -87,9 +87,7 @@ export default async function ArtifactDetailPage({
         }
       >
         <div className="mb-4 rounded-xl border border-teal-200/90 bg-teal-50/60 p-4 text-sm text-slate-800 dark:border-teal-800/50 dark:bg-teal-950/25 dark:text-slate-100">
-          <p className="font-semibold text-teal-900 dark:text-teal-200">Kurz erklärt</p>
-          <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">Ohne Fachvokabular — auch wenn ihr den Dokumenttyp noch nicht kennt.</p>
-          <p className="mt-2 leading-relaxed">{getArtifactDocumentIntroDe(artifact.type)}</p>
+          <p className="leading-relaxed">{getArtifactDocumentIntroDe(artifact.type)}</p>
         </div>
         {(() => {
           const si = content.strategy_indicators as Record<string, { value?: number | string }> | undefined;

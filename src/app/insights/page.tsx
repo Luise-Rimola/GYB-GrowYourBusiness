@@ -2,7 +2,6 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { Section } from "@/components/Section";
 import { ReadableDataView } from "@/components/ReadableDataView";
-import { KpiValueCards } from "@/components/KpiValueCards";
 import { KpiLibraryCards } from "@/components/KpiLibraryCards";
 import { getOrCreateDemoCompany } from "@/lib/demo";
 import { getServerLocale } from "@/lib/locale";
@@ -57,7 +56,6 @@ export default async function InsightsPage() {
     }, new Map<string, typeof library>())
   ).sort(([a], [b]) => a.localeCompare(b));
   const kpiTree = kpiSet?.kpiTreeJson ?? { north_star: null, drivers: {} };
-
   const insightLocale = locale === "en" ? "en" : "de";
 
   return (
@@ -68,41 +66,8 @@ export default async function InsightsPage() {
           labels={{
             button: t.insights.integratedButton,
             loading: t.insights.integratedLoading,
-            emptyHint: t.insights.integratedEmpty,
           }}
         />
-      </Section>
-
-      <Section
-        title={t.insights.title}
-        description={t.insights.description}
-      >
-        <div className="mb-4 rounded-xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-900">
-          <p className="text-sm font-semibold text-zinc-700 dark:text-zinc-200">{t.insights.kpiTree}</p>
-          <ReadableDataView data={kpiTree} summary={t.data.viewData} />
-        </div>
-
-        {kpiValues.length === 0 ? (
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">
-            {t.insights.noKpiValues}
-          </p>
-        ) : (
-          <KpiValueCards
-            kpiValues={kpiValues.map((kv) => ({ ...kv, sourceRefJson: (kv.sourceRefJson ?? {}) as object }))}
-            library={library}
-            kpiEstimates={kpiEstimates}
-            locale={locale}
-            t={{
-              viewDetails: t.insights.viewDetails,
-              formula: t.insights.formula,
-              sourceTrace: t.insights.sourceTrace,
-              confidenceLabel: t.insights.confidenceLabel,
-              manualLabel: t.insights.manualLabel,
-              estimateLabel: t.insights.estimateLabel,
-              viewHistory: "Verlauf anzeigen",
-            }}
-          />
-        )}
       </Section>
 
       <Section
@@ -244,6 +209,12 @@ export default async function InsightsPage() {
 
           </div>
         )}
+      </Section>
+
+      <Section title={t.insights.kpiTree}>
+        <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-900">
+          <ReadableDataView data={kpiTree} summary={t.data.viewData} />
+        </div>
       </Section>
     </div>
   );
