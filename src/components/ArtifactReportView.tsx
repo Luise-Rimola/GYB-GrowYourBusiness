@@ -1742,6 +1742,96 @@ function SwotQuadrant({
   );
 }
 
+/** Wertversprechen: deutschsprachige Überschriften, englischer Begriff in Klammern */
+export function ValuePropositionReportView({ content }: { content: Record<string, unknown> }) {
+  const problem = String(content.problem_statement ?? "");
+  const customers = (content.target_customers as string[]) ?? [];
+  const existing = (content.existing_solutions as string[]) ?? [];
+  const uvp = String(content.unique_value_proposition ?? "");
+  const diff = (content.key_differentiators as string[]) ?? [];
+  const recs = (content.recommendations as string[]) ?? [];
+  const score = content.problem_solution_fit_score;
+
+  return (
+    <div className="space-y-8">
+      {typeof score === "number" && !Number.isNaN(score) ? (
+        <p className="rounded-lg border border-slate-200 bg-slate-50/80 px-4 py-3 text-sm text-slate-700">
+          <span className="font-semibold">Problem-Lösungs-Fit (Problem-Solution Score):</span>{" "}
+          {score}
+        </p>
+      ) : null}
+
+      <section>
+        <h3 className="mb-3 text-lg font-semibold text-[var(--foreground)]">
+          Problemstellung (Problem Statement)
+        </h3>
+        <p className="text-sm leading-relaxed text-slate-800">{problem || "—"}</p>
+      </section>
+
+      <section>
+        <h3 className="mb-3 text-lg font-semibold text-[var(--foreground)]">
+          Zielkunden (Target Customers)
+        </h3>
+        {customers.length === 0 ? (
+          <p className="text-sm text-[var(--muted)]">—</p>
+        ) : (
+          <ul className="list-disc space-y-1.5 pl-5 text-sm leading-relaxed">
+            {customers.map((c, i) => (
+              <li key={i}>{c}</li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {existing.length > 0 ? (
+        <section>
+          <h3 className="mb-3 text-lg font-semibold text-[var(--foreground)]">
+            Bestehende Lösungen (Existing Solutions)
+          </h3>
+          <ul className="list-disc space-y-1.5 pl-5 text-sm leading-relaxed">
+            {existing.map((e, i) => (
+              <li key={i}>{e}</li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      <section>
+        <h3 className="mb-3 text-lg font-semibold text-[var(--foreground)]">
+          Alleinstellungsmerkmal / Wertversprechen (Unique Value Proposition)
+        </h3>
+        <p className="text-sm leading-relaxed text-slate-800">{uvp || "—"}</p>
+      </section>
+
+      {diff.length > 0 ? (
+        <section>
+          <h3 className="mb-3 text-lg font-semibold text-[var(--foreground)]">
+            Wesentliche Differenzierungsmerkmale (Key Differentiators)
+          </h3>
+          <ul className="list-disc space-y-1.5 pl-5 text-sm leading-relaxed">
+            {diff.map((d, i) => (
+              <li key={i}>{d}</li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      {recs.length > 0 ? (
+        <section>
+          <h3 className="mb-3 text-lg font-semibold text-[var(--foreground)]">
+            Empfehlungen (Recommendations)
+          </h3>
+          <ul className="list-disc space-y-1.5 pl-5 text-sm leading-relaxed">
+            {recs.map((r, i) => (
+              <li key={i}>{r}</li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+    </div>
+  );
+}
+
 /** SWOT im 2×2-Raster (wie klassischer Steckbrief / Präsentationsfolie) */
 export function SwotReportView({ content }: { content: Record<string, unknown> }) {
   const strengths = (content.strengths as string[]) ?? [];

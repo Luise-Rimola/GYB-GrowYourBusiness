@@ -13,6 +13,7 @@ import { SourcesFooter } from "@/components/SourcesFooter";
 import { ArtifactContentMode } from "@/components/ArtifactContentMode";
 import { getEarlyWarningDetails, getEarlyWarningPrimaryRiskText, hasEarlyWarningSignal } from "@/lib/earlyWarning";
 import { EarlyWarningPopover } from "@/components/EarlyWarningPopover";
+import { getArtifactDocumentIntroDe } from "@/lib/artifactDocumentIntroDe";
 
 export default async function ArtifactDetailPage({
   params,
@@ -82,17 +83,14 @@ export default async function ArtifactDetailPage({
             >
               Dokument evaluieren
             </Link>
-            {artifact.runId ? (
-              <Link
-                href={`/runs/${artifact.runId}`}
-                className="rounded-xl border border-teal-600 px-4 py-2 text-sm font-medium text-teal-700 transition hover:bg-teal-50 dark:border-teal-500 dark:text-teal-300 dark:hover:bg-teal-950/50"
-              >
-                View Run Audit →
-              </Link>
-            ) : null}
           </div>
         }
       >
+        <div className="mb-4 rounded-xl border border-teal-200/90 bg-teal-50/60 p-4 text-sm text-slate-800 dark:border-teal-800/50 dark:bg-teal-950/25 dark:text-slate-100">
+          <p className="font-semibold text-teal-900 dark:text-teal-200">Kurz erklärt</p>
+          <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">Ohne Fachvokabular — auch wenn ihr den Dokumenttyp noch nicht kennt.</p>
+          <p className="mt-2 leading-relaxed">{getArtifactDocumentIntroDe(artifact.type)}</p>
+        </div>
         {(() => {
           const si = content.strategy_indicators as Record<string, { value?: number | string }> | undefined;
           const riskKeys: Array<{ key: string; threshold: number; label: string }> = [

@@ -2382,16 +2382,38 @@ export const WorkflowService = {
     `;
   },
 
-  renderValuePropositionHtml(data: { problem_statement?: string; target_customers?: string[]; unique_value_proposition?: string; key_differentiators?: string[]; recommendations?: string[] }) {
+  renderValuePropositionHtml(data: {
+    problem_statement?: string;
+    target_customers?: string[];
+    existing_solutions?: string[];
+    unique_value_proposition?: string;
+    key_differentiators?: string[];
+    recommendations?: string[];
+    sources_used?: string[];
+    problem_solution_fit_score?: number;
+  }) {
     const customers = data.target_customers ?? [];
+    const existing = data.existing_solutions ?? [];
     const diff = data.key_differentiators ?? [];
     const recs = data.recommendations ?? [];
+    const sources = data.sources_used ?? [];
+    const score =
+      typeof data.problem_solution_fit_score === "number"
+        ? `<p><strong>Problem-Lösungs-Fit (Problem-Solution Score):</strong> ${data.problem_solution_fit_score}</p>`
+        : "";
+    const sourcesBlock =
+      sources.length > 0
+        ? `<h3>Quellen (Sources)</h3><ol>${sources.map((s) => `<li>${s}</li>`).join("")}</ol>`
+        : "";
     return `
-      <h3>Problem Statement</h3><p>${data.problem_statement ?? "—"}</p>
-      <h3>Target Customers</h3><ul>${customers.map((c) => `<li>${c}</li>`).join("")}</ul>
-      <h3>Unique Value Proposition</h3><p>${data.unique_value_proposition ?? "—"}</p>
-      ${diff.length ? `<h3>Key Differentiators</h3><ul>${diff.map((d) => `<li>${d}</li>`).join("")}</ul>` : ""}
-      ${recs.length ? `<h3>Recommendations</h3><ul>${recs.map((r) => `<li>${r}</li>`).join("")}</ul>` : ""}
+      ${score}
+      <h3>Problemstellung (Problem Statement)</h3><p>${data.problem_statement ?? "—"}</p>
+      <h3>Zielkunden (Target Customers)</h3><ul>${customers.map((c) => `<li>${c}</li>`).join("")}</ul>
+      ${existing.length ? `<h3>Bestehende Lösungen (Existing Solutions)</h3><ul>${existing.map((e) => `<li>${e}</li>`).join("")}</ul>` : ""}
+      <h3>Alleinstellungsmerkmal / Wertversprechen (Unique Value Proposition)</h3><p>${data.unique_value_proposition ?? "—"}</p>
+      ${diff.length ? `<h3>Wesentliche Differenzierungsmerkmale (Key Differentiators)</h3><ul>${diff.map((d) => `<li>${d}</li>`).join("")}</ul>` : ""}
+      ${recs.length ? `<h3>Empfehlungen (Recommendations)</h3><ul>${recs.map((r) => `<li>${r}</li>`).join("")}</ul>` : ""}
+      ${sourcesBlock}
     `;
   },
 

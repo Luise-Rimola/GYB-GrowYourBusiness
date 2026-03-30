@@ -21,6 +21,7 @@ import {
   StartupConsultingGuideView,
   MarketingStrategyView,
   SwotReportView,
+  ValuePropositionReportView,
 } from "@/components/ArtifactReportView";
 
 /** Map artifact.type → React report view (null = no dedicated view, use exportHtml). */
@@ -49,6 +50,7 @@ export const ARTIFACT_REPORT_VIEW_MAP: Record<
   startup_guide: StartupConsultingGuideView,
   marketing_strategy: MarketingStrategyView,
   swot_analysis: SwotReportView,
+  value_proposition: ValuePropositionReportView,
   knowledge_digest: null,
   strategy_pack: null,
 };

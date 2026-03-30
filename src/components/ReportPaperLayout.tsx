@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { REPORT_HEADER_LINE } from "@/lib/reportBranding";
 
 /**
  * Print-oriented “business paper” shell: title block + body slot.
@@ -18,7 +19,7 @@ export function ReportPaperLayout({
   return (
     <div className="report-paper-shell mx-auto max-w-[210mm] px-6 py-8 print:mx-0 print:max-w-none print:px-0 print:py-0">
       <header className="report-paper-header mb-8 border-b border-slate-200 pb-6">
-        <p className="text-xs font-semibold uppercase tracking-widest text-teal-800">BusinessDSS · Bericht</p>
+        <p className="text-xs font-semibold uppercase tracking-widest text-teal-800">{REPORT_HEADER_LINE}</p>
         <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-900">{title}</h1>
         {subtitle ? <p className="mt-1 text-sm text-slate-600">{subtitle}</p> : null}
         <p className="mt-3 text-xs text-slate-500">

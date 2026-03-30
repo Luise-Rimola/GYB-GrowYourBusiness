@@ -239,10 +239,10 @@ export default async function DashboardPage({
     <div className="space-y-8">
       <header>
         <h1 className="text-3xl font-bold tracking-tight text-[var(--foreground)]">
-          {t.dashboard.title}
+          {`${t.dashboard.title} in ${t.dashboard.planningPhases}`}
         </h1>
         <p className="mt-2 text-[var(--muted)]">
-          {t.dashboard.subtitle}
+          {`${t.dashboard.subtitle} ${t.dashboard.planningPhasesDesc}`}
         </p>
       </header>
 
@@ -286,21 +286,15 @@ export default async function DashboardPage({
 
       <div>
         {!assistantPhaseId && (
-          <h2 className="text-xl font-semibold text-[var(--foreground)]">{t.dashboard.planningPhases}</h2>
-        )}
-        {!assistantPhaseId && (
-          <p className="mt-1 text-sm text-[var(--muted)]">{t.dashboard.planningPhasesDesc}</p>
-        )}
-        {!assistantPhaseId && (
-          <div className="mt-4 rounded-2xl border border-[var(--card-border)] bg-[var(--card)]/50 p-6">
-            <h3 className="text-lg font-semibold text-[var(--foreground)]">Business Form</h3>
+          <div className="rounded-2xl border border-[var(--card-border)] bg-[var(--card)]/50 p-6">
+            <h3 className="text-lg font-semibold text-[var(--foreground)]">Unternehmensprofil anlegen</h3>
             <p className="mt-1 text-sm text-[var(--muted)]">
                   Formularschritt vor den KI-Prozessen.
             </p>
             <div className="mt-4 rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-4">
               <div className="flex items-center justify-between gap-4">
                 <div className="min-w-0 flex-1">
-                  <p className="font-medium text-[var(--foreground)]">Business Form</p>
+                  <p className="font-medium text-[var(--foreground)]">Unternehmensprofil anlegen</p>
                   <p className="text-xs text-[var(--muted)]">
                     {hasProfile ? "Profil vollständig" : "Profil noch unvollständig"}
                   </p>

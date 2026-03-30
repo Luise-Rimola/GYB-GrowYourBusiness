@@ -2,6 +2,11 @@
 
 import { useState, useRef, useEffect } from "react";
 
+/** Removes parenthetical phrases from "Bedeutet" lines, e.g. "(ARPU/ARPA)". */
+function stripParentheticalPhrases(text: string): string {
+  return text.replace(/\s*\([^)]*\)/g, "").replace(/\s+/g, " ").trim();
+}
+
 type KpiInfoButtonProps =
   | { content: string; label: string; "aria-label": string; description?: never; formula?: never; descriptionLabel?: never; formulaLabel?: never; meaning?: never; meaningLabel?: never }
   | { content?: never; label?: never; "aria-label": string; description: string; formula: string; descriptionLabel: string; formulaLabel: string; meaning?: string; meaningLabel?: string };
@@ -52,7 +57,7 @@ export function KpiInfoButton(props: KpiInfoButtonProps) {
               {props.meaning?.trim() && (
                 <div>
                   <p className="font-semibold text-zinc-700 dark:text-zinc-200">{props.meaningLabel}</p>
-                  <p className="mt-0.5 text-zinc-600 dark:text-zinc-300">{props.meaning}</p>
+                  <p className="mt-0.5 text-zinc-600 dark:text-zinc-300">{stripParentheticalPhrases(props.meaning)}</p>
                 </div>
               )}
               {props.description?.trim() && (

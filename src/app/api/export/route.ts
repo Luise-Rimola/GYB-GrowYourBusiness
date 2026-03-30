@@ -495,7 +495,7 @@ async function buildPdfFromTables(tables: Table[]): Promise<Uint8Array> {
     borderWidth: 1,
     borderColor: rgb(0.73, 0.91, 0.86),
   });
-  page.drawText("BusinessDSS Export Report", {
+  page.drawText("Grow your Business · Export", {
     x: margin + 12,
     y: y - 18,
     size: titleSize,

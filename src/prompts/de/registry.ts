@@ -31,12 +31,24 @@ const COMMON_REPLACEMENTS: Replacement[] = [
     to: 'Führe alle Quellen in sources_used als String-Array auf. Jeder Eintrag: "Titel (URL)" falls URL vorhanden, sonst "Titel". Reihenfolge entspricht [1], [2], [3].',
   },
   {
+    from:
+      'Put all sources in sources_used as array of strings. Each entry MUST include a working https URL in parentheses whenever the source is web-based: "Short title (https://example.com/path)". Order matches [1], [2], [3]. Omit URLs only for non-web sources (e.g. internal context); then use a clear label without fake links.',
+    to:
+      'Führe alle Quellen in sources_used als String-Array auf. Jeder Eintrag zu einer Web-Quelle MUSS eine funktionierende https-URL in Klammern enthalten: "Kurztitel (https://example.com/path)". Reihenfolge wie [1], [2], [3]. URLs nur weglassen bei rein internen Kontextquellen; dann klare Bezeichnung ohne erfundene Links.',
+  },
+  {
+    from:
+      "OUTPUT LANGUAGE: Write all narrative string values in German (clear business German). Keep JSON property names exactly as in the schema (English snake_case).\nSOURCES (mandatory): Include \"sources_used\" as a non-empty array. Every item that refers to a public/web source MUST be \"Kurztitel oder Quelle (https://vollständige-url)\" with a valid https URL. Use footnotes [1], [2] in text fields only — never paste raw URLs into problem_statement, bullets, or recommendations.",
+    to:
+      "AUSGABESPRACHE: Schreibe alle Textinhalte in den String-Feldern auf Deutsch (klares Business-Deutsch). Die JSON-Feldnamen bleiben exakt wie im Schema (englisch, snake_case).\nQUELLEN (verpflichtend): Führe sources_used als nicht-leeres Array. Jeder Eintrag zu einer öffentlichen/Web-Quelle MUSS die Form \"Kurztitel (https://vollständige-url)\" mit gültiger https-URL haben. Nutze im Text nur [1], [2]; keine nackten URLs in problem_statement, Aufzählungen oder Empfehlungen.",
+  },
+  {
     from: 'For key_facts: use source_ref (number 1-based) instead of source_hint. Example: { "fact": "...", "source_ref": 1 }',
     to: 'Für key_facts: nutze source_ref (1-basiert) statt source_hint. Beispiel: { "fact": "...", "source_ref": 1 }',
   },
   {
-    from: "REFERENCED ARTIFACTS: CONTEXT_JSON contains the full outputs of previous workflows (real_estate, financial_planning, supplier_list, menu_card, menu_cost, market_snapshot, industry_research, best_practices, failure_analysis, etc.). When present, use their ACTUAL data – do not invent or estimate. The workflows ran before this step; use the results directly.",
-    to: "REFERENZIERTE ARTEFAKTE: KONTEXT_JSON enthält die vollständigen Ergebnisse vorheriger Workflows (real_estate, financial_planning, supplier_list, menu_card, menu_cost, market_snapshot, industry_research, best_practices, failure_analysis usw.). Wenn vorhanden, nutze deren TATSÄCHLICHE Daten - nicht erfinden und nicht schätzen. Diese Workflows liefen bereits vor diesem Schritt; nutze die Ergebnisse direkt.",
+    from: "REFERENCED ARTIFACTS: CONTEXT_JSON includes typed fields (e.g. market_snapshot, industry_research, business_plan) and may include \"related_analysis_outputs\": array of { artifact_type, title, content } with full JSON from other analyses. Use that data when present — do not invent. Ignore empty arrays/null fields.",
+    to: "REFERENZIERTE ARTEFAKTE: KONTEXT_JSON enthält typisierte Felder (z. B. market_snapshot, industry_research, business_plan) und ggf. \"related_analysis_outputs\": Array aus { artifact_type, title, content } mit vollständigem JSON früherer Analysen. Nutze diese Daten wenn vorhanden — nichts erfinden. Leere Arrays/null-Felder ignorieren.",
   },
   {
     from: "CRITICAL – Output MUST be valid, parseable JSON:",

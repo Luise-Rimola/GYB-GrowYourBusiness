@@ -1,10 +1,14 @@
-import { Section } from "@/components/Section";
 import { getServerLocale } from "@/lib/locale";
+import { ManualTabs } from "@/components/ManualTabs";
 
 const COPY = {
   de: {
     title: "Handbuch",
     subtitle: "Überblick über Aufbau, Navigation und sinnvollen Ablauf in der App.",
+    guideTab: "Handbuch",
+    dictionaryTab: "Wörterbuch",
+    dictionaryIntro:
+      "Kurze Erklärungen wie im Grundlagenunterricht — ohne Fachjargon. So finden Sie Begriffe aus der App wieder.",
     appGoalTitle: "1) Ziel der App",
     appGoalBody:
       "Grow Your Business unterstützt Sie dabei, Unternehmensentscheidungen strukturiert zu treffen. Das System verbindet Unternehmensdaten, Dokumente, KPIs und KI-gestützte Auswertungen zu nachvollziehbaren Empfehlungen.",
@@ -38,6 +42,10 @@ const COPY = {
   en: {
     title: "User Guide",
     subtitle: "Overview of app structure, navigation, and recommended workflow.",
+    guideTab: "Guide",
+    dictionaryTab: "Glossary",
+    dictionaryIntro:
+      "Short explanations in plain language — like a primer. Use it to look up terms used in the app.",
     appGoalTitle: "1) App objective",
     appGoalBody:
       "Grow Your Business helps you make structured business decisions. The system combines company data, documents, KPIs, and AI-supported analysis into transparent recommendations.",
@@ -81,33 +89,22 @@ export default async function ManualPage() {
         <p className="mt-2 text-[var(--muted)]">{c.subtitle}</p>
       </header>
 
-      <Section title={c.appGoalTitle}>
-        <p className="text-sm text-[var(--foreground)]">{c.appGoalBody}</p>
-      </Section>
-
-      <Section title={c.structureTitle}>
-        <ul className="list-inside list-disc space-y-2 text-sm text-[var(--foreground)]">
-          {c.structureItems.map((item) => (
-            <li key={item}>{item}</li>
-          ))}
-        </ul>
-      </Section>
-
-      <Section title={c.flowTitle}>
-        <ol className="list-inside list-decimal space-y-2 text-sm text-[var(--foreground)]">
-          {c.flowItems.map((item) => (
-            <li key={item}>{item}</li>
-          ))}
-        </ol>
-      </Section>
-
-      <Section title={c.tipsTitle}>
-        <ul className="list-inside list-disc space-y-2 text-sm text-[var(--foreground)]">
-          {c.tipsItems.map((item) => (
-            <li key={item}>{item}</li>
-          ))}
-        </ul>
-      </Section>
+      <ManualTabs
+        locale={locale === "de" ? "de" : "en"}
+        guideTabLabel={c.guideTab}
+        dictionaryTabLabel={c.dictionaryTab}
+        dictionaryIntro={c.dictionaryIntro}
+        guide={{
+          appGoalTitle: c.appGoalTitle,
+          appGoalBody: c.appGoalBody,
+          structureTitle: c.structureTitle,
+          structureItems: c.structureItems,
+          flowTitle: c.flowTitle,
+          flowItems: c.flowItems,
+          tipsTitle: c.tipsTitle,
+          tipsItems: c.tipsItems,
+        }}
+      />
     </div>
   );
 }

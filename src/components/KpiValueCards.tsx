@@ -93,7 +93,7 @@ export function KpiValueCards({ kpiValues, library, kpiEstimates = [], locale, t
           <Link
             key={kv.id}
             href={`/insights/kpi/${encodeURIComponent(kpiKey)}`}
-            className="block rounded-2xl border border-zinc-200 p-4 transition hover:border-teal-300 hover:shadow-md dark:border-zinc-800 dark:hover:border-teal-700"
+            className="block rounded-none border border-zinc-200 p-4 transition hover:border-teal-300 hover:shadow-md dark:border-zinc-800 dark:hover:border-teal-700"
           >
             <div className="flex items-center justify-between">
               <p className="font-semibold text-zinc-900 dark:text-zinc-50">
@@ -105,11 +105,11 @@ export function KpiValueCards({ kpiValues, library, kpiEstimates = [], locale, t
               />
             </div>
             <p className="mt-2 text-2xl font-semibold text-zinc-900 dark:text-zinc-50">
-              {kv.value} {kv.periodEnd ? `(${new Date(kv.periodEnd).toLocaleDateString()})` : ""}
+              {kv.value}
             </p>
             {historyCount > 1 && (
               <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                {t.viewHistory ?? "Verlauf"} ({historyCount} Werte) →
+                {t.viewHistory ?? "Verlauf"} →
               </p>
             )}
             {estimate != null && (
@@ -124,7 +124,7 @@ export function KpiValueCards({ kpiValues, library, kpiEstimates = [], locale, t
               <summary className="cursor-pointer text-xs font-medium text-zinc-500 dark:text-zinc-400">
                 {t.viewDetails}
               </summary>
-              <div className="mt-2 space-y-2 rounded-lg bg-zinc-50 p-3 text-xs dark:bg-zinc-900">
+              <div className="mt-2 space-y-2 rounded-none bg-zinc-50 p-3 text-xs dark:bg-zinc-900">
                 {libKpi && (
                   <p><span className="font-semibold">{t.formula}</span> {libKpi.formulaText}</p>
                 )}

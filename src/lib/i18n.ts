@@ -70,9 +70,9 @@ export const translations = {
     home: {
       title: "Grow Your Business",
       badge: "AI-Powered Growth System",
-      subtitle: "Generate expert growth decisions with auto-KPI selection, auditable scoring, and transparent evidence trails. Every decision is traceable to sources, assumptions, and knowledge objects.",
+      subtitle: "Use the system like an AI business consultant and decision support system: generate expert growth decisions with auto-KPI selection, auditable scoring, and transparent evidence trails.",
       subtitleDetails:
-        "This study examines how AI can support strategic decisions in market-entry and growth phases. The tool structures information, links KPIs and sources, and provides transparent, evidence-based recommendations.",
+        "This study examines how AI can support strategic decisions in market-entry and growth phases. The tool acts as a decision support system (DSS): it structures information, links KPIs and sources, and provides transparent, evidence-based recommendations you can review before deciding.",
       companyProfile: "Company Profile",
       startAssistant: "Start Assistant",
       stepLlm: "Enter your LLM API settings in Settings",
@@ -688,7 +688,7 @@ export const translations = {
       title: "KPIs",
       description: "KPI values with confidence and source trace.",
       kpiTree: "KPI Tree",
-      noKpiValues: "No KPI values yet. Run WF_BASELINE or add values in the KPI Input section below.",
+      noKpiValues: "No KPI values yet. Run WF_BASELINE or add values on the Data page.",
       viewDetails: "View details",
       formula: "Formula:",
       sourceTrace: "Source trace:",
@@ -715,8 +715,14 @@ export const translations = {
       kpiInputHelp: "KPI values are computed from intake answers, document extracts, or manual entry. Use the Documents & Data page to upload files or add sources.",
       integratedTitle: "Integrated analysis",
       integratedDesc:
-        "The AI reads your knowledge objects, latest KPI values (per key), and logged measures — then explains connections, gaps, and next steps. Uses your LLM settings (same as workflows).",
-      integratedButton: "Run integrated analysis",
+        "The AI reads your knowledge objects, latest KPI values (per key), and logged measures — then explains connections, gaps, and next steps. KPIs are measurable numbers that show how your business is doing (revenue, growth, efficiency) so you can compare over time and against goals.",
+      integratedButton: "AI analysis of KPIs",
+      openAllKpis: "Open all",
+      closeAllKpis: "Close all",
+      kpiDetailJsonInfobox:
+        "paste → 3) copy JSON output (with kpi_estimates) →",
+      kpiDetailKpiMeaning:
+        "KPIs (Key Performance Indicators) are a handful of numbers that tell you whether things are on track — for example revenue per customer or how long sales take. They make progress visible and comparable.",
       integratedLoading: "Analyzing…",
       integratedEmpty:
         "Works best with processed knowledge sources, KPI values, and measures from the Knowledge page. Configure LLM under Settings.",
@@ -887,9 +893,9 @@ export const translations = {
     home: {
       title: "Grow Your Business",
       badge: "AI-Powered Growth System",
-      subtitle: "Künstliche Intelligenz als strategisches Entscheidungsinstrument in Markteintritts- und Wachstumsphasen.",
+      subtitle: "Nutzen Sie das System wie einen KI-Unternehmensberater und als Decision Support System für strategische Entscheidungen in Markteintritts- und Wachstumsphasen.",
       subtitleDetails:
-        "Diese Studie untersucht, wie KI strategische Entscheidungen in Markteintritts- und Wachstumsphasen unterstützen kann. Das Tool strukturiert Informationen, verknüpft KPIs und Quellen und liefert nachvollziehbare, evidenzbasierte Empfehlungen.",
+        "Diese Studie untersucht, wie KI strategische Entscheidungen in Markteintritts- und Wachstumsphasen unterstützen kann. Das Tool arbeitet als Decision Support System (DSS): Es strukturiert Informationen, verknüpft KPIs und Quellen und liefert nachvollziehbare, evidenzbasierte Empfehlungen als Entscheidungsgrundlage.",
       companyProfile: "Geschäftsprofil",
       startAssistant: "Assistent starten",
       stepLlm: "LLM-API in Einstellungen hinterlegen",
@@ -1284,10 +1290,13 @@ export const translations = {
     },
     dashboard: {
       title: "Prozesse",
-      subtitle: "Alle Dokumente, Entscheidungen und Prozesse an einem Ort.",
-      quickActionsDesc: "Assistent starten oder alle Dokumente anzeigen.",
+      subtitle:
+        "Hier laufen Ihre Unternehmensdaten Schritt für Schritt durch die Analysekette: Zuerst werden Profil, KPIs und Quellen erfasst, danach in den Prozessschritten mit KI ausgewertet und als nachvollziehbare Ergebnisse gespeichert. So entstehen pro Phase belastbare Dokumente, KPI-Entwicklungen und bei Bedarf Frühwarnsignale für Risiken.",
+      quickActionsDesc:
+        "Mit „Assistent starten“ wird die Prozesskette automatisch in der vorgesehenen Reihenfolge ausgeführt. Alternativ können Sie jede Phase manuell starten, Ergebnisse prüfen und einzelne Schritte gezielt erneut ausführen.",
       planningPhases: "Planungsphasen",
-      planningPhasesDesc: "Prozesse nach Gründungsphasen – von der Idee bis zur Transformation. Dokumente erscheinen in der jeweiligen Phase.",
+      planningPhasesDesc:
+        "Die Prozesse sind entlang Marktanalyse, Markteintritt und Wachstumsphasen aufgebaut. Jede Phase erzeugt Ergebnisse, die in den nächsten Phasen wiederverwendet werden (z. B. Annahmen, Entscheidungen, Kennzahlen und Artefakte). Deshalb ist die chronologische Reihenfolge wichtig: Wenn frühe Grundlagen fehlen oder geändert werden, sollten nachgelagerte Phasen erneut geprüft bzw. neu ausgeführt werden.",
       yourProgress: "Ihr Fortschritt",
       quickAccess: "Schnellzugriff",
       analysisResults: "Analyseergebnisse",
@@ -1506,7 +1515,7 @@ export const translations = {
       title: "KPIs",
       description: "KPI-Werte mit Konfidenz und Quellennachverfolgung.",
       kpiTree: "KPI-Baum",
-      noKpiValues: "Noch keine KPI-Werte. WF_BASELINE ausführen oder Werte im KPI-Input-Bereich unten hinzufügen.",
+      noKpiValues: "Noch keine KPI-Werte. WF_BASELINE ausführen oder Werte unter Daten hinzufügen.",
       viewDetails: "Details anzeigen",
       formula: "Formel:",
       sourceTrace: "Quellennachverfolgung:",
@@ -1533,8 +1542,14 @@ export const translations = {
       kpiInputHelp: "KPI-Werte werden aus Intake-Antworten, Dokument-Extrakten oder manueller Eingabe berechnet. Nutzen Sie die Seite Dokumente & Daten zum Hochladen von Dateien oder Hinzufügen von Quellen.",
       integratedTitle: "Integrierte KI-Analyse",
       integratedDesc:
-        "Die KI liest Wissensobjekte, aktuelle KPI-Werte (pro Kennzahl) und erfasste Maßnahmen — und ordnet Zusammenhänge, Lücken und nächste Schritte. Nutzt dieselbe LLM-Konfiguration wie die Prozesse (Einstellungen).",
-      integratedButton: "Analyse starten",
+        "Die KI liest Wissensobjekte, aktuelle KPI-Werte (pro Kennzahl) und erfasste Maßnahmen — und ordnet Zusammenhänge, Lücken und nächste Schritte. KPIs sind wenige Kennzahlen, an denen Sie erkennen, ob es vorwärtsgeht — z. B. Umsatz, Wachstum oder Effizienz — damit Sie Fortschritt über die Zeit und gegenüber Zielen vergleichen können.",
+      integratedButton: "KI-Analyse der KPIs",
+      openAllKpis: "Alle öffnen",
+      closeAllKpis: "Alle schließen",
+      kpiDetailJsonInfobox:
+        "fügen → 3) JSON-Ausgabe kopieren (mit kpi_estimates) →",
+      kpiDetailKpiMeaning:
+        "KPIs (Key Performance Indicators) sind Kennzahlen, die zeigen, ob Ihr Geschäft auf Kurs ist — z. B. Umsatz pro Kunde oder Dauer des Verkaufs. Sie machen Fortschritt sichtbar und vergleichbar.",
       integratedLoading: "Analyse läuft…",
       integratedEmpty:
         "Am hilfreichsten mit verarbeiteten Quellen auf der Wissensseite, KPI-Werten und Maßnahmen. LLM unter Einstellungen hinterlegen.",

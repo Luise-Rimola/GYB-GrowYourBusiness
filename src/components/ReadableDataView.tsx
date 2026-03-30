@@ -66,6 +66,8 @@ const LABELS: Record<string, string> = {
   kpi_set: "KPI-Set",
   kpi_snapshot: "KPI-Snapshot",
   artifacts_summary: "Dokumente",
+  related_analysis_outputs: "Weitere Analysen (volle Inhalte)",
+  artifact_type: "Dokumenttyp",
   startup_insights: "Startup-Insights",
   kpi_computation_plan: "KPI-Berechnungsplan",
   kpi_answers: "KPI-Antworten",

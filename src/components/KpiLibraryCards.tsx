@@ -71,55 +71,50 @@ function KpiCard({
     nameAdvanced: kpi.nameAdvanced,
     definition: kpi.definition,
   });
+  const cardShell = `grid min-h-[72px] grid-cols-[minmax(0,1fr)_7.5rem_9rem] items-stretch rounded-none border transition hover:border-teal-300 hover:shadow-md sm:grid-cols-[minmax(0,1fr)_8.5rem_10rem] dark:hover:border-teal-700 ${
+    isEstimated
+      ? "border-zinc-200 bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-800/60"
+      : "border-zinc-200 dark:border-zinc-800"
+  }`;
   return (
-    <Link
-      href={`/insights/kpi/${encodeURIComponent(kpi.kpiKey)}`}
-      className={`flex items-center justify-between gap-3 rounded-xl border p-3 transition hover:border-teal-300 hover:shadow-md dark:hover:border-teal-700 ${
-        isEstimated
-          ? "border-zinc-200 bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-800/60"
-          : "border-zinc-200 dark:border-zinc-800"
-      }`}
-    >
-      <div className="min-w-0 flex-1">
-        <p
-          className={`text-sm font-semibold ${isEstimated ? "text-zinc-600 dark:text-zinc-400" : "text-zinc-900 dark:text-zinc-50"}`}
-        >
-          {display.title}
-        </p>
-        <p className={`text-xs ${isEstimated ? "text-zinc-500 dark:text-zinc-500" : "text-zinc-500 dark:text-zinc-400"}`}>
-          {kpi.kpiKey}
-        </p>
-      </div>
-      <div className="flex shrink-0 items-center gap-2">
+    <div className={cardShell}>
+      <Link
+        href={`/insights/kpi/${encodeURIComponent(kpi.kpiKey)}`}
+        className="flex min-w-0 items-center px-3 py-3"
+      >
+        <div className="min-w-0 flex-1">
+          <p
+            className={`text-sm font-semibold ${isEstimated ? "text-zinc-600 dark:text-zinc-400" : "text-zinc-900 dark:text-zinc-50"}`}
+          >
+            {display.title}
+          </p>
+          <p className={`text-xs ${isEstimated ? "text-zinc-500 dark:text-zinc-500" : "text-zinc-500 dark:text-zinc-400"}`}>
+            {kpi.kpiKey}
+          </p>
+        </div>
+      </Link>
+      <div className="flex items-center justify-center border-l border-zinc-200/80 px-2 py-3 text-center dark:border-zinc-700/80">
         <span
           className={`text-sm font-medium ${isEstimated ? "text-zinc-600 dark:text-zinc-400" : displayValue === "—" ? "text-zinc-400 dark:text-zinc-500" : "text-zinc-700 dark:text-zinc-200"}`}
         >
           {displayValue}
         </span>
-        <span
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-          }}
-          onMouseDown={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-          }}
-          className="shrink-0"
-        >
-          <KpiInfoButton
-            aria-label={`${display.title}: ${t.infoDescription} & ${t.infoCalculationMethod}`}
-            meaning={kpi.nameSimple !== kpi.nameAdvanced ? `${kpi.nameSimple} = ${kpi.nameAdvanced}` : undefined}
-            meaningLabel={t.infoStandsFor}
-            description={display.definition}
-            formula={kpi.formulaText}
-            descriptionLabel={t.infoDescription}
-            formulaLabel={t.infoCalculationMethod}
-          />
-        </span>
-        <Badge label={kpi.domain} />
       </div>
-    </Link>
+      <div className="flex items-center justify-between gap-2 border-l border-zinc-200/80 px-3 py-3 dark:border-zinc-700/80">
+        <KpiInfoButton
+          aria-label={`${display.title}: ${t.infoDescription} & ${t.infoCalculationMethod}`}
+          meaning={kpi.nameSimple !== kpi.nameAdvanced ? `${kpi.nameSimple} = ${kpi.nameAdvanced}` : undefined}
+          meaningLabel={t.infoStandsFor}
+          description={display.definition}
+          formula={kpi.formulaText}
+          descriptionLabel={t.infoDescription}
+          formulaLabel={t.infoCalculationMethod}
+        />
+        <div className="flex w-[92px] justify-center">
+          <Badge label={kpi.domain} />
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -153,9 +148,7 @@ export function KpiLibraryCards({ library, kpiValues, kpiEstimates = [], showEst
       <div className="grid gap-2 md:grid-cols-2">
         {library.map((kpi) => {
           const kv = valueByKey[kpi.kpiKey];
-          const displayValue = kv
-            ? `${kv.value}${kv.periodEnd ? ` (${new Date(kv.periodEnd).toLocaleDateString()})` : ""}`
-            : "—";
+          const displayValue = kv ? `${kv.value}` : "—";
           return (
             <KpiCard
               key={kpi.id}
@@ -178,7 +171,7 @@ export function KpiLibraryCards({ library, kpiValues, kpiEstimates = [], showEst
       <div className="grid gap-2 md:grid-cols-2">
         {withValues.map((kpi) => {
           const kv = valueByKey[kpi.kpiKey];
-          const displayValue = `${kv!.value}${kv!.periodEnd ? ` (${new Date(kv.periodEnd).toLocaleDateString()})` : ""}`;
+          const displayValue = `${kv!.value}`;
           return <KpiCard key={kpi.id} kpi={kpi} displayValue={displayValue} isEstimated={false} t={t} locale={locale} />;
         })}
         {withNeither.map((kpi) => (

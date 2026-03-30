@@ -11,13 +11,19 @@ export type PromptTemplate = {
 const SOURCE_REFERENCE_INSTRUCTION = `
 SOURCE REFERENCES (footnotes):
 - In narrative text, facts, descriptions: use ONLY [1], [2], [3] etc. to reference sources. Do NOT put full URLs or source names inline.
-- Put all sources in sources_used as array of strings. Each entry: "Title (URL)" if URL exists, else "Title". Order matches [1], [2], [3].
+- Put all sources in sources_used as array of strings. Each entry MUST include a working https URL in parentheses whenever the source is web-based: "Short title (https://example.com/path)". Order matches [1], [2], [3]. Omit URLs only for non-web sources (e.g. internal context); then use a clear label without fake links.
 - For key_facts: use source_ref (number 1-based) instead of source_hint. Example: { "fact": "...", "source_ref": 1 }
+`;
+
+/** Value proposition / USP steps: German prose, English JSON keys, mandatory sourced URLs */
+const VALUE_PROPOSITION_LANGUAGE_AND_SOURCES = `
+OUTPUT LANGUAGE: Write all narrative string values in German (clear business German). Keep JSON property names exactly as in the schema (English snake_case).
+SOURCES (mandatory): Include "sources_used" as a non-empty array. Every item that refers to a public/web source MUST be "Kurztitel oder Quelle (https://vollständige-url)" with a valid https URL. Use footnotes [1], [2] in text fields only — never paste raw URLs into problem_statement, bullets, or recommendations.
 `;
 
 /** Instruction: use actual data from referenced artifacts – add to prompts that depend on prior workflows */
 const ARTIFACT_INSTRUCTION = `
-REFERENCED ARTIFACTS: CONTEXT_JSON contains the full outputs of previous workflows (real_estate, financial_planning, supplier_list, menu_card, menu_cost, market_snapshot, industry_research, best_practices, failure_analysis, etc.). When present, use their ACTUAL data – do not invent or estimate. The workflows ran before this step; use the results directly.`;
+REFERENCED ARTIFACTS: CONTEXT_JSON includes typed fields (e.g. market_snapshot, industry_research, business_plan) and may include "related_analysis_outputs": array of { artifact_type, title, content } with full JSON from other analyses. Use that data when present — do not invent. Ignore empty arrays/null fields.`;
 
 /** Strict JSON rules for LLM output – add to all prompts that return JSON */
 const JSON_STRICT =
@@ -248,7 +254,7 @@ Output schema:
     outputSchemaKey: "business_plan_section",
     templateText: `You are a business plan writer. Write the Executive Summary for a BANK-READY business plan (wie bei der Bank einreichbar). Adapt to company_profile.industry.
 ${ARTIFACT_INSTRUCTION}
-Use company_profile, industry_research, financial_planning (if available), artifacts_summary from CONTEXT_JSON – when financial_planning is present, use its actual figures (Kapitalbedarf, monthly_projection, break_even).
+Use company_profile, industry_research, financial_planning (if available), related_analysis_outputs from CONTEXT_JSON – when financial_planning is present, use its actual figures (Kapitalbedarf, monthly_projection, break_even).
 MUST include in content: (1) Mission, value proposition, target market, key differentiators. (2) Key figures: Kapitalbedarf, Break-Even, erwarteter Umsatz (Jahr 1) – use financial_planning data when available. (3) Strategic vision. Write 3-5 paragraphs suitable for a bank submission.
 Return ONLY valid JSON, no prose.
 ${JSON_STRICT}
@@ -599,12 +605,14 @@ Output schema:
 ${ARTIFACT_INSTRUCTION}
 Use company_profile, market_snapshot and industry_research from CONTEXT_JSON.
 Focus on: core problem, target customer pain, existing alternatives, USP clarity, and differentiation strength.
+${VALUE_PROPOSITION_LANGUAGE_AND_SOURCES}
+${SOURCE_REFERENCE_INSTRUCTION}
 Return ONLY valid JSON, no prose.
 ${JSON_STRICT}
 CONTEXT_JSON:
 {{CONTEXT_JSON}}
 Output schema (all fields required):
-{ "problem_statement": "...", "target_customers": ["..."], "existing_solutions": ["..."], "unique_value_proposition": "...", "problem_solution_fit_score": 0.75, "key_differentiators": ["..."], "recommendations": ["..."] }`,
+{ "problem_statement": "...", "target_customers": ["..."], "existing_solutions": ["..."], "unique_value_proposition": "...", "problem_solution_fit_score": 0.75, "key_differentiators": ["..."], "recommendations": ["..."], "sources_used": ["Title (https://...)", "..."] }`,
   },
   {
     key: "P15B",
@@ -695,12 +703,14 @@ Output schema:
 ${ARTIFACT_INSTRUCTION}
 Use company_profile, market_snapshot, industry_research from CONTEXT_JSON – use their actual data.
 Focus on: Welches Problem wird gelöst? Wer hat dieses Problem? Gibt es bereits Lösungen? Was ist der USP?
+${VALUE_PROPOSITION_LANGUAGE_AND_SOURCES}
+${SOURCE_REFERENCE_INSTRUCTION}
 Return ONLY valid JSON, no prose.
 ${JSON_STRICT}
 CONTEXT_JSON:
 {{CONTEXT_JSON}}
 Output schema (all fields required; problem_solution_fit_score between 0 and 1):
-{ "problem_statement": "...", "target_customers": ["..."], "existing_solutions": ["..."], "unique_value_proposition": "...", "problem_solution_fit_score": 0.75, "key_differentiators": ["..."], "recommendations": ["..."] }`,
+{ "problem_statement": "...", "target_customers": ["..."], "existing_solutions": ["..."], "unique_value_proposition": "...", "problem_solution_fit_score": 0.75, "key_differentiators": ["..."], "recommendations": ["..."], "sources_used": ["Title (https://...)", "..."] }`,
   },
   {
     key: "P20",

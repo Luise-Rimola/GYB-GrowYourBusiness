@@ -81,10 +81,10 @@ export default async function Home({
         <h1 className="text-4xl font-bold tracking-tight text-[var(--foreground)]">
           {t.home.title}
         </h1>
-        <p className="max-w-2xl text-lg leading-relaxed text-[var(--muted)]">
+        <p className="w-full text-lg leading-relaxed text-[var(--muted)]">
           {t.home.subtitle}
         </p>
-        <p className="max-w-2xl text-sm leading-relaxed text-[var(--muted)]">
+        <p className="w-full text-sm leading-relaxed text-[var(--muted)]">
           {t.home.subtitleDetails}
         </p>
         <div className="flex flex-wrap gap-3">

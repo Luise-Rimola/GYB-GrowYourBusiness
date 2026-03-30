@@ -2,6 +2,7 @@
 
 import { useRef, useState, type ReactNode } from "react";
 import { ReadableDataView } from "@/components/ReadableDataView";
+import { REPORT_HEADER_LINE } from "@/lib/reportBranding";
 
 function formatArtifactPdfName(title: string, fallbackId: string): string {
   const s = title
@@ -119,7 +120,7 @@ export function ArtifactContentMode({
       {mode === "report" ? (
         <div ref={captureRef} className="report-paper-shell mx-auto max-w-[210mm] px-5 py-6 sm:px-8 sm:py-8">
           <header className="border-b border-slate-200 pb-4">
-            <p className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-teal-800">BusinessDSS · Bericht</p>
+            <p className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-teal-800">{REPORT_HEADER_LINE}</p>
             <h2 className="mt-1 text-xl font-bold tracking-tight text-slate-900">{documentTitle}</h2>
             <p className="mt-1 text-xs text-slate-500">Erstellt: {generatedLabel}</p>
           </header>

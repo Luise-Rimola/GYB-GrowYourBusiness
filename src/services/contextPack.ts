@@ -37,11 +37,454 @@ export type ContextPack = {
   targets: Array<Record<string, unknown>>;
   benchmarks: Array<Record<string, unknown>>;
   market_sources: Array<Record<string, unknown>>;
+  /** @deprecated Nur noch leer — Metadaten-Liste war für die KI wenig nutzbar. */
   artifacts_summary: Array<Record<string, unknown>>;
+  /** Vollständige contentJson-Outputs passender Vor-Analysen (je Typ letztes Artefakt). */
+  related_analysis_outputs: Array<{
+    artifact_type: string;
+    title: string;
+    content: Record<string, unknown>;
+  }>;
   knowledge_retrieval: Record<string, unknown>;
   data_quality: Record<string, unknown>;
   decision_pack: Record<string, unknown> | null;
 };
+
+/** Wenn ein Workflow-Key fehlt: kein „voller“ Kontext mehr (früher: alles drin → KPI/Patent-Rauschen). */
+const DEFAULT_WORKFLOW_CONTEXT_KEYS: (keyof ContextPack)[] = [
+  "company_profile",
+  "constraints",
+  "business_model",
+  "industry_research",
+  "market_snapshot",
+  "market_research",
+  "related_analysis_outputs",
+];
+
+/**
+ * Welche anderen Artefakt-Typen (jeweils letzte Version) als voller JSON-Body mitgegeben werden.
+ * Leeres Array = bewusst keine Querverweise. Fehlender Key = Fallback __DEFAULT__ (nur wenn Whitelist related_analysis_outputs enthält).
+ */
+const RELATED_ARTIFACT_TYPES_BY_WORKFLOW: Record<string, readonly string[]> = {
+  __DEFAULT__: [
+    "swot_analysis",
+    "competitor_analysis",
+    "trend_analysis",
+    "value_proposition",
+    "scenario_analysis",
+    "strategic_options",
+    "market_research",
+    "customer_validation",
+    "go_to_market",
+    "marketing_strategy",
+  ],
+  WF_MENU_CARD: [],
+  WF_MENU_COST: [],
+  WF_MENU_PRICING: [],
+  WF_SUPPLIER_LIST: [],
+  WF_REAL_ESTATE: [],
+  WF_TECH_DIGITALIZATION: [],
+  WF_AUTOMATION_ROI: [],
+  WF_PHYSICAL_AUTOMATION: [],
+  WF_APP_DEVELOPMENT: [
+    "value_proposition",
+    "business_plan",
+    "app_project_plan",
+    "app_requirements",
+    "app_tech_spec",
+    "app_mvp_guide",
+    "app_page_specs",
+    "app_db_schema",
+  ],
+  WF_DATA_COLLECTION_PLAN: [],
+  WF_BUSINESS_FORM: [],
+  WF_BASELINE: [],
+  WF_IDEA_USP_VALIDATION: [
+    "market_research",
+    "competitor_analysis",
+    "swot_analysis",
+    "trend_analysis",
+    "scenario_analysis",
+    "value_proposition",
+    "baseline",
+    "business_plan",
+    "failure_analysis",
+    "best_practices",
+  ],
+  WF_VALUE_PROPOSITION: [
+    "market_research",
+    "competitor_analysis",
+    "swot_analysis",
+    "trend_analysis",
+    "scenario_analysis",
+    "value_proposition",
+    "baseline",
+    "business_plan",
+    "failure_analysis",
+    "best_practices",
+  ],
+  WF_FEASIBILITY_VALIDATION: [
+    "value_proposition",
+    "market_research",
+    "business_plan",
+    "scenario_analysis",
+    "financial_planning",
+    "baseline",
+    "swot_analysis",
+    "competitor_analysis",
+  ],
+  WF_PATENT_CHECK: ["value_proposition", "business_plan", "market_research", "scenario_analysis", "strategic_options"],
+  WF_LEGAL_FOUNDATION: [
+    "value_proposition",
+    "business_plan",
+    "startup_guide",
+    "strategic_options",
+    "scenario_analysis",
+  ],
+  WF_CUSTOMER_VALIDATION: [
+    "value_proposition",
+    "go_to_market",
+    "marketing_strategy",
+    "scenario_analysis",
+    "business_plan",
+  ],
+  WF_SWOT: ["competitor_analysis", "trend_analysis", "market_research", "value_proposition", "scenario_analysis"],
+  WF_COMPETITOR_ANALYSIS: ["swot_analysis", "trend_analysis", "market_research", "value_proposition", "scenario_analysis"],
+  WF_TREND_ANALYSIS: ["swot_analysis", "competitor_analysis", "market_research", "value_proposition", "scenario_analysis"],
+  WF_SCENARIO_ANALYSIS: [
+    "value_proposition",
+    "swot_analysis",
+    "business_plan",
+    "baseline",
+    "market_research",
+    "competitor_analysis",
+    "trend_analysis",
+  ],
+  WF_STRATEGIC_OPTIONS: [
+    "business_plan",
+    "scenario_analysis",
+    "swot_analysis",
+    "value_proposition",
+    "market_research",
+    "financial_planning",
+  ],
+  WF_PROCESS_OPTIMIZATION: ["baseline", "work_processes", "business_plan", "kpi_estimation", "market_research"],
+  WF_DIAGNOSTIC: ["failure_analysis", "best_practices", "market_research", "scenario_analysis"],
+  WF_NEXT_BEST_ACTIONS: [
+    "swot_analysis",
+    "competitor_analysis",
+    "scenario_analysis",
+    "value_proposition",
+    "decision_pack",
+    "business_plan",
+  ],
+  WF_OPERATIVE_PLAN: ["business_plan", "scenario_analysis", "scaling_strategy", "go_to_market", "baseline"],
+  WF_STRATEGIC_PLANNING: ["swot_analysis", "scenario_analysis", "trend_analysis", "value_proposition", "business_plan"],
+  WF_MARKETING_STRATEGY: ["value_proposition", "go_to_market", "business_plan", "decision_pack", "market_research"],
+  WF_SCALING_STRATEGY: ["go_to_market", "marketing_strategy", "business_plan", "baseline", "scenario_analysis"],
+  WF_PORTFOLIO_MANAGEMENT: ["business_plan", "strategic_planning", "baseline", "market_research"],
+  WF_GO_TO_MARKET: ["value_proposition", "business_plan", "market_research", "scenario_analysis", "swot_analysis"],
+  WF_FINANCIAL_PLANNING: ["business_plan", "baseline", "scenario_analysis", "kpi_estimation", "value_proposition"],
+  WF_KPI_ESTIMATION: ["baseline", "business_plan", "financial_planning", "market_research", "value_proposition"],
+  WF_BUSINESS_PLAN: [
+    "swot_analysis",
+    "competitor_analysis",
+    "trend_analysis",
+    "value_proposition",
+    "scenario_analysis",
+    "baseline",
+    "go_to_market",
+  ],
+  WF_STARTUP_CONSULTING: ["business_plan", "value_proposition", "scenario_analysis", "market_research"],
+  WF_MARKET: ["competitor_analysis", "trend_analysis", "market_research", "baseline"],
+  WF_RESEARCH: ["competitor_analysis", "swot_analysis", "trend_analysis", "value_proposition", "baseline"],
+};
+
+function buildRelatedAnalysisOutputs(
+  artifacts: Array<{ type: string; title: string; contentJson: unknown }>,
+  workflowKey: string,
+): Array<{ artifact_type: string; title: string; content: Record<string, unknown> }> {
+  if (!Object.prototype.hasOwnProperty.call(RELATED_ARTIFACT_TYPES_BY_WORKFLOW, workflowKey)) {
+    return [];
+  }
+  const types = RELATED_ARTIFACT_TYPES_BY_WORKFLOW[workflowKey]!;
+  if (!types.length) return [];
+
+  const out: Array<{ artifact_type: string; title: string; content: Record<string, unknown> }> = [];
+  const used = new Set<string>();
+  for (const t of types) {
+    if (used.has(t)) continue;
+    const a = artifacts.find((x) => x.type === t);
+    if (!a?.contentJson || typeof a.contentJson !== "object" || Array.isArray(a.contentJson)) continue;
+    used.add(t);
+    out.push({
+      artifact_type: a.type,
+      title: a.title ?? a.type,
+      content: a.contentJson as Record<string, unknown>,
+    });
+  }
+  return out;
+}
+
+/** Step-level whitelist: for WF_FINANCIAL_PLANNING sub-steps, only these fields. Reduces tokens significantly. */
+const CONTEXT_WHITELIST_STEP: Partial<Record<string, Partial<Record<string, (keyof ContextPack)[]>>>> = {
+  WF_FINANCIAL_PLANNING: {
+    financial_liquidity: ["company_profile", "market_snapshot", "market_research", "supplier_list", "menu_cost", "real_estate", "business_plan", "personnel_plan", "constraints", "business_model"],
+    financial_profitability: ["company_profile", "market_snapshot", "market_research", "industry_research", "constraints", "business_model"],
+    financial_capital: ["company_profile", "real_estate", "business_plan", "personnel_plan", "market_research", "constraints", "business_model"],
+    financial_break_even: ["company_profile", "market_snapshot", "market_research", "supplier_list", "menu_cost", "real_estate", "personnel_plan", "constraints", "business_model"],
+    financial_monthly_h1: ["company_profile", "market_snapshot", "market_research", "supplier_list", "menu_cost", "real_estate", "business_plan", "personnel_plan", "kpi_estimation", "constraints", "business_model"],
+    financial_monthly_h2: ["company_profile", "market_snapshot", "market_research", "supplier_list", "menu_cost", "real_estate", "business_plan", "personnel_plan", "kpi_estimation", "constraints", "business_model"],
+  },
+};
+
+/** Whitelist: only include these fields per workflow. Unlisted workflows → DEFAULT_WORKFLOW_CONTEXT_KEYS (kein voller Kontext). */
+const CONTEXT_WHITELIST: Record<string, (keyof ContextPack)[]> = {
+  WF_BUSINESS_FORM: ["company_profile"],
+  WF_BASELINE: [
+    "company_profile",
+    "constraints",
+    "business_model",
+    "kpi_set",
+    "kpi_input_fields",
+    "kpi_library_summary",
+    "strategy_indicators",
+    "indicator_mapping_rules",
+    "kpi_snapshot",
+    "data_quality",
+    "industry_research",
+    "baseline",
+    "market_sources",
+  ],
+  WF_MARKET: ["company_profile", "industry_research", "constraints", "business_model", "market_sources", "related_analysis_outputs"],
+  WF_RESEARCH: ["company_profile", "market_snapshot", "industry_research", "constraints", "business_model", "market_sources", "related_analysis_outputs"],
+  WF_MENU_CARD: ["company_profile", "market_snapshot", "industry_research", "constraints", "business_model"],
+  WF_SUPPLIER_LIST: ["company_profile", "market_snapshot", "industry_research", "menu_card", "constraints", "business_model"],
+  WF_MENU_COST: ["company_profile", "menu_card", "supplier_list", "constraints", "business_model"],
+  WF_MENU_PRICING: ["company_profile", "market_snapshot", "industry_research", "menu_card", "supplier_list", "menu_cost", "constraints", "business_model"],
+  WF_REAL_ESTATE: ["company_profile", "market_snapshot", "industry_research", "constraints", "business_model"],
+  WF_BUSINESS_PLAN: [
+    "company_profile",
+    "market_snapshot",
+    "market_research",
+    "industry_research",
+    "failure_analysis",
+    "supplier_list",
+    "menu_cost",
+    "real_estate",
+    "best_practices",
+    "financial_planning",
+    "personnel_plan",
+    "constraints",
+    "business_model",
+    "related_analysis_outputs",
+  ],
+  WF_STARTUP_CONSULTING: ["company_profile", "industry_research", "startup_insights", "constraints", "business_model", "related_analysis_outputs"],
+  WF_TECH_DIGITALIZATION: ["company_profile", "industry_research", "work_processes"],
+  WF_AUTOMATION_ROI: ["company_profile", "work_processes", "industry_research"],
+  WF_PHYSICAL_AUTOMATION: ["company_profile", "work_processes", "industry_research"],
+  WF_APP_DEVELOPMENT: ["company_profile", "industry_research", "business_plan", "related_analysis_outputs"],
+  WF_CUSTOMER_VALIDATION: [
+    "company_profile",
+    "market_snapshot",
+    "market_research",
+    "constraints",
+    "business_model",
+    "related_analysis_outputs",
+  ],
+  WF_PROCESS_OPTIMIZATION: [
+    "company_profile",
+    "kpi_snapshot",
+    "industry_research",
+    "baseline",
+    "constraints",
+    "business_model",
+    "related_analysis_outputs",
+  ],
+  WF_STRATEGIC_OPTIONS: [
+    "company_profile",
+    "market_research",
+    "industry_research",
+    "business_plan",
+    "constraints",
+    "business_model",
+    "related_analysis_outputs",
+  ],
+  WF_IDEA_USP_VALIDATION: [
+    "company_profile",
+    "market_snapshot",
+    "market_research",
+    "industry_research",
+    "baseline",
+    "constraints",
+    "business_model",
+    "related_analysis_outputs",
+  ],
+  WF_FEASIBILITY_VALIDATION: [
+    "company_profile",
+    "market_research",
+    "industry_research",
+    "business_plan",
+    "baseline",
+    "constraints",
+    "business_model",
+    "related_analysis_outputs",
+  ],
+  WF_PATENT_CHECK: [
+    "company_profile",
+    "industry_research",
+    "market_research",
+    "constraints",
+    "business_model",
+    "related_analysis_outputs",
+  ],
+  WF_LEGAL_FOUNDATION: [
+    "company_profile",
+    "industry_research",
+    "market_research",
+    "business_plan",
+    "constraints",
+    "business_model",
+    "related_analysis_outputs",
+  ],
+  WF_VALUE_PROPOSITION: [
+    "company_profile",
+    "market_snapshot",
+    "market_research",
+    "industry_research",
+    "baseline",
+    "constraints",
+    "business_model",
+    "related_analysis_outputs",
+  ],
+  WF_GO_TO_MARKET: [
+    "company_profile",
+    "market_snapshot",
+    "market_research",
+    "business_plan",
+    "constraints",
+    "business_model",
+    "related_analysis_outputs",
+  ],
+  WF_FINANCIAL_PLANNING: [
+    "company_profile",
+    "market_snapshot",
+    "market_research",
+    "supplier_list",
+    "menu_cost",
+    "menu_card",
+    "real_estate",
+    "business_plan",
+    "personnel_plan",
+    "work_processes",
+    "kpi_estimation",
+    "constraints",
+    "business_model",
+    "related_analysis_outputs",
+  ],
+  WF_DIAGNOSTIC: ["company_profile", "baseline", "kpi_set", "kpi_snapshot", "industry_research", "constraints", "business_model", "related_analysis_outputs"],
+  WF_NEXT_BEST_ACTIONS: [
+    "company_profile",
+    "market_research",
+    "best_practices",
+    "failure_analysis",
+    "industry_research",
+    "kpi_set",
+    "constraints",
+    "business_model",
+    "related_analysis_outputs",
+  ],
+  WF_KPI_ESTIMATION: [
+    "company_profile",
+    "industry_research",
+    "market_snapshot",
+    "market_research",
+    "baseline",
+    "business_plan",
+    "financial_planning",
+    "constraints",
+    "business_model",
+    "kpi_snapshot",
+    "kpi_set",
+    "kpis_to_estimate",
+    "kpi_library_summary",
+    "benchmarks",
+    "related_analysis_outputs",
+  ],
+  WF_DATA_COLLECTION_PLAN: ["company_profile", "kpi_set", "constraints", "business_model", "data_quality"],
+  WF_SCENARIO_ANALYSIS: [
+    "company_profile",
+    "market_research",
+    "industry_research",
+    "baseline",
+    "business_plan",
+    "constraints",
+    "business_model",
+    "related_analysis_outputs",
+  ],
+  WF_OPERATIVE_PLAN: [
+    "company_profile",
+    "kpi_snapshot",
+    "industry_research",
+    "market_research",
+    "constraints",
+    "business_model",
+    "related_analysis_outputs",
+  ],
+  WF_SWOT: ["company_profile", "market_snapshot", "industry_research", "constraints", "business_model", "related_analysis_outputs"],
+  WF_COMPETITOR_ANALYSIS: ["company_profile", "market_snapshot", "industry_research", "constraints", "business_model", "related_analysis_outputs"],
+  WF_TREND_ANALYSIS: ["company_profile", "market_snapshot", "industry_research", "constraints", "business_model", "related_analysis_outputs"],
+  WF_STRATEGIC_PLANNING: [
+    "company_profile",
+    "market_snapshot",
+    "market_research",
+    "industry_research",
+    "constraints",
+    "business_model",
+    "related_analysis_outputs",
+  ],
+  WF_MARKETING_STRATEGY: [
+    "company_profile",
+    "kpi_snapshot",
+    "market_research",
+    "baseline",
+    "decision_pack",
+    "constraints",
+    "business_model",
+    "related_analysis_outputs",
+  ],
+  WF_SCALING_STRATEGY: [
+    "company_profile",
+    "kpi_snapshot",
+    "market_research",
+    "baseline",
+    "constraints",
+    "business_model",
+    "related_analysis_outputs",
+  ],
+  WF_PORTFOLIO_MANAGEMENT: [
+    "company_profile",
+    "kpi_snapshot",
+    "industry_research",
+    "constraints",
+    "business_model",
+    "related_analysis_outputs",
+  ],
+};
+
+function filterContextForWorkflow(full: ContextPack, workflowKey: string): ContextPack {
+  const allowed = CONTEXT_WHITELIST[workflowKey] ?? DEFAULT_WORKFLOW_CONTEXT_KEYS;
+
+  const filtered = { ...full };
+  const keys = Object.keys(full) as (keyof ContextPack)[];
+  for (const key of keys) {
+    if (!allowed.includes(key)) {
+      const val = full[key];
+      (filtered as Record<string, unknown>)[key] = Array.isArray(val) ? [] : null;
+    }
+  }
+  return filtered;
+}
 
 export const ContextPackService = {
   async build(companyId: string, workflowKey: string): Promise<ContextPack> {
@@ -169,6 +612,12 @@ export const ContextPackService = {
         ? (workProcessesArtifact.contentJson as Record<string, unknown>)
         : null;
 
+    const decisionPackArtifact = artifacts.find((a) => a.type === "decision_pack");
+    const decision_pack =
+      decisionPackArtifact?.contentJson && typeof decisionPackArtifact.contentJson === "object"
+        ? (decisionPackArtifact.contentJson as Record<string, unknown>)
+        : null;
+
     let company_profile: Record<string, unknown> | null = (latestProfile?.profileJson && typeof latestProfile.profileJson === "object") ? (latestProfile.profileJson as Record<string, unknown>) : null;
     if (company_profile && menu_card) {
       const mf = menu_card.menu_full as { items?: Array<{ name?: string; category?: string; description?: string; price?: string }> } | undefined;
@@ -286,13 +735,8 @@ export const ContextPackService = {
         date: source.date,
         key_points: source.keyPointsJson,
       })),
-      artifacts_summary: artifacts.map((artifact) => ({
-        artifact_id: artifact.id,
-        type: artifact.type,
-        version: artifact.version,
-        approved: artifact.approved,
-        key_points: (artifact.contentJson as Record<string, unknown>)?.key_points ?? null,
-      })),
+      artifacts_summary: [],
+      related_analysis_outputs: buildRelatedAnalysisOutputs(artifacts, workflowKey),
       knowledge_retrieval: {
         kb_version_active: activeKnowledgeVersion?.versionLabel ?? null,
         retrieved_objects: [],
@@ -307,77 +751,12 @@ export const ContextPackService = {
           ? { avg_confidence: kpiValues.reduce((a, v) => a + v.confidence, 0) / kpiValues.length }
           : {},
       },
-      decision_pack: null,
+      decision_pack,
     };
 
     return filterContextForWorkflow(fullContext, workflowKey);
   },
 };
-
-/** Step-level whitelist: for WF_FINANCIAL_PLANNING sub-steps, only these fields. Reduces tokens significantly. */
-const CONTEXT_WHITELIST_STEP: Partial<Record<string, Partial<Record<string, (keyof ContextPack)[]>>>> = {
-  WF_FINANCIAL_PLANNING: {
-    financial_liquidity: ["company_profile", "market_snapshot", "market_research", "supplier_list", "menu_cost", "real_estate", "business_plan", "personnel_plan", "constraints", "business_model"],
-    financial_profitability: ["company_profile", "market_snapshot", "market_research", "industry_research", "constraints", "business_model"],
-    financial_capital: ["company_profile", "real_estate", "business_plan", "personnel_plan", "market_research", "constraints", "business_model"],
-    financial_break_even: ["company_profile", "market_snapshot", "market_research", "supplier_list", "menu_cost", "real_estate", "personnel_plan", "constraints", "business_model"],
-    financial_monthly_h1: ["company_profile", "market_snapshot", "market_research", "supplier_list", "menu_cost", "real_estate", "business_plan", "personnel_plan", "kpi_estimation", "constraints", "business_model"],
-    financial_monthly_h2: ["company_profile", "market_snapshot", "market_research", "supplier_list", "menu_cost", "real_estate", "business_plan", "personnel_plan", "kpi_estimation", "constraints", "business_model"],
-  },
-};
-
-/** Whitelist: only include these fields per workflow to reduce token usage. Aligned with prompt "Use X from CONTEXT_JSON". */
-const CONTEXT_WHITELIST: Record<string, (keyof ContextPack)[]> = {
-  WF_BUSINESS_FORM: ["company_profile"],
-  WF_BASELINE: ["company_profile", "constraints", "business_model", "kpi_set", "kpi_input_fields", "kpi_library_summary", "strategy_indicators", "indicator_mapping_rules", "kpi_snapshot", "data_quality", "industry_research", "baseline", "market_sources", "artifacts_summary"],
-  WF_MARKET: ["company_profile", "industry_research", "constraints", "business_model", "market_sources"],
-  WF_RESEARCH: ["company_profile", "market_snapshot", "industry_research", "constraints", "business_model", "market_sources"],
-  WF_MENU_CARD: ["company_profile", "market_snapshot", "industry_research", "constraints", "business_model"],
-  WF_SUPPLIER_LIST: ["company_profile", "market_snapshot", "industry_research", "menu_card", "constraints", "business_model"],
-  WF_MENU_COST: ["company_profile", "menu_card", "supplier_list", "constraints", "business_model"],
-  WF_MENU_PRICING: ["company_profile", "market_snapshot", "industry_research", "menu_card", "supplier_list", "menu_cost", "constraints", "business_model"],
-  WF_REAL_ESTATE: ["company_profile", "market_snapshot", "industry_research", "constraints", "business_model"],
-  WF_BUSINESS_PLAN: ["company_profile", "market_snapshot", "market_research", "industry_research", "failure_analysis", "supplier_list", "menu_cost", "real_estate", "best_practices", "financial_planning", "personnel_plan", "constraints", "business_model", "artifacts_summary"],
-  WF_STARTUP_CONSULTING: ["company_profile", "industry_research", "startup_insights", "constraints", "business_model"],
-  WF_TECH_DIGITALIZATION: ["company_profile", "industry_research"],
-  WF_AUTOMATION_ROI: ["company_profile", "work_processes", "industry_research"],
-  WF_PHYSICAL_AUTOMATION: ["company_profile", "work_processes", "industry_research"],
-  WF_APP_DEVELOPMENT: ["company_profile", "industry_research"],
-  WF_CUSTOMER_VALIDATION: ["company_profile", "market_snapshot", "market_research", "constraints", "business_model"],
-  WF_PROCESS_OPTIMIZATION: ["company_profile", "kpi_snapshot", "industry_research", "baseline", "constraints", "business_model"],
-  WF_STRATEGIC_OPTIONS: ["company_profile", "market_research", "industry_research", "business_plan", "constraints", "business_model"],
-  WF_VALUE_PROPOSITION: ["company_profile", "market_snapshot", "industry_research", "constraints", "business_model"],
-  WF_GO_TO_MARKET: ["company_profile", "market_snapshot", "market_research", "business_plan", "constraints", "business_model"],
-  WF_FINANCIAL_PLANNING: ["company_profile", "market_snapshot", "market_research", "supplier_list", "menu_cost", "menu_card", "real_estate", "business_plan", "personnel_plan", "work_processes", "kpi_estimation", "constraints", "business_model"],
-  WF_DIAGNOSTIC: ["company_profile", "baseline", "kpi_set", "kpi_snapshot", "industry_research", "constraints", "business_model"],
-  WF_NEXT_BEST_ACTIONS: ["company_profile", "market_research", "best_practices", "failure_analysis", "industry_research", "kpi_set", "constraints", "business_model"],
-  WF_KPI_ESTIMATION: ["company_profile", "industry_research", "market_snapshot", "market_research", "baseline", "business_plan", "financial_planning", "constraints", "business_model", "kpi_snapshot", "kpi_set", "kpis_to_estimate", "kpi_library_summary", "benchmarks"],
-  WF_DATA_COLLECTION_PLAN: ["company_profile", "kpi_set", "constraints", "business_model", "data_quality"],
-  WF_SCENARIO_ANALYSIS: ["company_profile", "market_research", "industry_research", "baseline", "business_plan", "constraints", "business_model"],
-  WF_OPERATIVE_PLAN: ["company_profile", "kpi_snapshot", "industry_research", "market_research", "constraints", "business_model"],
-  WF_SWOT: ["company_profile", "market_snapshot", "industry_research", "constraints", "business_model"],
-  WF_COMPETITOR_ANALYSIS: ["company_profile", "market_snapshot", "industry_research", "constraints", "business_model"],
-  WF_TREND_ANALYSIS: ["company_profile", "market_snapshot", "industry_research", "constraints", "business_model"],
-  WF_STRATEGIC_PLANNING: ["company_profile", "market_snapshot", "market_research", "industry_research", "constraints", "business_model"],
-  WF_MARKETING_STRATEGY: ["company_profile", "kpi_snapshot", "market_research", "baseline", "decision_pack", "constraints", "business_model"],
-  WF_SCALING_STRATEGY: ["company_profile", "kpi_snapshot", "market_research", "baseline", "constraints", "business_model"],
-  WF_PORTFOLIO_MANAGEMENT: ["company_profile", "kpi_snapshot", "industry_research", "constraints", "business_model"],
-};
-
-function filterContextForWorkflow(full: ContextPack, workflowKey: string): ContextPack {
-  const allowed = CONTEXT_WHITELIST[workflowKey];
-  if (!allowed) return full;
-
-  const filtered = { ...full };
-  const keys = Object.keys(full) as (keyof ContextPack)[];
-  for (const key of keys) {
-    if (!allowed.includes(key)) {
-      const val = full[key];
-      (filtered as Record<string, unknown>)[key] = Array.isArray(val) ? [] : null;
-    }
-  }
-  return filtered;
-}
 
 const FINANCIAL_MINIMAL_STEPS = ["financial_liquidity", "financial_profitability", "financial_capital", "financial_break_even", "financial_monthly_h1", "financial_monthly_h2"] as const;
 
@@ -428,7 +807,10 @@ function minimalizeContext(obj: Record<string, unknown>): Record<string, unknown
 function minimalizeValue(key: string, val: unknown): unknown {
   if (val === null || val === undefined) return val;
   if (typeof val === "number" || typeof val === "boolean") return val;
-  if (typeof val === "string") return val.length > MAX_STRING ? val.slice(0, MAX_STRING - 3) + "..." : val;
+  if (typeof val === "string") {
+    const maxLen = key === "content" ? 12000 : MAX_STRING;
+    return val.length > maxLen ? val.slice(0, maxLen - 3) + "..." : val;
+  }
   if (Array.isArray(val)) {
     const maxLen =
       key === "items" ? MAX_ARRAY_MENU

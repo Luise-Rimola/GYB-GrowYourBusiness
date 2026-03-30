@@ -497,7 +497,7 @@ export function RunWizard({
                 <div className="space-y-2">
                   {stepConfig.stepKey === "kpi_estimation" && (
                     <div className="rounded-xl border border-amber-200 bg-amber-50 p-2 text-xs text-amber-800 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
-                      Die Antwort muss der JSON-Output des LLMs sein (mit kpi_estimates), nicht der Prompt. Prompt kopieren → in ChatGPT/Claude einfügen → JSON-Antwort kopieren → hier einfügen.
+                      Die Antwort muss der JSON-Output des LLMs sein, nicht der Prompt. Prompt kopieren → in ChatGPT/Claude einfügen → JSON-Antwort kopieren → hier einfügen.
                     </div>
                   )}
                   <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700 dark:border-rose-800 dark:bg-rose-950/30 dark:text-rose-300">
@@ -539,7 +539,7 @@ export function RunWizard({
                 rows={6}
                 defaultValue={existingResponse}
                 className="w-full rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-3 text-xs text-[var(--foreground)] placeholder:text-[var(--muted)] resize-none"
-                placeholder='1) Prompt oben kopieren → 2) In ChatGPT/Claude einfügen → 3) JSON-Ausgabe kopieren (mit kpi_estimates) → 4) Hier einfügen'
+                placeholder='1) Prompt oben kopieren → 2) In ChatGPT/Claude einfügen → 3) JSON-Ausgabe kopieren → 4) Hier einfügen'
               />
               <button
                 type="submit"

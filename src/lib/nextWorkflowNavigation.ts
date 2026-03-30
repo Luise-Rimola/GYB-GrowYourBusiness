@@ -2,10 +2,13 @@ import { prisma } from "@/lib/prisma";
 import { WIZARD_WORKFLOW_ORDER } from "@/lib/planningFramework";
 import { workflowSteps } from "@/lib/workflowSteps";
 import { getWorkflowName } from "@/lib/workflows";
+import { ContextPackService } from "@/services/contextPack";
+import { WorkflowService } from "@/services/workflows";
 
 /**
  * Nächster Eintrag in WIZARD_WORKFLOW_ORDER: Ziel-URL für Navigation vom aktuellen Lauf.
- * Gibt es noch keinen Lauf für den nächsten Prozess, Link zur Übersicht (/dashboard).
+ * Existiert noch kein Lauf für den nächsten Prozess, wird ein neuer Lauf angelegt (wie /api/runs/ensure)
+ * und direkt verlinkt — nicht zur Dashboard-Prozessübersicht.
  */
 export async function getNextWorkflowNavigation(
   companyId: string,
@@ -17,13 +20,29 @@ export async function getNextWorkflowNavigation(
   const nextKey = WIZARD_WORKFLOW_ORDER[idx + 1];
   const label = getWorkflowName(nextKey);
 
-  const nextRun = await prisma.run.findFirst({
+  let nextRun = await prisma.run.findFirst({
     where: { companyId, workflowKey: nextKey },
     orderBy: { createdAt: "desc" },
     include: {
       steps: { select: { stepKey: true, schemaValidationPassed: true, createdAt: true } },
     },
   });
+
+  if (!nextRun) {
+    try {
+      const contextPack = await ContextPackService.build(companyId, nextKey);
+      const created = await WorkflowService.createRun(companyId, nextKey, contextPack);
+      nextRun = await prisma.run.findUnique({
+        where: { id: created.id },
+        include: {
+          steps: { select: { stepKey: true, schemaValidationPassed: true, createdAt: true } },
+        },
+      });
+    } catch (e) {
+      console.error("[getNextWorkflowNavigation] ensure run failed:", e);
+      return { href: "/dashboard", label };
+    }
+  }
 
   if (!nextRun) {
     return { href: "/dashboard", label };
