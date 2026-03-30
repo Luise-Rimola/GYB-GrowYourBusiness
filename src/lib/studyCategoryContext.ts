@@ -26,7 +26,7 @@ export type StudyCategoryLocaleBlock = {
 
 const STUDY_CATEGORY_CONTEXT_DE: Record<ScenarioCategory, StudyCategoryLocaleBlock> = {
   markt_geschaeftsmodell: {
-    phase: "Ideations- / Konzeptphase",
+    phase: "Ideen- und Konzeptphase",
     workflowKeys: ["WF_VALUE_PROPOSITION", "WF_COMPETITOR_ANALYSIS", "WF_SWOT"],
     fb2WorkflowKeys: [
       "WF_VALUE_PROPOSITION",
@@ -35,14 +35,14 @@ const STUDY_CATEGORY_CONTEXT_DE: Record<ScenarioCategory, StudyCategoryLocaleBlo
       "WF_TREND_ANALYSIS",
     ],
     description:
-      "Hier bewertest du die Ausgangsqualität deiner Ideen- und Konzeptarbeit vor den Runs.",
+      "Wir befinden uns in der Ideen- und Konzeptphase. Diese Phase ist wichtig, weil hier die Grundlage für Ihr Angebot und Ihre Ausrichtung entsteht.",
     important: [
-      "Klarer Problem-Solution-Fit",
-      "Nachvollziehbare Positionierung",
-      "Begründung für Zielgruppe und Wettbewerb",
+      "Ein klares Problem und eine passende Lösung",
+      "Eine verständliche Erklärung, wofür Ihr Angebot steht",
+      "Ein klarer Blick auf Zielgruppe und Wettbewerb",
     ],
     fb3Description:
-      "Bewerte die Ergebnisse der Konzept-Workflows (Artefakte, Argumentation, Nachvollziehbarkeit) als Nachher-Messung gegenüber FB2.",
+      "Bewerte die Ergebnisse der Konzept-Workflows (Dokumente, Argumentation, Nachvollziehbarkeit) als Nachher-Messung gegenüber FB2.",
   },
   produktstrategie: {
     phase: "Validierungsphase",
@@ -55,11 +55,11 @@ const STUDY_CATEGORY_CONTEXT_DE: Record<ScenarioCategory, StudyCategoryLocaleBlo
       "WF_CUSTOMER_VALIDATION",
     ],
     description:
-      "Hier bewertest du, wie belastbar deine Produkt-/Strategieannahmen vor der Validierung sind.",
+      "Wir befinden uns in der Prüfphase. Diese Phase ist wichtig, weil wir testen, ob Ihre Annahmen in der Praxis tragen.",
     important: [
-      "Testbare Hypothesen",
-      "Klare Annahmen zu Kundennutzen und Machbarkeit",
-      "Fokus auf evidenzbasierte Entscheidungen",
+      "Klare Fragen, die Sie mit Daten beantworten können",
+      "Prüfung von Kundennutzen und Machbarkeit",
+      "Entscheidungen auf Basis von Ergebnissen statt Bauchgefühl",
     ],
     fb3Description:
       "Bewerte die Resultate der Validierungs-Workflows danach, wie stark sie Unsicherheit reduzieren und Entscheidungssicherheit erhöhen.",
@@ -69,11 +69,11 @@ const STUDY_CATEGORY_CONTEXT_DE: Record<ScenarioCategory, StudyCategoryLocaleBlo
     workflowKeys: ["WF_GO_TO_MARKET", "WF_MARKETING_STRATEGY"],
     fb2WorkflowKeys: ["WF_GO_TO_MARKET", "WF_MARKETING_STRATEGY"],
     description:
-      "Hier bewertest du die Entscheidungsqualität für Markteintritt und Kanalstrategie vor dem Run.",
+      "Wir befinden uns in der Gründungs- und Startphase. Diese Phase ist wichtig, weil der Marktstart konkret vorbereitet wird.",
     important: [
-      "Zielkundensegmente klar benennen",
-      "Kanäle und Botschaften begründen",
-      "Messbare Marketingziele festlegen",
+      "Klar benennen, wen Sie erreichen wollen",
+      "Passende Kanäle und klare Botschaften wählen",
+      "Einfache, messbare Marketingziele festlegen",
     ],
     fb3Description:
       "Bewerte die erzeugten Launch-Ergebnisse hinsichtlich Umsetzbarkeit, Klarheit und Relevanz für den Markteintritt.",
@@ -83,25 +83,25 @@ const STUDY_CATEGORY_CONTEXT_DE: Record<ScenarioCategory, StudyCategoryLocaleBlo
     workflowKeys: ["WF_SCALING_STRATEGY", "WF_NEXT_BEST_ACTIONS"],
     fb2WorkflowKeys: ["WF_SCALING_STRATEGY", "WF_NEXT_BEST_ACTIONS"],
     description:
-      "Hier bewertest du die Ausgangslage für Skalierung, Priorisierung und operative Steuerung.",
+      "Wir befinden uns in der Wachstumsphase. Diese Phase ist wichtig, weil jetzt klare Prioritäten und umsetzbare nächste Schritte gebraucht werden.",
     important: [
-      "Top-Prioritäten für Wachstum klar definieren",
-      "Kapazitäten und Risiken realistisch einschätzen",
-      "Nächste Schritte operational planen",
+      "Die wichtigsten Wachstumsziele zuerst angehen",
+      "Ressourcen und Risiken realistisch einschätzen",
+      "Konkrete nächste Schritte festlegen",
     ],
     fb3Description:
       "Bewerte die Outputs zu Skalierung und Priorisierung auf Wirksamkeit, Transparenz und direkte Handlungsfähigkeit.",
   },
   investition_strategie: {
-    phase: "Reifephase / Investition & Strategie",
+    phase: "Reifephase: Investition und Strategie",
     workflowKeys: ["WF_STARTUP_CONSULTING", "WF_FINANCIAL_PLANNING"],
     fb2WorkflowKeys: ["WF_STARTUP_CONSULTING", "WF_FINANCIAL_PLANNING"],
     description:
-      "Hier bewertest du die strategische und finanzielle Entscheidungsreife vor den Runs.",
+      "Wir befinden uns in der Reifephase für Investition und Strategie. Diese Phase ist wichtig, weil größere Entscheidungen finanziell abgesichert sein müssen.",
     important: [
-      "Investitionslogik transparent begründen",
-      "Finanzielle Auswirkungen plausibel machen",
-      "Risiken und Alternativen klar benennen",
+      "Investitionen klar begründen",
+      "Kosten, Nutzen und Auswirkungen verständlich darstellen",
+      "Risiken und Alternativen offen benennen",
     ],
     fb3Description:
       "Bewerte die Ergebnisse für Investitions-/Strategieentscheidungen nach Belastbarkeit, Risikoabbildung und Entscheidungslogik.",
@@ -119,7 +119,7 @@ const STUDY_CATEGORY_CONTEXT_EN: Record<ScenarioCategory, StudyCategoryLocaleBlo
       "WF_TREND_ANALYSIS",
     ],
     description:
-      "Here you assess the baseline quality of your ideation and concept work before the runs.",
+      "You are in the ideation and concept phase. This phase is important because it builds the foundation for positioning and strategic decisions.",
     important: [
       "Clear problem–solution fit",
       "Traceable positioning",
@@ -139,7 +139,7 @@ const STUDY_CATEGORY_CONTEXT_EN: Record<ScenarioCategory, StudyCategoryLocaleBlo
       "WF_CUSTOMER_VALIDATION",
     ],
     description:
-      "Here you assess how robust your product/strategy assumptions are before validation.",
+      "You are in the validation phase. This phase is important because assumptions are tested and uncertainty is reduced.",
     important: [
       "Testable hypotheses",
       "Clear assumptions on customer value and feasibility",
@@ -153,7 +153,7 @@ const STUDY_CATEGORY_CONTEXT_EN: Record<ScenarioCategory, StudyCategoryLocaleBlo
     workflowKeys: ["WF_GO_TO_MARKET", "WF_MARKETING_STRATEGY"],
     fb2WorkflowKeys: ["WF_GO_TO_MARKET", "WF_MARKETING_STRATEGY"],
     description:
-      "Here you assess decision quality for market entry and channel strategy before the run.",
+      "You are in the founding and launch phase. This phase is important because market entry, channels, and messaging are defined.",
     important: [
       "Name target segments clearly",
       "Justify channels and messages",
@@ -167,7 +167,7 @@ const STUDY_CATEGORY_CONTEXT_EN: Record<ScenarioCategory, StudyCategoryLocaleBlo
     workflowKeys: ["WF_SCALING_STRATEGY", "WF_NEXT_BEST_ACTIONS"],
     fb2WorkflowKeys: ["WF_SCALING_STRATEGY", "WF_NEXT_BEST_ACTIONS"],
     description:
-      "Here you assess the starting point for scaling, prioritisation, and operational steering.",
+      "You are in the growth phase. This phase is important because priorities, scaling, and operations are aligned.",
     important: [
       "Define top growth priorities clearly",
       "Assess capacity and risks realistically",
@@ -181,7 +181,7 @@ const STUDY_CATEGORY_CONTEXT_EN: Record<ScenarioCategory, StudyCategoryLocaleBlo
     workflowKeys: ["WF_STARTUP_CONSULTING", "WF_FINANCIAL_PLANNING"],
     fb2WorkflowKeys: ["WF_STARTUP_CONSULTING", "WF_FINANCIAL_PLANNING"],
     description:
-      "Here you assess strategic and financial decision maturity before the runs.",
+      "You are in the maturity phase for investment and strategy. This phase is important because financial viability, risks, and alternatives are assessed.",
     important: [
       "Make investment logic transparent",
       "Make financial effects plausible",

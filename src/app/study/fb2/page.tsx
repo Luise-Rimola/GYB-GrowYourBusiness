@@ -52,7 +52,7 @@ async function saveFb2(formData: FormData) {
   }
 
   redirect(
-    category ? `/study?saved=fb2&category=${encodeURIComponent(category)}` : "/study?saved=fb2"
+    category ? `/home?saved=fb2&category=${encodeURIComponent(category)}` : "/home?saved=fb2"
   );
 }
 

@@ -215,9 +215,12 @@ export function validateStrictJson(
 ): ValidationResult {
   const { parsed, error } = parseJsonWithRepair(raw);
   if (error) {
+    const localizedError = error
+      .replace("Unexpected character", "Unerwartetes Zeichen")
+      .replace("Unexpected token", "Unerwartetes Zeichen");
     return {
       ok: false,
-      errors: ["Invalid JSON", error].filter(Boolean),
+      errors: ["Ungültiges JSON", localizedError].filter(Boolean),
     };
   }
 

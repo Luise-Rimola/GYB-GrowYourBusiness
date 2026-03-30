@@ -33,8 +33,7 @@ export default async function ArtifactEvaluatePage({
             href={`/artifacts/${artifact.id}`}
             className="rounded-xl border border-teal-600 px-4 py-2 text-sm font-medium text-teal-700 transition hover:bg-teal-50 dark:border-teal-500 dark:text-teal-300 dark:hover:bg-teal-950/50"
           >
-            {t.artifacts.viewRun?.replace("Run Audit ", "") ?? "← "}
-            {t.nav.artifacts}
+            {t.artifacts.viewDocument}
           </Link>
         }
       >
@@ -108,12 +107,12 @@ export default async function ArtifactEvaluatePage({
           </label>
 
           <label className="space-y-2 text-sm">
-            <span className="font-medium">Stärken des Artefakts</span>
+            <span className="font-medium">Stärken des Dokuments</span>
             <textarea name="strengths" rows={3} className="w-full rounded-lg border border-[var(--card-border)] bg-[var(--card)] px-3 py-2" />
           </label>
 
           <label className="space-y-2 text-sm">
-            <span className="font-medium">Schwächen des Artefakts</span>
+            <span className="font-medium">Schwächen des Dokuments</span>
             <textarea name="weaknesses" rows={3} className="w-full rounded-lg border border-[var(--card-border)] bg-[var(--card)] px-3 py-2" />
           </label>
 

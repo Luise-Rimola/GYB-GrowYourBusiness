@@ -270,7 +270,7 @@ model CompanySettings {
   llmApiUrl   String?
   llmApiKey   String?
   llmModel    String?  @default("gpt-4o-mini")
-  /// JSON map: phase id -> true, z. B. {"ideation":true} – Artefakte der Phase freigegeben
+  /// JSON map: phase id -> true, z. B. {"ideation":true} – Dokumente der Phase freigegeben
   planningPhaseArtifactsReleased Json?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

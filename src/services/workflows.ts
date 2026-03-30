@@ -250,7 +250,9 @@ export const WorkflowService = {
     const stepData = {
       promptRendered: params.promptRendered,
       promptTemplateVersion: params.promptTemplateVersion,
-      userPastedResponse: params.userResponse,
+      userPastedResponse: validation.ok
+        ? JSON.stringify(validation.data, null, 2)
+        : params.userResponse,
       parsedOutputJson: validation.ok ? (validation.data as object) : undefined,
       schemaValidationPassed: validation.ok,
       validationErrorsJson: validation.ok ? undefined : (validation.errors as object),

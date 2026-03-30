@@ -4,7 +4,7 @@
 
 BusinessDSS unterstuetzt dich dabei, Unternehmensentscheidungen strukturiert zu treffen:
 - Workflows je Planungsphase durchlaufen
-- Artefakte erzeugen und evaluieren
+- Dokumente erzeugen und evaluieren
 - KPI- und Indikatorwerte nachvollziehbar auswerten
 - Fruehwarnsignale frueh sichtbar machen
 
@@ -12,7 +12,7 @@ BusinessDSS unterstuetzt dich dabei, Unternehmensentscheidungen strukturiert zu 
 
 - `Dashboard` (`/dashboard`): Startpunkt fuer Workflows je Phase
 - `Runs` (`/runs`): Schritt-fuer-Schritt Bearbeitung der Workflow-Outputs
-- `Artefakte` (`/artifacts`): Ergebnisbibliothek, Freigaben, Evaluationen, Warnhinweise
+- `Dokumente` (`/artifacts`): Ergebnisbibliothek, Freigaben, Evaluationen, Warnhinweise
 - `KPIs` (`/insights`): KPI-Bibliothek, KPI-Werte, Strategy Indicators, Mapping Rules
 - `Study` (`/study`): Frageboegen FB1–FB5, direktvergleichende Auswertung, Export
 - `Evaluation` (`/evaluation`): Use-Case- und Szenario-Evaluation
@@ -24,7 +24,7 @@ BusinessDSS unterstuetzt dich dabei, Unternehmensentscheidungen strukturiert zu 
 2. Dokumente/Quellen hochladen (optional Wissen verarbeiten)  
 3. LLM/API in den Einstellungen konfigurieren; Phase im Dashboard starten  
 4. Run-Schritte bearbeiten und validieren  
-5. Artefakte pruefen, evaluieren und freigeben  
+5. Dokumente pruefen, evaluieren und freigeben  
 6. Fruehwarnhinweise lesen und aufloesen  
 7. Unter `Insights` KPI-Werte, **integrierte KPI KI-Analyse**, Strategy Indicators und Rule-Hinweise pruefen  
 8. Study (FB1–FB5), Use-Case-Evaluation und Export abschliessen
@@ -61,7 +61,7 @@ Dann wird:
 
 ## 6) Artefakt-Evaluation
 
-Artefakte koennen mit Qualitaetskriterien bewertet werden:
+Dokumente koennen mit Qualitaetskriterien bewertet werden:
 - Antwortqualitaet
 - Quellenqualitaet
 - Realismus
@@ -74,14 +74,14 @@ Diese Bewertung hilft dir, die Zuverlaessigkeit von KI-Ausgaben nachzuweisen.
 ## 7) DSR/Studienfluss
 
 - FB1: Allgemeine Ausgangserhebung
-- Pro Planungsbereich (Kategorie): Kurzinfo, FB2 (ohne Tool), Workflow-Runs, Artefakte, FB3 (mit Tool), **FB4** (Direktvergleich ohne/mit Tool inkl. Interview-Fragen — nicht nur ein Abschlussinterview)
+- Pro Planungsbereich (Kategorie): Kurzinfo, FB2 (ohne Tool), Workflow-Runs, Dokumente, FB3 (mit Tool), **FB4** (Direktvergleich ohne/mit Tool inkl. Interview-Fragen — nicht nur ein Abschlussinterview)
 - Entscheidungen (`/decisions`) und **Evaluation** (`/evaluation`): Use-Case-/Szenario-Bewertung
 - **FB5**: Abschlussfragen zu Integration, Phasen und Nutzung im Alltag
 - Export: Daten fuer Statistik und externe Auswertung
 
 ## 8) Gute Praxis
 
-- Artefakte erst nach Plausibilitaetscheck freigeben.
+- Dokumente erst nach Plausibilitaetscheck freigeben.
 - Bei `Status: Risiko` konkrete Gegenmassnahmen festhalten.
 - KPI-Trends regelmaessig aktualisieren.
 - Rule-Hinweise nicht ignorieren, sondern als Entscheidungs-Trigger nutzen.

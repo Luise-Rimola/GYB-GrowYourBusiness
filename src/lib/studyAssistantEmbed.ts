@@ -13,7 +13,7 @@ export function dashboardUrlAfterFb2Assistant(category: string): string {
   return hash ? `${q}#${hash}` : q;
 }
 
-/** Artefakte-Phase nach FB3 im Assistenten. */
+/** Dokumente-Phase nach FB3 im Assistenten. */
 export function artifactsUrlAfterFb3Assistant(category: string): string {
   const phase = STUDY_CATEGORY_PHASE_ID[category as ScenarioCategory];
   return `/artifacts?embed=1&assistantContinue=fb3#artifacts-phase-${phase}`;

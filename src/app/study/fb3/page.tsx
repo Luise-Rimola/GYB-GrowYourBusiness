@@ -58,7 +58,7 @@ async function saveFb3(formData: FormData) {
   }
 
   redirect(
-    category ? `/study?saved=fb3&category=${encodeURIComponent(category)}` : "/study?saved=fb3"
+    category ? `/home?saved=fb3&category=${encodeURIComponent(category)}` : "/home?saved=fb3"
   );
 }
 
@@ -103,7 +103,7 @@ export default async function Fragebogen3Page({
         <p><span className="font-semibold">Aktuelle Phase:</span> {context?.phase ?? "Ausgewählte Kategorie/Phase"}</p>
         <p className="mt-2">
           <span className="font-semibold">Bewertungsgrundlage:</span>{" "}
-          Artefakte, Entscheidungen, Run-Outputs der Phase ({workflowList}).
+          Dokumente, Entscheidungen, Run-Outputs der Phase ({workflowList}).
         </p>
         <p className="mt-2 text-[var(--muted)]">
           Bitte beantworte auf Basis der tatsächlich erzeugten Ergebnisse. FB3 dient als Nachher-Bewertung im Vergleich zu FB2.

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Script from "next/script";
 import { prisma } from "@/lib/prisma";
-import { startWizardAction, createRunWorkflowAction, startPhaseRunsAction } from "@/app/actions";
+import { createRunWorkflowAction } from "@/app/actions";
 import { Section } from "@/components/Section";
 import { getOrCreateDemoCompany } from "@/lib/demo";
 import { WORKFLOWS, WORKFLOW_BY_KEY, getWorkflowSubtitle } from "@/lib/workflows";
@@ -14,6 +14,7 @@ import { getTranslations } from "@/lib/i18n";
 import { WorkflowService } from "@/services/workflows";
 import { getPlanningPhaseReleasedMap } from "@/lib/planningPhaseRelease";
 import { PhaseArtifactsReleaseBlock } from "@/components/PhaseArtifactsReleaseBlock";
+import { PhaseRunButtonForm } from "@/components/PhaseRunButtonForm";
 
 function getWorkflowArtifactLabel(workflowKey: string, artifactType: string) {
   if (workflowKey === "WF_IDEA_USP_VALIDATION" && artifactType === "value_proposition") {
@@ -28,7 +29,7 @@ function getWorkflowArtifactLabel(workflowKey: string, artifactType: string) {
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ assistant_phase?: string }>;
+  searchParams: Promise<{ assistant_phase?: string; run_error?: string; run_success?: string }>;
 }) {
   const params = await searchParams;
   const assistantPhaseId = String(params.assistant_phase ?? "").trim();
@@ -65,7 +66,7 @@ export default async function DashboardPage({
     }),
   ]);
 
-  // Fehlende Artefakte aus Läufen erstellen (z.B. work_processes bei WF_FINANCIAL_PLANNING, competitor_analysis bei WF_COMPETITOR_ANALYSIS)
+  // Fehlende Dokumente aus Läufen erstellen (z.B. work_processes bei WF_FINANCIAL_PLANNING, competitor_analysis bei WF_COMPETITOR_ANALYSIS)
   const completeFinancialRun = recentRuns.find((r) => r.workflowKey === "WF_FINANCIAL_PLANNING" && r.status === "complete");
   const competitorRun = runs.find((r) => r.workflowKey === "WF_COMPETITOR_ANALYSIS" && ["draft", "complete", "incomplete"].includes(r.status));
   let anyCreated = false;
@@ -247,12 +248,23 @@ export default async function DashboardPage({
         </p>
       </header>
 
+      {params.run_error === "llm_missing" && (
+        <div className="rounded-xl border border-rose-300 bg-rose-50 p-4 text-sm text-rose-800 dark:border-rose-800 dark:bg-rose-950/30 dark:text-rose-200">
+          Bitte hinterlege eine LLM API in den Einstellungen oder führe die Schritte manuell durch.
+        </div>
+      )}
+      {params.run_success === "1" && (
+        <div className="rounded-xl border border-emerald-300 bg-emerald-50 p-4 text-sm text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-200">
+          Run wurde erfolgreich durchgeführt.
+        </div>
+      )}
+
       {!assistantPhaseId && (
-      <Section title={t.common.quickActions} description={t.dashboard.quickActionsDesc}>
+      <Section title="">
         <div className="mb-4">
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-sm font-medium text-[var(--muted)]">Gesamtfortschritt</span>
-            <span className="text-sm font-semibold text-[var(--foreground)]">{completedWorkflowCount}/{workflowsInOrder.length} Workflows ({progressPercent}%)</span>
+            <span className="text-sm font-semibold text-[var(--foreground)]">{completedWorkflowCount}/{workflowsInOrder.length} Prozesse ({progressPercent}%)</span>
           </div>
           <div className="h-2.5 w-full rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
             <div
@@ -262,20 +274,13 @@ export default async function DashboardPage({
           </div>
         </div>
         <div className="flex flex-wrap items-start gap-3">
-          <form action={startWizardAction}>
-            <button
-              type="submit"
-              className="rounded-xl bg-teal-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-teal-700"
-            >
-              {hasInProgressRun ? t.common.resumeWizard : t.common.runWorkflows}
-            </button>
-          </form>
           <RunAllQuickActions
             workflowKeys={enabledWorkflowKeysBase}
             optionalWorkflowKeys={optionalWorkflowKeys}
             defaultSelectedOptionalWorkflowKeys={defaultSelectedOptionalWorkflowKeys}
             artifactsHref="/artifacts"
             artifactsLabel={t.common.viewArtifacts}
+            showArtifactsButton={false}
           />
         </div>
       </Section>
@@ -292,7 +297,7 @@ export default async function DashboardPage({
           <div className="mt-4 rounded-2xl border border-[var(--card-border)] bg-[var(--card)]/50 p-6">
             <h3 className="text-lg font-semibold text-[var(--foreground)]">Business Form</h3>
             <p className="mt-1 text-sm text-[var(--muted)]">
-              Formularschritt vor den KI-Workflows.
+                  Formularschritt vor den KI-Prozessen.
             </p>
             <div className="mt-4 rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-4">
               <div className="flex items-center justify-between gap-4">
@@ -343,14 +348,12 @@ export default async function DashboardPage({
                   <div className="flex items-start justify-between gap-3">
                     <h3 className="text-lg font-semibold text-[var(--foreground)]">{phase.name}</h3>
                     {phaseWorkflows.length > 0 && (
-                      <form id={phaseFormId} action={startPhaseRunsAction}>
-                        <button
-                          type="submit"
-                          className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700"
-                        >
-                          Run
-                        </button>
-                      </form>
+                      <PhaseRunButtonForm
+                        formId={phaseFormId}
+                        phaseId={phase.id}
+                        buttonLabel="Ausführen"
+                        workflows={phaseWorkflows.map((wf) => ({ key: wf.key, name: wf.name }))}
+                      />
                     )}
                   </div>
                   <p className="mt-1 text-sm text-[var(--muted)]">{phase.goal}</p>
@@ -364,7 +367,7 @@ export default async function DashboardPage({
                 {phaseWorkflows.length > 0 ? (
                   <details data-phase-details={phase.id} className="group rounded-xl border border-[var(--card-border)] bg-[var(--background)]/40 p-3">
                     <summary className="cursor-pointer list-none text-sm font-medium text-[var(--foreground)]">
-                      Workflows anzeigen
+                      Prozesse anzeigen
                     </summary>
                     <div className="mt-3 space-y-3">
                       <div className="flex items-center justify-end">
@@ -436,14 +439,14 @@ export default async function DashboardPage({
                               {locked && (
                                 <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
                                   {wf.key === "WF_BUSINESS_PLAN"
-                                    ? "Baseline, Why Businesses Fail, Supplier List & Real Estate erforderlich"
+                                    ? "Grundlagenanalyse, Warum Unternehmen scheitern, Lieferantenliste und Standortoptionen erforderlich"
                                     : wf.key === "WF_KPI_ESTIMATION"
-                                      ? "Baseline, Market Snapshot, Market Research & Business Plan erforderlich"
+                                      ? "Grundlagenanalyse, Marktüberblick, Marktanalyse und Businessplan erforderlich"
                                       : ["WF_RESEARCH", "WF_SUPPLIER_LIST", "WF_REAL_ESTATE", "WF_CUSTOMER_VALIDATION", "WF_VALUE_PROPOSITION", "WF_GO_TO_MARKET", "WF_SWOT", "WF_COMPETITOR_ANALYSIS", "WF_STRATEGIC_PLANNING", "WF_TREND_ANALYSIS"].includes(wf.key)
-                                        ? "Baseline & Market Snapshot erforderlich"
+                                        ? "Grundlagenanalyse und Marktüberblick erforderlich"
                                         : wf.key === "WF_NEXT_BEST_ACTIONS"
-                                          ? "Baseline, KPI-Set & Market Research erforderlich"
-                                          : "Baseline erforderlich"}
+                                          ? "Grundlagenanalyse, KPI-Set und Marktanalyse erforderlich"
+                                          : "Grundlagenanalyse erforderlich"}
                                 </p>
                               )}
                             </div>
@@ -462,7 +465,7 @@ export default async function DashboardPage({
                               ) : hasComplete && completeRun ? (
                                 <>
                                   <Link href={`/runs/${completeRun.id}`} className="rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-teal-700">
-                                    Run ansehen
+                                    Lauf ansehen
                                   </Link>
                                   <form action={createRunWorkflowAction} className="inline">
                                     <input type="hidden" name="workflow_key" value={wf.key} />
@@ -524,7 +527,7 @@ export default async function DashboardPage({
                     </div>
                   </details>
                 ) : (
-                  <p className="text-sm text-[var(--muted)]">Noch keine Workflows für diese Phase.</p>
+                  <p className="text-sm text-[var(--muted)]">Noch keine Prozesse für diese Phase.</p>
                 )}
                 {(phaseArtifacts.length > 0 || decisionPackInPhase) && (
                   <PhaseArtifactsReleaseBlock
@@ -549,9 +552,9 @@ export default async function DashboardPage({
                         <div key={artifact.id} className="inline-flex items-center gap-2">
                           <Link
                             href={`/artifacts/${artifact.id}`}
-                            className="rounded-lg border border-[var(--card-border)] bg-[var(--card)] px-3 py-2 text-sm font-medium transition hover:border-teal-300 hover:shadow dark:hover:border-teal-700"
+                            className="rounded-lg border border-teal-200/70 bg-teal-100/50 px-3 py-2 text-sm font-medium text-teal-900/80 grayscale-[0.2] transition hover:border-teal-300 hover:bg-teal-100/70 dark:border-teal-800/70 dark:bg-teal-950/35 dark:text-teal-100/80 dark:hover:border-teal-700 dark:hover:bg-teal-950/45"
                           >
-                            {artifact.title || ARTIFACT_LABELS[type] || type}
+                            Dokument: {artifact.title || ARTIFACT_LABELS[type] || type}
                           </Link>
                           {hasEarlyWarningSignal(artifact) && (
                             <EarlyWarningPopover
@@ -576,123 +579,6 @@ export default async function DashboardPage({
           })}
         </div>
       </div>
-
-      {!assistantPhaseId && (
-      <Section title="Planungsbereiche" description="Querschnittsbereiche – laufen parallel zu allen Phasen.">
-        <div className="grid gap-4 md:grid-cols-2">
-          {PLANNING_AREAS.map((area) => {
-            const areaWorkflows = area.workflowKeys
-              .map((k) => WORKFLOW_BY_KEY[k])
-              .filter(Boolean) as { key: string; name: string; description: string }[];
-            return (
-              <div key={area.id} className="rounded-2xl border border-[var(--card-border)] bg-[var(--card)] p-5">
-                <h3 className="font-semibold text-[var(--foreground)]">{area.name}</h3>
-                <p className="mt-1 text-sm text-[var(--muted)]">{area.description}</p>
-                {area.horizon && <p className="mt-0.5 text-xs text-[var(--muted)]">Zeithorizont: {area.horizon}</p>}
-                {(area.instruments ?? area.examples)?.length ? (
-                  <p className="mt-1 text-xs text-[var(--muted)]">
-                    {area.instruments ? "Instrumente" : "Beispiele"}: {(area.instruments ?? area.examples)!.slice(0, 4).join(", ")}
-                    {((area.instruments ?? area.examples)!.length > 4) ? " …" : ""}
-                  </p>
-                ) : null}
-                {areaWorkflows.length > 0 ? (
-                  <div className="mt-4 space-y-2">
-                    {areaWorkflows.map((wf) => {
-                      const locked = isLocked[wf.key];
-                      const completeRun = runsByWorkflow[wf.key]?.find((r) => r.status === "complete" || r.status === "approved");
-                      const hasInProgress = runsByWorkflow[wf.key]?.some((r) => ["draft", "running", "incomplete"].includes(r.status));
-                      const complete = isWorkflowComplete(wf.key);
-                      const completeRunValidated = completeRun ? isRunValidated(completeRun) : false;
-                      const isCompleteUnvalidated = complete && completeRun && !completeRunValidated;
-                      const hasUnverifiedResponse = runsByWorkflow[wf.key]?.some(runHasUnverifiedResponse);
-                      const showUnvalidated = isCompleteUnvalidated || hasUnverifiedResponse;
-                      return (
-                        <div
-                          key={wf.key}
-                          className={`flex items-center justify-between rounded-lg border px-3 py-2 ${
-                            showUnvalidated
-                              ? "border-amber-300 bg-amber-50/90 dark:border-amber-600 dark:bg-amber-900/30"
-                              : complete
-                                ? "border-slate-300 bg-slate-200/90 dark:border-slate-600 dark:bg-slate-800/70"
-                                : "border-[var(--card-border)] bg-[var(--background)]/50"
-                          }`}
-                        >
-                          <span className="text-sm font-medium">{wf.name}</span>
-                          <div className="flex items-center gap-2">
-                            {hasInProgress ? (
-                              <form action={createRunWorkflowAction}>
-                                <input type="hidden" name="workflow_key" value={wf.key} />
-                                <button type="submit" disabled={locked} className="rounded bg-teal-600 px-2 py-1 text-xs text-white hover:bg-teal-700">
-                                  Fortsetzen
-                                </button>
-                              </form>
-                            ) : completeRun ? (
-                              <Link href={`/runs/${completeRun.id}`} className="rounded bg-teal-600 px-2 py-1 text-xs text-white hover:bg-teal-700">
-                                Ansehen
-                              </Link>
-                            ) : (
-                              <form action={createRunWorkflowAction}>
-                                <input type="hidden" name="workflow_key" value={wf.key} />
-                                <button type="submit" disabled={locked} className="rounded border px-2 py-1 text-xs hover:bg-teal-50 dark:hover:bg-teal-950/30">
-                                  Starten
-                                </button>
-                              </form>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <p className="mt-3 text-xs text-[var(--muted)]">Noch keine Workflows zugeordnet.</p>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </Section>
-      )}
-
-      {!assistantPhaseId && (
-      <Section title="Schnellzugriff" description="Artefakte sind in den Planungsphasen eingebettet. Hier weitere Bereiche:">
-        <div className="flex flex-wrap gap-3">
-          <Link href="/artifacts" className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] px-4 py-3 text-sm font-medium transition hover:border-teal-300 hover:shadow dark:hover:border-teal-700">
-            Alle Artefakte
-          </Link>
-          <Link href="/decisions" className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] px-4 py-3 text-sm font-medium transition hover:border-teal-300 hover:shadow dark:hover:border-teal-700">
-            Top Decisions
-          </Link>
-          <Link href="/checklist" className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] px-4 py-3 text-sm font-medium transition hover:border-teal-300 hover:shadow dark:hover:border-teal-700">
-            Checkliste
-          </Link>
-          <Link href="/insights" className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] px-4 py-3 text-sm font-medium transition hover:border-teal-300 hover:shadow dark:hover:border-teal-700">
-            Startup Insights
-          </Link>
-          <Link href="/runs" className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] px-4 py-3 text-sm font-medium transition hover:border-teal-300 hover:shadow dark:hover:border-teal-700">
-            Alle Runs
-          </Link>
-          <Link href="/workflows" className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] px-4 py-3 text-sm font-medium transition hover:border-teal-300 hover:shadow dark:hover:border-teal-700">
-            Workflows
-          </Link>
-          <Link href="/data" className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] px-4 py-3 text-sm font-medium transition hover:border-teal-300 hover:shadow dark:hover:border-teal-700">
-            Daten
-          </Link>
-        </div>
-      </Section>
-      )}
-
-      {!assistantPhaseId && (
-      <Section title="More Links" description="View runs and audit trail.">
-        <div className="flex flex-wrap gap-3">
-          <Link
-            href="/runs"
-            className="rounded-xl border border-[var(--card-border)] px-4 py-2 text-sm font-medium transition hover:bg-teal-50 dark:hover:bg-teal-950/30"
-          >
-            View Runs
-          </Link>
-        </div>
-      </Section>
-      )}
 
       {!assistantPhaseId && (
       <Script id="phase-workflow-checkbox-toggle" strategy="afterInteractive">{`

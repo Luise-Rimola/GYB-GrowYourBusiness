@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createQuestionnaireItems } from "@/lib/questionnaire-items";
 import {
@@ -50,7 +49,7 @@ async function saveFb5(formData: FormData) {
   if (assistantEmbed) {
     redirect("/study?saved=fb5&embed=1");
   }
-  redirect("/study?saved=fb5");
+  redirect("/home?saved=fb5");
 }
 
 export default async function Fragebogen5Page({
@@ -76,10 +75,7 @@ export default async function Fragebogen5Page({
   return (
     <div className="space-y-8">
       <header>
-        <Link href="/study" className="text-sm font-medium text-teal-600 hover:underline dark:text-teal-400">
-          ← {t.study.studyStart}
-        </Link>
-        <h1 className="mt-4 text-3xl font-bold tracking-tight text-[var(--foreground)]">{t.study.fb5Title}</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-[var(--foreground)]">{t.study.fb5Title}</h1>
         <p className="mt-2 text-[var(--muted)]">{t.study.fb5Desc}</p>
       </header>
       <Fragebogen5Form

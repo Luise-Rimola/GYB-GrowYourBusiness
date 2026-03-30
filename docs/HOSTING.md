@@ -3,7 +3,7 @@
 ## Überblick
 
 - Jede **Registrierung** legt einen **User** (E-Mail, Passwort-Hash) und genau einen **Company**-Arbeitsbereich an (`User.companyId` ist eindeutig).
-- **Alle fachlichen Daten** (Runs, Artefakte, KPIs, Fragebögen, Evaluationen, Chat, …) hängen wie bisher an `companyId`. Damit sind die Daten pro Account getrennt.
+- **Alle fachlichen Daten** (Runs, Dokumente, KPIs, Fragebögen, Evaluationen, Chat, …) hängen wie bisher an `companyId`. Damit sind die Daten pro Account getrennt.
 - **LLM-URL, API-Key und Modell** stehen in `CompanySettings` pro Arbeitsbereich — jede Person kann einen eigenen Anbieter (OpenAI, Azure, Ollama, …) nutzen.
 
 ## Umgebungsvariablen

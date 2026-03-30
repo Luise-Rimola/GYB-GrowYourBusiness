@@ -46,7 +46,7 @@ export async function startWizardAction() {
 }
 
 // DSR Study assistant:
-// FB1 -> (pro Bereich: Info, FB2, Workflows, Artefakte, FB3) -> FB4 -> DSR evaluation
+// FB1 -> (pro Bereich: Info, FB2, Workflows, Dokumente, FB3) -> FB4 -> DSR evaluation
 export async function startStudyWizardAction() {
   const company = await getOrCreateDemoCompany();
   const participant = await getOrCreateStudyParticipant(company.id);
@@ -122,13 +122,26 @@ export async function createRunWorkflowAction(formData: FormData) {
 
 export async function startPhaseRunsAction(formData: FormData) {
   const company = await getOrCreateDemoCompany();
+  const phaseId = String(formData.get("phase_id") ?? "").trim();
   const workflowKeys = formData
     .getAll("workflow_keys")
     .map((v) => String(v))
     .filter(Boolean);
 
+  const settings = await prisma.companySettings.findUnique({
+    where: { companyId: company.id },
+    select: { llmApiUrl: true, llmApiKey: true },
+  });
+  const hasLlmConfigured = Boolean(settings?.llmApiUrl?.trim()) || Boolean(settings?.llmApiKey?.trim());
+
+  if (!hasLlmConfigured) {
+    const hash = phaseId ? `#phase-${encodeURIComponent(phaseId)}` : "";
+    redirect(`/dashboard?run_error=llm_missing${hash}`);
+  }
+
   if (workflowKeys.length === 0) {
-    redirect("/dashboard");
+    const hash = phaseId ? `#phase-${encodeURIComponent(phaseId)}` : "";
+    redirect(`/dashboard${hash}`);
   }
 
   const createdOrExistingRunIds: string[] = [];
@@ -152,10 +165,11 @@ export async function startPhaseRunsAction(formData: FormData) {
     createdOrExistingRunIds.push(run.id);
   }
 
-  if (createdOrExistingRunIds.length === 1) {
-    redirect(`/runs/${createdOrExistingRunIds[0]}?step=0`);
+  const hash = phaseId ? `#phase-${encodeURIComponent(phaseId)}` : "";
+  if (createdOrExistingRunIds.length > 0) {
+    redirect(`/dashboard?run_success=1${hash}`);
   }
-  redirect("/runs");
+  redirect(`/dashboard${hash}`);
 }
 
 export async function submitKpiAnswersAction(formData: FormData) {
@@ -251,7 +265,7 @@ export async function submitArtifactEvaluationAction(formData: FormData) {
     ind_notes: ind_notes || null,
   });
 
-  redirect(`/artifacts/${artifactId}/evaluate?saved=1`);
+  redirect("/artifacts");
 }
 
 const FEATURE_KINDS = new Set<FeatureEvaluationKind>(["decisions", "chat"]);

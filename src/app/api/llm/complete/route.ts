@@ -37,15 +37,41 @@ export async function POST(req: Request) {
       headers["Authorization"] = `Bearer ${apiKey}`;
     }
 
-    const res = await fetch(chatUrl, {
+    const payloadWithJsonMode = {
+      model,
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.3,
+      response_format: { type: "json_object" as const },
+    };
+
+    let res = await fetch(chatUrl, {
       method: "POST",
       headers,
-      body: JSON.stringify({
-        model,
-        messages: [{ role: "user", content: prompt }],
-        temperature: 0.3,
-      }),
+      body: JSON.stringify(payloadWithJsonMode),
     });
+
+    // Fallback for providers that don't support response_format.
+    if (!res.ok) {
+      const firstErr = await res.text();
+      const unsupportedJsonMode =
+        /response_format|json_object|unsupported|unknown/i.test(firstErr);
+      if (unsupportedJsonMode) {
+        res = await fetch(chatUrl, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            model,
+            messages: [{ role: "user", content: prompt }],
+            temperature: 0.3,
+          }),
+        });
+      } else {
+        return NextResponse.json(
+          { error: `LLM-API Fehler (${res.status}): ${firstErr.slice(0, 200)}` },
+          { status: 502 }
+        );
+      }
+    }
 
     if (!res.ok) {
       const errText = await res.text();

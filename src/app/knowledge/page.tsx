@@ -256,7 +256,7 @@ const ARTIFACT_TYPE_LABELS: Record<string, string> = {
 export default async function KnowledgePage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; updated?: string; batch?: string; applied?: string; needsRerun?: string; workflows?: string }>;
+  searchParams: Promise<{ error?: string; updated?: string; batch?: string; applied?: string; needsRerun?: string; workflows?: string; tab?: string }>;
 }) {
   const locale = await getServerLocale();
   const t = getTranslations(locale);
@@ -274,6 +274,10 @@ export default async function KnowledgePage({
   }
   const needsRerun = params.needsRerun === "1";
   const workflowKeys = params.workflows ? params.workflows.split(",").filter(Boolean) : [];
+  const allowedTabs = ["objects", "kpis", "measures", "contradictions", "extractions"] as const;
+  const activeTab = allowedTabs.includes((params.tab ?? "objects") as (typeof allowedTabs)[number])
+    ? (params.tab as (typeof allowedTabs)[number] | undefined) ?? "objects"
+    : "objects";
 
   const company = await getOrCreateDemoCompany();
   const [sourcesRaw, objects, versions, contradictions, kpiValues, marketingActions] = await Promise.all([
@@ -349,7 +353,76 @@ export default async function KnowledgePage({
           )}
         </div>
       )}
-      {recentBatches.length > 0 && (
+      <details className="group rounded-2xl border border-[var(--card-border)] bg-[var(--card)] p-4">
+        <summary className="flex cursor-pointer list-none items-center justify-between rounded-xl border border-[var(--card-border)] bg-[var(--background)] px-4 py-3 text-sm font-semibold text-[var(--foreground)] transition hover:bg-zinc-50 dark:hover:bg-zinc-900/40">
+          <span>{t.knowledge.sourcesQueue}</span>
+          <span className="text-[var(--muted)] transition-transform group-open:rotate-90">▸</span>
+        </summary>
+        <div className="mt-4 space-y-4">
+          <form action={addKbSourceFromFile} className="flex flex-wrap items-center gap-3 rounded-xl border border-dashed border-zinc-300 p-4 dark:border-zinc-700">
+            <input
+              name="file"
+              type="file"
+              accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg,.xlsx,.xls,.csv"
+              className="text-sm text-zinc-600 file:mr-3 file:rounded-lg file:border-0 file:bg-zinc-200 file:px-4 file:py-2 file:text-sm file:font-medium file:text-zinc-800 dark:file:bg-zinc-700 dark:file:text-zinc-200"
+              required
+            />
+            <select
+              name="type"
+              className="rounded-xl border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-800 dark:bg-zinc-950"
+            >
+              <option value="report">Report</option>
+              <option value="paper">Paper</option>
+              <option value="internal">Internal</option>
+            </select>
+            <button
+              type="submit"
+              className="rounded-full bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-800"
+            >
+              {t.knowledge.uploadDocument}
+            </button>
+          </form>
+          <form action={processTextUpdate} className="rounded-xl border border-dashed border-teal-300 p-4 dark:border-teal-800">
+            <p className="mb-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">{t.knowledge.textUpdateLabel}</p>
+            <VoiceTextarea
+              name="text"
+              rows={4}
+              placeholder={t.knowledge.textUpdatePlaceholder}
+              className="mb-3 w-full rounded-xl border border-zinc-200 px-3 py-2 pr-14 text-sm dark:border-zinc-800 dark:bg-zinc-950"
+            />
+            <button
+              type="submit"
+              className="rounded-full bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-700"
+            >
+              {t.knowledge.textUpdateSubmit}
+            </button>
+          </form>
+        </div>
+      </details>
+      <div className="overflow-x-auto">
+        <div className="inline-flex min-w-full gap-2 border-b border-[var(--card-border)] pb-2">
+          {[
+            { key: "objects", label: t.knowledge.knowledgeObjects },
+            { key: "kpis", label: t.knowledge.kpiUpdateData },
+            { key: "measures", label: t.knowledge.measuresList },
+            { key: "contradictions", label: t.knowledge.contradictions },
+            { key: "extractions", label: t.knowledge.recentExtractions },
+          ].map((tab) => (
+            <Link
+              key={tab.key}
+              href={`/knowledge?tab=${tab.key}`}
+              className={`whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition ${
+                activeTab === tab.key
+                  ? "bg-teal-600 text-white"
+                  : "border border-[var(--card-border)] text-[var(--muted)] hover:bg-[var(--background)] hover:text-[var(--foreground)]"
+              }`}
+            >
+              {tab.label}
+            </Link>
+          ))}
+        </div>
+      </div>
+      {activeTab === "extractions" && recentBatches.length > 0 && (
         <Section title={t.knowledge.recentExtractions} description={t.knowledge.recentExtractionsDesc}>
           <div className="space-y-2">
             {recentBatches.map((batch) => (
@@ -373,45 +446,8 @@ export default async function KnowledgePage({
           </div>
         </Section>
       )}
+      {activeTab === "sources" && (
       <Section title={t.knowledge.sourcesQueue} description={t.knowledge.sourcesQueueDesc}>
-        <form action={addKbSourceFromFile} className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-dashed border-zinc-300 p-4 dark:border-zinc-700">
-          <input
-            name="file"
-            type="file"
-            accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg,.xlsx,.xls,.csv"
-            className="text-sm text-zinc-600 file:mr-3 file:rounded-lg file:border-0 file:bg-zinc-200 file:px-4 file:py-2 file:text-sm file:font-medium file:text-zinc-800 dark:file:bg-zinc-700 dark:file:text-zinc-200"
-            required
-          />
-          <select
-            name="type"
-            className="rounded-xl border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-800 dark:bg-zinc-950"
-          >
-            <option value="report">Report</option>
-            <option value="paper">Paper</option>
-            <option value="internal">Internal</option>
-          </select>
-          <button
-            type="submit"
-            className="rounded-full bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-800"
-          >
-            {t.knowledge.uploadDocument}
-          </button>
-        </form>
-        <form action={processTextUpdate} className="mb-4 rounded-xl border border-dashed border-teal-300 p-4 dark:border-teal-800">
-          <p className="mb-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">{t.knowledge.textUpdateLabel}</p>
-          <VoiceTextarea
-            name="text"
-            rows={4}
-            placeholder={t.knowledge.textUpdatePlaceholder}
-            className="mb-3 w-full rounded-xl border border-zinc-200 px-3 py-2 pr-14 text-sm dark:border-zinc-800 dark:bg-zinc-950"
-          />
-          <button
-            type="submit"
-            className="rounded-full bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-700"
-          >
-            {t.knowledge.textUpdateSubmit}
-          </button>
-        </form>
         <div className="space-y-3">
           {sources.map((source) => (
             <div key={source.id} className="rounded-2xl border border-zinc-200 p-4 dark:border-zinc-800">
@@ -468,7 +504,9 @@ export default async function KnowledgePage({
           ))}
         </div>
       </Section>
+      )}
 
+      {activeTab === "objects" && (
       <Section title={t.knowledge.knowledgeObjects} description={t.knowledge.knowledgeObjectsDesc}>
         <div className="space-y-3">
           {objects.length === 0 ? (
@@ -576,7 +614,9 @@ export default async function KnowledgePage({
           )}
         </div>
       </Section>
+      )}
 
+      {activeTab === "kpis" && (
       <Section title={t.knowledge.kpiUpdateData} description={t.knowledge.kpiUpdateDataDesc}>
         <div className="space-y-3">
           {kpiValues.length === 0 ? (
@@ -629,7 +669,9 @@ export default async function KnowledgePage({
           )}
         </div>
       </Section>
+      )}
 
+      {activeTab === "measures" && (
       <Section title={t.knowledge.measuresList} description={t.knowledge.measuresListDesc}>
         <div className="space-y-3">
           {marketingActions.length === 0 ? (
@@ -682,7 +724,9 @@ export default async function KnowledgePage({
           )}
         </div>
       </Section>
+      )}
 
+      {activeTab === "contradictions" && (
       <Section title={t.knowledge.contradictions} description={t.knowledge.contradictionsDesc}>
         <div className="space-y-3">
           {contradictions.map((item) => (
@@ -695,32 +739,8 @@ export default async function KnowledgePage({
           ))}
         </div>
       </Section>
+      )}
 
-      <Section title="Knowledge Versions" description="Published snapshots with rollback support.">
-        <form action={publishVersion} className="mb-4 flex gap-3">
-          <input
-            name="label"
-            placeholder="Version label (e.g. v1.0)"
-            className="rounded-xl border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-800 dark:bg-zinc-950"
-          />
-          <button
-            type="submit"
-            className="rounded-full bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-800"
-          >
-            {t.knowledge.publishVersion}
-          </button>
-        </form>
-        <div className="space-y-3">
-          {versions.map((version) => (
-            <div key={version.id} className="rounded-2xl border border-zinc-200 p-4 text-sm dark:border-zinc-800">
-              <div className="flex items-center justify-between">
-                <p className="font-semibold text-zinc-900 dark:text-zinc-50">{version.versionLabel}</p>
-                <Badge label={version.status} tone={version.status === "active" ? "success" : "neutral"} />
-              </div>
-            </div>
-          ))}
-        </div>
-      </Section>
     </div>
   );
 }

@@ -161,7 +161,7 @@ export default async function ArtifactDetailPage({
               href={`/artifacts/${artifact.id}/evaluate`}
               className="rounded-xl bg-teal-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-teal-700"
             >
-              Artefakt evaluieren
+              Dokument evaluieren
             </Link>
             {artifact.runId ? (
               <Link
@@ -225,7 +225,7 @@ export default async function ArtifactDetailPage({
 
       <Section
         title="Vollständige Felder (strukturiert)"
-        description="Alle im Artefakt gespeicherten Felder in strukturierter Darstellung."
+        description="Alle im Dokument gespeicherten Felder in strukturierter Darstellung."
       >
         <ReadableDataView
           data={content}
@@ -244,23 +244,25 @@ export default async function ArtifactDetailPage({
         </div>
       </Section>
 
-      <Section
-        title="Artefakt bearbeiten"
-        description="Formular für strukturierte Bearbeitung oder Raw JSON. Nach dem Speichern abhängige Workflows ggf. neu starten (siehe Daten-Seite)."
-      >
-        <ArtifactEditor
-          artifactType={artifact.type}
-          content={(artifact.contentJson ?? {}) as Record<string, unknown>}
-          submitAction={updateArtifactAction}
-          artifactId={artifact.id}
-          redirectTo={`/artifacts/${artifact.id}`}
-        />
-        <p className="mt-4 text-xs text-[var(--muted)]">
-          <Link href="/data" className="text-teal-600 hover:text-teal-700 dark:text-teal-400">Daten-Seite</Link> – dort alle Artefakte bearbeiten und Workflows neu starten.
-        </p>
-      </Section>
-
       <Section title="Advanced" description="Rohdaten (JSON) – nur Anzeige.">
+        <details className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-4">
+          <summary className="cursor-pointer text-sm font-semibold text-[var(--foreground)]">Dokument bearbeiten</summary>
+          <p className="mt-2 text-xs text-[var(--muted)]">
+            Formular für strukturierte Bearbeitung oder Raw JSON. Nach dem Speichern abhängige Workflows ggf. neu starten (siehe Daten-Seite).
+          </p>
+          <div className="mt-4">
+            <ArtifactEditor
+              artifactType={artifact.type}
+              content={(artifact.contentJson ?? {}) as Record<string, unknown>}
+              submitAction={updateArtifactAction}
+              artifactId={artifact.id}
+              redirectTo={`/artifacts/${artifact.id}`}
+            />
+          </div>
+          <p className="mt-4 text-xs text-[var(--muted)]">
+            <Link href="/data" className="text-teal-600 hover:text-teal-700 dark:text-teal-400">Daten-Seite</Link> – dort alle Dokumente bearbeiten und Workflows neu starten.
+          </p>
+        </details>
         <AdvancedJson data={artifact.contentJson} title="Advanced" summary="Rohdaten (JSON)" />
       </Section>
     </div>

@@ -8,7 +8,8 @@ const RETRY_DELAY_SEC = 180; // 3 Minuten
 const MAX_429_RETRIES = 2;
 
 type RunAllButtonProps = {
-  workflowKeys: string[];
+  selectedWorkflowKeys: string[];
+  allWorkflowKeys: string[];
 };
 
 type StepItem = {
@@ -24,12 +25,12 @@ type RetryState = {
   stepIndex: number;
   step: StepItem;
   items: StepItem[];
-  mode: "run_all" | "continue";
+  mode: "selected" | "all";
   countdown: number;
   retryCount: number;
 };
 
-export function RunAllButton({ workflowKeys }: RunAllButtonProps) {
+export function RunAllButton({ selectedWorkflowKeys, allWorkflowKeys }: RunAllButtonProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState<StepItem[]>([]);
@@ -89,7 +90,8 @@ export function RunAllButton({ workflowKeys }: RunAllButtonProps) {
     abortRef.current = true;
   }
 
-  async function runSteps(mode: "run_all" | "continue") {
+  async function runSteps(mode: "selected" | "all") {
+    const workflowKeys = mode === "all" ? allWorkflowKeys : selectedWorkflowKeys;
     if (workflowKeys.length === 0) return;
     setShowPopup(false);
     setRetryState(null);
@@ -97,7 +99,7 @@ export function RunAllButton({ workflowKeys }: RunAllButtonProps) {
     setLoading(true);
 
     let items: StepItem[];
-    if (mode === "run_all") {
+    if (mode === "selected" || mode === "all") {
       items = [];
       for (const wf of workflowKeys) {
         const steps = workflowSteps[wf] ?? [];
@@ -117,7 +119,7 @@ export function RunAllButton({ workflowKeys }: RunAllButtonProps) {
         const data = await res.json();
         if (!res.ok || !data.runId) {
           setLoading(false);
-          alert(data.error ?? "Run erstellen fehlgeschlagen");
+          alert(data.error ?? "KI-Prozess konnte nicht erstellt werden");
           return;
         }
         runIdsByWf[wf] = data.runId;
@@ -129,25 +131,6 @@ export function RunAllButton({ workflowKeys }: RunAllButtonProps) {
           i++;
         }
       }
-    } else {
-      const res = await fetch("/api/runs/run-steps", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mode: "continue", workflowKeys }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setLoading(false);
-        alert(data.error ?? "Schritte laden fehlgeschlagen");
-        return;
-      }
-      items = (data.steps ?? []).map((s: { workflowKey: string; runId: string; stepKey: string; label: string }) => ({
-        wf: s.workflowKey,
-        step: s.label,
-        runId: s.runId,
-        stepKey: s.stepKey,
-        status: "pending" as const,
-      }));
     }
 
     setProgress(items);
@@ -157,7 +140,7 @@ export function RunAllButton({ workflowKeys }: RunAllButtonProps) {
   async function executeStepAndContinue(
     startIdx: number,
     items: StepItem[],
-    mode: "run_all" | "continue",
+    mode: "selected" | "all",
     retryCount = 0
   ): Promise<void> {
     for (let idx = startIdx; idx < items.length; idx++) {
@@ -228,23 +211,33 @@ export function RunAllButton({ workflowKeys }: RunAllButtonProps) {
         disabled={loading}
         className="rounded-xl border border-teal-600 px-4 py-2.5 text-sm font-semibold text-teal-700 transition hover:bg-teal-50 dark:border-teal-500 dark:text-teal-300 dark:hover:bg-teal-950/50 disabled:opacity-50"
       >
-        {loading ? "Läuft…" : "Run"}
+        {loading ? "Läuft…" : "Ausführen des KI-Prozesses"}
       </button>
       {showPopup && !loading && (
         <div className="absolute left-0 top-full z-50 mt-1 min-w-[200px] rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-2 shadow-lg">
           <button
             type="button"
-            onClick={() => runSteps("run_all")}
+            onClick={() => runSteps("selected")}
             className="block w-full rounded-lg px-3 py-2 text-left text-sm font-medium hover:bg-[var(--background)]"
           >
-            Run All
+            Individuelle Prozesse
           </button>
           <button
             type="button"
-            onClick={() => runSteps("continue")}
+            onClick={() => runSteps("all")}
             className="block w-full rounded-lg px-3 py-2 text-left text-sm font-medium hover:bg-[var(--background)]"
           >
-            Continue Run
+            Alle KI-Prozesse
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setShowPopup(false);
+              router.push("/assistant/workflows");
+            }}
+            className="block w-full rounded-lg px-3 py-2 text-left text-sm font-medium hover:bg-[var(--background)]"
+          >
+            Manueller Assistent
           </button>
         </div>
       )}
@@ -260,7 +253,7 @@ export function RunAllButton({ workflowKeys }: RunAllButtonProps) {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between border-b border-[var(--card-border)] px-4 py-3">
-              <h3 className="text-base font-semibold text-[var(--foreground)]">Lauf-Fortschritt</h3>
+              <h3 className="text-base font-semibold text-[var(--foreground)]">KI-Prozess-Fortschritt</h3>
               <div className="flex items-center gap-2">
                 {loading ? (
                   <button

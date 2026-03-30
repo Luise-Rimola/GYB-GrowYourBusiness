@@ -61,7 +61,7 @@ const LABELS: Record<string, string> = {
   business_model: "Geschäftsmodell",
   kpi_set: "KPI-Set",
   kpi_snapshot: "KPI-Snapshot",
-  artifacts_summary: "Artefakte",
+  artifacts_summary: "Dokumente",
   startup_insights: "Startup-Insights",
   kpi_computation_plan: "KPI-Berechnungsplan",
   kpi_answers: "KPI-Antworten",
@@ -71,8 +71,18 @@ const LABELS: Record<string, string> = {
   practices: "Best Practices",
   failure_reasons: "Misserfolgsgründe",
   decision_proposals: "Entscheidungsvorschläge",
+  strengths: "Stärken",
+  weaknesses: "Schwächen",
+  opportunities: "Chancen",
+  threats: "Risiken",
+  strategic_implications: "Strategische Auswirkungen",
+  swot_matrix_summary: "SWOT-Zusammenfassung",
+  recommendations: "Empfehlungen",
+  competitive_landscape: "Wettbewerbslandschaft",
+  differentiation_opportunities: "Differenzierungsmöglichkeiten",
   prompt: "Prompt",
   parsed_output: "Ergebnis",
+  errors: "Fehler",
 };
 
 const SKIP_KEYS = new Set(["updated_at", "cost_excel_uploaded", "cost_excel_error"]);

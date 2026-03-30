@@ -15,9 +15,12 @@ function RunLlmButton({
   loading: boolean;
   setLoading: (v: boolean) => void;
 }) {
+  const [inlineError, setInlineError] = useState<string>("");
+
   async function handleRun() {
     if (!prompt.trim()) return;
     setLoading(true);
+    setInlineError("");
     try {
       const res = await fetch("/api/llm/complete", {
         method: "POST",
@@ -28,20 +31,30 @@ function RunLlmButton({
       if (!res.ok) throw new Error(data.error ?? "Fehler");
       onResponse(data.content ?? "");
     } catch (err) {
-      alert(err instanceof Error ? err.message : "LLM-Anfrage fehlgeschlagen");
+      const errorText = err instanceof Error ? err.message : "LLM-Anfrage fehlgeschlagen";
+      setInlineError(
+        `${errorText}. Hinweis: Du kannst den Prompt manuell kopieren, in den ChatGPT-Chat einfügen und die Antwort hier in das Antwortfeld einfügen.`
+      );
     } finally {
       setLoading(false);
     }
   }
   return (
-    <button
-      type="button"
-      onClick={handleRun}
-      disabled={loading}
-      className="rounded-lg border border-teal-600 px-3 py-1.5 text-xs font-medium text-teal-700 transition hover:bg-teal-50 dark:border-teal-500 dark:text-teal-300 dark:hover:bg-teal-950/50 disabled:opacity-50"
-    >
-      {loading ? "…" : "Run"}
-    </button>
+    <div className="relative inline-flex flex-col items-end">
+      <button
+        type="button"
+        onClick={handleRun}
+        disabled={loading}
+        className="rounded-lg border border-teal-600 px-3 py-1.5 text-xs font-medium text-teal-700 transition hover:bg-teal-50 dark:border-teal-500 dark:text-teal-300 dark:hover:bg-teal-950/50 disabled:opacity-50"
+      >
+        {loading ? "…" : "Ausführen des KI-Prozesses"}
+      </button>
+      {inlineError ? (
+        <p className="absolute right-0 top-full z-20 mt-2 w-[34rem] max-w-[75vw] rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-800 shadow-md dark:border-amber-700 dark:bg-amber-950/90 dark:text-amber-200">
+          {inlineError}
+        </p>
+      ) : null}
+    </div>
   );
 }
 import { IntakeForm } from "@/components/IntakeForm";
@@ -95,6 +108,7 @@ type RunWizardProps = {
   appDevelopmentConfig?: {
     existingIdeas: { id: string; title: string }[];
   };
+  showStepList?: boolean;
 };
 
 export function RunWizard({
@@ -110,6 +124,7 @@ export function RunWizard({
   runNotesLabel = "Run notes (injected into prompt)",
   runNotesPlaceholder = "e.g. Focus on profitability…",
   appDevelopmentConfig,
+  showStepList = true,
 }: RunWizardProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -141,7 +156,7 @@ export function RunWizard({
   if (stepsConfig.length === 0) {
     return (
       <div className="rounded-2xl border border-[var(--card-border)] bg-[var(--card)] p-6 text-center text-sm text-[var(--muted)]">
-        No steps configured for this workflow.
+        Für diesen Prozess sind keine Schritte konfiguriert.
       </div>
     );
   }
@@ -158,11 +173,6 @@ export function RunWizard({
     : isKpiQuestionsStep
       ? kpiQuestionsStep!.isComplete
       : (savedStep?.verifiedByUser ?? false);
-  const canVerify =
-    !isBusinessFormStep &&
-    savedStep &&
-    savedStep.schemaValidationPassed &&
-    !savedStep.verifiedByUser;
   const hasValidationErrors =
     savedStep && !savedStep.schemaValidationPassed;
   const useUpdateForm = hasValidationErrors && updateStep;
@@ -188,205 +198,199 @@ export function RunWizard({
 
   return (
     <div className="space-y-6">
-      {/* Step list – all steps visible */}
-      <div className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-4">
-        <p className="text-xs font-semibold text-[var(--muted)] mb-3">All steps</p>
-        <div className="flex flex-wrap gap-2">
-          {stepsConfig.map((cfg, idx) => {
-            const status = getStepStatus(idx);
-            const isCurrent = idx === stepIndex;
-            return (
-              <button
-                key={cfg.stepKey}
-                type="button"
-                onClick={() => navigateToStep(idx)}
-                className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
-                  isCurrent
-                    ? "bg-teal-600 text-white ring-2 ring-teal-400"
-                    : status === "verified"
-                      ? "bg-teal-100 text-teal-800 dark:bg-teal-900/50 dark:text-teal-200"
-                      : status === "saved"
-                        ? "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
-                        : status === "invalid"
-                          ? "bg-rose-100 text-rose-700 dark:bg-rose-900/50 dark:text-rose-300"
-                          : "bg-slate-100/70 text-slate-500 dark:bg-slate-800/50 dark:text-slate-400"
-                }`}
-              >
-                {idx + 1}. {cfg.label}
-                {status === "verified" && " ✓"}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Run notes – injected into prompt in real-time */}
-      {saveRunNotes && (
-        <div className="rounded-2xl border border-[var(--card-border)] bg-[var(--card)] p-4 shadow-sm">
-          {appDevelopmentConfig ? (
-            <form
-              ref={formRef}
-              action={saveRunNotes}
-              className="space-y-4"
-              onSubmit={(e) => {
-                if (ideaMode === "new" && !userNotes.trim()) {
-                  e.preventDefault();
-                  setNotesError("Bei eigener neuer Idee müssen die Notizen ausgefüllt werden.");
-                  return;
-                }
-                if (ideaMode === "existing" && !selectedArtifactId) {
-                  e.preventDefault();
-                  setNotesError("Bitte wählen Sie eine bestehende Idee aus.");
-                  return;
-                }
-                setNotesError("");
-              }}
-            >
-              <p className="text-sm font-medium text-[var(--foreground)]">Idee auswählen</p>
-              <div className="space-y-3">
-                {appDevelopmentConfig.existingIdeas.length > 0 && (
-                  <label className="flex cursor-pointer items-center gap-2">
-                    <input
-                      type="radio"
-                      name="idea_mode"
-                      value="existing"
-                      checked={ideaMode === "existing"}
-                      onChange={() => {
-                        setIdeaMode("existing");
-                        setNotesError("");
-                      }}
-                      className="h-4 w-4 border-[var(--card-border)] text-teal-600"
-                    />
-                    <span className="text-sm text-[var(--foreground)]">Bestehende Idee auswählen</span>
-                  </label>
-                )}
-                {ideaMode === "existing" && appDevelopmentConfig.existingIdeas.length > 0 && (
-                  <div className="ml-6 space-y-2">
-                    {appDevelopmentConfig.existingIdeas.map((idea) => (
-                      <label key={idea.id} className="flex cursor-pointer items-center gap-2">
-                        <input
-                          type="radio"
-                          name="idea_artifact_id"
-                          value={idea.id}
-                          checked={selectedArtifactId === idea.id}
-                          onChange={() => {
-                            setSelectedArtifactId(idea.id);
-                            setNotesError("");
-                          }}
-                          className="h-3.5 w-3.5 border-[var(--card-border)] text-teal-600"
-                        />
-                        <span className="text-sm text-[var(--foreground)]">{idea.title}</span>
-                      </label>
-                    ))}
-                  </div>
-                )}
-                {ideaMode === "existing" && appDevelopmentConfig.existingIdeas.length === 0 && (
-                  <p className="ml-6 text-xs text-[var(--muted)]">Noch keine bestehenden Ideen vorhanden.</p>
-                )}
-                <label className="flex cursor-pointer items-center gap-2">
-                  <input
-                    type="radio"
-                    name="idea_mode"
-                    value="new"
-                    checked={ideaMode === "new"}
-                    onChange={() => {
-                      setIdeaMode("new");
-                      setNotesError("");
-                    }}
-                    className="h-4 w-4 border-[var(--card-border)] text-teal-600"
-                  />
-                  <span className="text-sm text-[var(--foreground)]">Eigene neue Idee</span>
-                  <span className="text-xs text-amber-600 dark:text-amber-400">(Notizen Pflicht)</span>
-                </label>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-[var(--foreground)]">
-                  {ideaMode === "new" ? "Ideen-Beschreibung (Pflicht)" : "Zusätzliche Notizen (optional)"}
-                </label>
-                <textarea
-                  name="notes"
-                  value={userNotes}
-                  onChange={(e) => {
-                    setUserNotes(e.target.value);
-                    setNotesError("");
-                  }}
-                  onBlur={() => formRef.current?.requestSubmit()}
-                  rows={ideaMode === "new" ? 4 : 2}
-                  placeholder={ideaMode === "new" ? "Beschreiben Sie Ihre App-Idee vollständig…" : runNotesPlaceholder}
-                  className={`mt-1 w-full rounded-xl border bg-[var(--background)] p-3 text-sm text-[var(--foreground)] placeholder:text-[var(--muted)] resize-none ${
-                    notesError ? "border-rose-500" : "border-[var(--card-border)]"
+      {showStepList && (
+        <div className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-4">
+          <p className="text-xs font-semibold text-[var(--muted)] mb-3">Alle Schritte</p>
+          <div className="flex flex-wrap gap-2">
+            {stepsConfig.map((cfg, idx) => {
+              const status = getStepStatus(idx);
+              const isCurrent = idx === stepIndex;
+              return (
+                <button
+                  key={cfg.stepKey}
+                  type="button"
+                  onClick={() => navigateToStep(idx)}
+                  className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
+                    isCurrent
+                      ? "bg-teal-600 text-white ring-2 ring-teal-400"
+                      : status === "verified"
+                        ? "bg-teal-100 text-teal-800 dark:bg-teal-900/50 dark:text-teal-200"
+                        : status === "saved"
+                          ? "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                          : status === "invalid"
+                            ? "bg-rose-100 text-rose-700 dark:bg-rose-900/50 dark:text-rose-300"
+                            : "bg-slate-100/70 text-slate-500 dark:bg-slate-800/50 dark:text-slate-400"
                   }`}
-                />
-                {notesError && <p className="mt-1 text-xs text-rose-600 dark:text-rose-400">{notesError}</p>}
-              </div>
-              <input type="hidden" name="run_id" value={run.id} />
-              <button
-                type="submit"
-                className="rounded-xl bg-teal-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-teal-700"
-              >
-                Speichern
-              </button>
-            </form>
-          ) : (
-            <form ref={formRef} action={saveRunNotes} className="space-y-2">
-              <label className="block text-sm font-medium text-[var(--foreground)]">
-                {runNotesLabel}
-              </label>
-              <textarea
-                name="notes"
-                value={userNotes}
-                onChange={(e) => setUserNotes(e.target.value)}
-                onBlur={() => formRef.current?.requestSubmit()}
-                rows={2}
-                placeholder={runNotesPlaceholder}
-                className="w-full rounded-xl border border-[var(--card-border)] bg-[var(--background)] p-3 text-sm text-[var(--foreground)] placeholder:text-[var(--muted)] resize-none"
-              />
-              <input type="hidden" name="run_id" value={run.id} />
-            </form>
-          )}
+                >
+                  {idx + 1}. {cfg.label}
+                  {status === "verified" && " ✓"}
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
 
-      {/* Completion bar */}
-      <div className="flex items-center gap-2">
-        <div className="flex-1 h-2.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
-          <div
-            className="h-full rounded-full bg-teal-600 transition-all duration-300"
-            style={{
-              width: `${stepsConfig.length ? (completedCount / stepsConfig.length) * 100 : 0}%`,
-            }}
-          />
-        </div>
-        <span className="text-sm font-medium text-[var(--muted)] shrink-0 min-w-[4rem]">
-          {completedCount}/{stepsConfig.length} abgeschlossen
-        </span>
-      </div>
-
       {/* Step card */}
-      <div className="rounded-2xl border border-[var(--card-border)] bg-[var(--card)] p-6 shadow-lg shadow-zinc-200/50 dark:shadow-zinc-950/50">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-[var(--foreground)]">
-            {stepConfig.label}
-          </h3>
+      <details
+        className="group"
+        open={!savedStep}
+      >
+        <summary className="cursor-pointer list-none rounded-xl border border-[var(--card-border)] bg-[var(--card)] px-5 py-4 text-sm font-semibold text-[var(--foreground)] transition hover:bg-slate-50 dark:hover:bg-slate-900/30 [&::-webkit-details-marker]:hidden">
+          <span className="flex items-center justify-between gap-3">
+            <span className="inline-flex items-center gap-2">
+              <span className="text-[var(--muted)] transition group-open:rotate-90">▸</span>
+              KI-Prozess
+            </span>
+            {savedStep?.schemaValidationPassed ? (
+              <span className="text-xs font-medium text-teal-600 dark:text-teal-400">✓ Gespeichert</span>
+            ) : null}
+          </span>
+        </summary>
+        <div className="px-1 py-4">
+        <div className="mb-2 flex items-center justify-end">
           <div className="flex items-center gap-2">
-            {savedStep && (
+            {savedStep && !savedStep.schemaValidationPassed && (
               <span
                 className={`text-xs font-medium ${
-                  savedStep.schemaValidationPassed
-                    ? "text-teal-600 dark:text-teal-400"
-                    : "text-rose-600 dark:text-rose-400"
+                  "text-rose-600 dark:text-rose-400"
                 }`}
               >
-                {savedStep.schemaValidationPassed ? "✓ Saved" : "Invalid"}
+                Ungültig
               </span>
             )}
             {isVerified && (
               <span className="text-xs font-medium text-teal-600 dark:text-teal-400">
-                ✓ Verified
+                ✓ Verifiziert
               </span>
             )}
           </div>
         </div>
+
+        {/* Run notes – injected into prompt in real-time (inside KI-Prozess) */}
+        {saveRunNotes && (
+          <div className="mb-4">
+            <p className="mb-2 text-sm font-medium text-[var(--foreground)]">{runNotesLabel}</p>
+              {appDevelopmentConfig ? (
+                <form
+                  ref={formRef}
+                  action={saveRunNotes}
+                  className="space-y-4"
+                  onSubmit={(e) => {
+                    if (ideaMode === "new" && !userNotes.trim()) {
+                      e.preventDefault();
+                      setNotesError("Bei eigener neuer Idee müssen die Notizen ausgefüllt werden.");
+                      return;
+                    }
+                    if (ideaMode === "existing" && !selectedArtifactId) {
+                      e.preventDefault();
+                      setNotesError("Bitte wählen Sie eine bestehende Idee aus.");
+                      return;
+                    }
+                    setNotesError("");
+                  }}
+                >
+                  <p className="text-sm font-medium text-[var(--foreground)]">Idee auswählen</p>
+                  <div className="space-y-3">
+                    {appDevelopmentConfig.existingIdeas.length > 0 && (
+                      <label className="flex cursor-pointer items-center gap-2">
+                        <input
+                          type="radio"
+                          name="idea_mode"
+                          value="existing"
+                          checked={ideaMode === "existing"}
+                          onChange={() => {
+                            setIdeaMode("existing");
+                            setNotesError("");
+                          }}
+                          className="h-4 w-4 border-[var(--card-border)] text-teal-600"
+                        />
+                        <span className="text-sm text-[var(--foreground)]">Bestehende Idee auswählen</span>
+                      </label>
+                    )}
+                    {ideaMode === "existing" && appDevelopmentConfig.existingIdeas.length > 0 && (
+                      <div className="ml-6 space-y-2">
+                        {appDevelopmentConfig.existingIdeas.map((idea) => (
+                          <label key={idea.id} className="flex cursor-pointer items-center gap-2">
+                            <input
+                              type="radio"
+                              name="idea_artifact_id"
+                              value={idea.id}
+                              checked={selectedArtifactId === idea.id}
+                              onChange={() => {
+                                setSelectedArtifactId(idea.id);
+                                setNotesError("");
+                              }}
+                              className="h-3.5 w-3.5 border-[var(--card-border)] text-teal-600"
+                            />
+                            <span className="text-sm text-[var(--foreground)]">{idea.title}</span>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                    {ideaMode === "existing" && appDevelopmentConfig.existingIdeas.length === 0 && (
+                      <p className="ml-6 text-xs text-[var(--muted)]">Noch keine bestehenden Ideen vorhanden.</p>
+                    )}
+                    <label className="flex cursor-pointer items-center gap-2">
+                      <input
+                        type="radio"
+                        name="idea_mode"
+                        value="new"
+                        checked={ideaMode === "new"}
+                        onChange={() => {
+                          setIdeaMode("new");
+                          setNotesError("");
+                        }}
+                        className="h-4 w-4 border-[var(--card-border)] text-teal-600"
+                      />
+                      <span className="text-sm text-[var(--foreground)]">Eigene neue Idee</span>
+                      <span className="text-xs text-amber-600 dark:text-amber-400">(Notizen Pflicht)</span>
+                    </label>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-[var(--foreground)]">
+                      {ideaMode === "new" ? "Ideen-Beschreibung (Pflicht)" : "Zusätzliche Notizen (optional)"}
+                    </label>
+                    <textarea
+                      name="notes"
+                      value={userNotes}
+                      onChange={(e) => {
+                        setUserNotes(e.target.value);
+                        setNotesError("");
+                      }}
+                      onBlur={() => formRef.current?.requestSubmit()}
+                      rows={ideaMode === "new" ? 4 : 2}
+                      placeholder={ideaMode === "new" ? "Beschreiben Sie Ihre App-Idee vollständig…" : runNotesPlaceholder}
+                      className={`mt-1 w-full rounded-xl border bg-[var(--background)] p-3 text-sm text-[var(--foreground)] placeholder:text-[var(--muted)] resize-none ${
+                        notesError ? "border-rose-500" : "border-[var(--card-border)]"
+                      }`}
+                    />
+                    {notesError && <p className="mt-1 text-xs text-rose-600 dark:text-rose-400">{notesError}</p>}
+                  </div>
+                  <input type="hidden" name="run_id" value={run.id} />
+                  <button
+                    type="submit"
+                    className="rounded-xl bg-teal-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-teal-700"
+                  >
+                    Speichern
+                  </button>
+                </form>
+              ) : (
+                <form ref={formRef} action={saveRunNotes} className="space-y-2">
+                  <textarea
+                    name="notes"
+                    value={userNotes}
+                    onChange={(e) => setUserNotes(e.target.value)}
+                    onBlur={() => formRef.current?.requestSubmit()}
+                    rows={2}
+                    placeholder={runNotesPlaceholder}
+                    className="w-full rounded-xl border border-[var(--card-border)] bg-[var(--background)] p-3 text-sm text-[var(--foreground)] placeholder:text-[var(--muted)] resize-none"
+                  />
+                  <input type="hidden" name="run_id" value={run.id} />
+                </form>
+              )}
+          </div>
+        )}
 
         {isBusinessFormStep ? (
           <div className="mb-6">
@@ -417,15 +421,8 @@ export function RunWizard({
           </div>
         ) : (
           <>
-        {/* Wizard: Prompt + Response – collapsible, collapsed when verified */}
-        <details className="group mb-6 rounded-xl border border-[var(--card-border)]" open={!isVerified}>
-          <summary className="cursor-pointer list-none rounded-xl px-4 py-3 text-sm font-medium text-[var(--foreground)] transition hover:bg-slate-50 dark:hover:bg-slate-900/30 [&::-webkit-details-marker]:hidden">
-            <span className="inline-flex items-center gap-2">
-              <span className="text-[var(--muted)] transition group-open:rotate-90">▸</span>
-              Prompt & Response
-            </span>
-          </summary>
-          <div className="border-t border-[var(--card-border)] p-4 pt-3 space-y-4">
+        {/* Wizard: Prompt + Response */}
+        <div className="mb-4 space-y-3">
         {/* Prompt (read-only) */}
         <div>
           <div className="flex items-center justify-between mb-2">
@@ -433,7 +430,7 @@ export function RunWizard({
               Prompt
             </p>
             <div className="flex items-center gap-2">
-              <CopyButton text={prompt} label="Copy" />
+              <CopyButton text={prompt} label="Kopieren" copiedLabel="Kopiert!" />
               <RunLlmButton
                 prompt={prompt}
                 onResponse={(content) => {
@@ -456,11 +453,11 @@ export function RunWizard({
         <div>
           <div className="flex items-center justify-between mb-2">
             <p className="text-xs font-semibold text-[var(--muted)]">
-              Response
+              Antwort
             </p>
             {isVerified && (
               <span className="text-xs font-medium text-teal-600 dark:text-teal-400">
-                ✓ Verified
+                ✓ Verifiziert
               </span>
             )}
           </div>
@@ -494,7 +491,7 @@ export function RunWizard({
                 <div className="space-y-2">
                   {stepConfig.stepKey === "kpi_estimation" && (
                     <div className="rounded-xl border border-amber-200 bg-amber-50 p-2 text-xs text-amber-800 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
-                      Response must be the LLM&apos;s JSON output (with kpi_estimates), not the prompt. Copy prompt → paste into ChatGPT/Claude → copy JSON response → paste here.
+                      Die Antwort muss der JSON-Output des LLMs sein (mit kpi_estimates), nicht der Prompt. Prompt kopieren → in ChatGPT/Claude einfügen → JSON-Antwort kopieren → hier einfügen.
                     </div>
                   )}
                   <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700 dark:border-rose-800 dark:bg-rose-950/30 dark:text-rose-300">
@@ -536,38 +533,22 @@ export function RunWizard({
                 rows={6}
                 defaultValue={existingResponse}
                 className="w-full rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-3 text-xs text-[var(--foreground)] placeholder:text-[var(--muted)] resize-none"
-                placeholder='1) Copy prompt above → 2) Paste into ChatGPT/Claude → 3) Copy the JSON output (with kpi_estimates) → 4) Paste here'
+                placeholder='1) Prompt oben kopieren → 2) In ChatGPT/Claude einfügen → 3) JSON-Ausgabe kopieren (mit kpi_estimates) → 4) Hier einfügen'
               />
               <button
                 type="submit"
                 className="rounded-xl bg-teal-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-teal-700"
               >
-                Save Step
+                Schritt speichern
               </button>
             </form>
           )}
         </div>
-          </div>
-        </details>
+        </div>
           </>
         )}
 
         {/* Verify form */}
-        {canVerify && (
-          <form action={verifyStep} className="mb-6">
-            <input type="hidden" name="step_id" value={savedStep.id} />
-            <input type="hidden" name="run_id" value={run.id} />
-            <input type="hidden" name="notes" value="" />
-            <input type="hidden" name="step" value={String(stepIndex)} />
-            <button
-              type="submit"
-              className="rounded-xl border border-teal-600 px-4 py-2 text-xs font-medium text-teal-700 transition hover:bg-teal-50 dark:border-teal-500 dark:text-teal-300 dark:hover:bg-teal-950/50"
-            >
-              Verify
-            </button>
-          </form>
-        )}
-
         {/* Navigation buttons */}
         <div className="flex items-center justify-between pt-4 border-t border-[var(--card-border)]">
           <div>
@@ -577,7 +558,7 @@ export function RunWizard({
                 onClick={() => navigateToStep(stepIndex - 1)}
                 className="rounded-xl border border-[var(--card-border)] px-4 py-2 text-xs font-medium text-[var(--foreground)] transition hover:bg-teal-50 hover:border-teal-200 dark:hover:bg-teal-950/30 dark:hover:border-teal-800"
               >
-                ← Prev
+                ← Zurück
               </button>
             ) : (
               <span />
@@ -590,19 +571,20 @@ export function RunWizard({
                 onClick={() => navigateToStep(stepIndex + 1)}
                 className="rounded-xl bg-teal-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-teal-700"
               >
-                Next →
+                Weiter →
               </button>
             ) : isVerified ? (
               <a
                 href="/dashboard"
                 className="inline-block rounded-xl bg-teal-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-teal-700"
               >
-                View Dashboard →
+                Zum Dashboard →
               </a>
             ) : null}
           </div>
         </div>
-      </div>
+        </div>
+      </details>
     </div>
   );
 }

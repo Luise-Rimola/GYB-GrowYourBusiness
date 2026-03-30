@@ -261,7 +261,7 @@ export function ScenarioEvaluationFlow({
       manualResponse.includes("=== USER ===") ||
       manualResponse.includes("## Unternehmensdaten") ||
       manualResponse.includes("## Profil") ||
-      (manualResponse.includes("## Artefakte") && manualResponse.includes("Relevante KPIs"));
+      (manualResponse.includes("## Dokumente") && manualResponse.includes("Relevante KPIs"));
     if (looksLikePrompt) {
       setMessage({
         type: "error",

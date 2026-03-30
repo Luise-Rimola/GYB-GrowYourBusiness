@@ -39,6 +39,35 @@ export function ChecklistClient({ companyId, stages, labels }: Props) {
   const [newStageName, setNewStageName] = useState("");
   const [newStepByStage, setNewStepByStage] = useState<Record<string, string>>({});
 
+  const DE_LABELS: Record<string, string> = {
+    "Brand & Identity": "Marke & Identität",
+    "Digital Presence": "Digitale Präsenz",
+    "Product & Menu": "Produkt & Angebot",
+    Operations: "Betrieb",
+    "Legal & Admin": "Recht & Verwaltung",
+    "Launch Prep": "Launch-Vorbereitung",
+    Logo: "Logo",
+    "Brand colors": "Markenfarben",
+    "Brand guidelines": "Markenrichtlinien",
+    Website: "Website",
+    "Social media accounts": "Social-Media-Konten",
+    "Google Business Profile": "Google-Unternehmensprofil",
+    "Menu / product catalogue": "Menü / Produktkatalog",
+    Pricing: "Preise",
+    Packaging: "Verpackung",
+    "Supplier recruiting": "Lieferanten gewinnen",
+    "Inventory system": "Lagerverwaltung",
+    "POS / ordering system": "Kasse / Bestellsystem",
+    "Business registration": "Gewerbeanmeldung / Registrierung",
+    "Tax setup": "Steuern einrichten",
+    Insurance: "Versicherung",
+    "Soft launch / trial": "Softlaunch / Testlauf",
+    "Marketing materials": "Marketingmaterial",
+    "Opening day plan": "Plan für den Launch-Tag",
+  };
+
+  const toDe = (value: string) => DE_LABELS[value] ?? value;
+
   async function toggleStep(stepId: string, done: boolean) {
     await fetch("/api/checklist/step", {
       method: "POST",
@@ -96,9 +125,11 @@ export function ChecklistClient({ companyId, stages, labels }: Props) {
           <button
             type="button"
             onClick={addStage}
+            aria-label={labels.addCategoryButton}
+            title={labels.addCategoryButton}
             className="rounded-lg bg-teal-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-teal-700"
           >
-            {labels.addCategoryButton}
+            +
           </button>
         </div>
       </div>
@@ -116,10 +147,10 @@ export function ChecklistClient({ companyId, stages, labels }: Props) {
           return (
             <div
               key={stage.id}
-              className="rounded-2xl border border-[var(--card-border)] bg-[var(--card)] p-5"
+              className="rounded-2xl border border-teal-200 dark:border-teal-800 bg-[var(--card)] p-5"
             >
               <div className="mb-4 flex items-center justify-between">
-                <h3 className="font-semibold text-[var(--foreground)]">{stage.name}</h3>
+                <h3 className="font-semibold text-[var(--foreground)]">{toDe(stage.name)}</h3>
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-[var(--muted)]">
                     {doneCount}/{stage.steps.length}
@@ -156,10 +187,7 @@ export function ChecklistClient({ companyId, stages, labels }: Props) {
                         step.done ? "text-[var(--muted)] line-through" : "text-[var(--foreground)]"
                       }`}
                     >
-                      {step.label}
-                    </span>
-                    <span className="text-xs text-[var(--muted)]">
-                      {step.fileUri ? `📎 ${labels.fileAttached}` : labels.noFile}
+                      {toDe(step.label)}
                     </span>
                   </li>
                 ))}
@@ -174,9 +202,11 @@ export function ChecklistClient({ companyId, stages, labels }: Props) {
                 <button
                   type="button"
                   onClick={() => addStep(stage.id)}
+                  aria-label={labels.addStepButton}
+                  title={labels.addStepButton}
                   className="rounded-lg border border-teal-300 px-3 py-2 text-sm font-semibold text-teal-700 transition hover:bg-teal-50 dark:border-teal-700 dark:text-teal-300 dark:hover:bg-teal-950/30"
                 >
-                  {labels.addStepButton}
+                  +
                 </button>
               </div>
             </div>

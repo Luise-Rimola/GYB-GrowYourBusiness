@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { ReadableDataView } from "@/components/ReadableDataView";
 import { ConfirmDeleteForm } from "@/components/ConfirmDeleteForm";
 
@@ -34,8 +35,30 @@ export function AuditTrailTabs({
   deleteStep,
   updateStep,
 }: AuditTrailTabsProps) {
+  const searchParams = useSearchParams();
   const [activeIndex, setActiveIndex] = useState(0);
   const active = steps[activeIndex];
+
+  useEffect(() => {
+    const rawStep = searchParams.get("step");
+    const currentStep = Number(rawStep);
+    if (!Number.isFinite(currentStep) || currentStep < 0) return;
+
+    // URL uses 0-based step index, displayed tab numbers are 1-based.
+    const targetStepNum = currentStep + 1;
+    const exactIdx = steps.findIndex((s) => s.stepNum === targetStepNum);
+    if (exactIdx >= 0) {
+      setActiveIndex(exactIdx);
+      return;
+    }
+
+    // If the exact step is not present in audit tabs, pick nearest previous available.
+    let fallbackIdx = -1;
+    for (let i = 0; i < steps.length; i++) {
+      if (steps[i].stepNum <= targetStepNum) fallbackIdx = i;
+    }
+    if (fallbackIdx >= 0) setActiveIndex(fallbackIdx);
+  }, [searchParams, steps]);
 
   if (steps.length === 0) return null;
 
@@ -73,30 +96,31 @@ export function AuditTrailTabs({
                     : "text-rose-600 dark:text-rose-400"
                 }`}
               >
-                {active.schemaValidationPassed ? "valid" : "invalid"}
+                {active.schemaValidationPassed ? "gültig" : "ungültig"}
               </span>
               {active.verifiedByUser && (
                 <span className="text-xs font-medium text-teal-600 dark:text-teal-400">
-                  ✓ Verified
+                  ✓ Verifiziert
                 </span>
               )}
               {!active.verifiedByUser && active.schemaValidationPassed && (
                 <form action={verifyStep} className="inline">
                   <input type="hidden" name="step_id" value={active.id} />
                   <input type="hidden" name="run_id" value={runId} />
+                  <input type="hidden" name="step" value={String(Math.max(0, active.stepNum - 1))} />
                   <input type="hidden" name="notes" value="" />
                   <button
                     type="submit"
                     className="rounded-lg border border-teal-600 px-2.5 py-1 text-xs font-medium text-teal-700 transition hover:bg-teal-50 dark:border-teal-500 dark:text-teal-300 dark:hover:bg-teal-950/50"
                   >
-                    Verify
+                    Verifizieren
                   </button>
                 </form>
               )}
               {!active.schemaValidationPassed && (
                 <ConfirmDeleteForm
                   action={deleteStep}
-                  confirmMessage="Delete this step? The response will be removed and you can re-enter it."
+                  confirmMessage="Diesen Schritt löschen? Die Antwort wird entfernt und kann danach neu eingegeben werden."
                   className="inline"
                 >
                   <input type="hidden" name="step_id" value={active.id} />
@@ -105,7 +129,7 @@ export function AuditTrailTabs({
                     type="submit"
                     className="rounded-lg border border-rose-300 px-2.5 py-1 text-xs font-medium text-rose-600 transition hover:bg-rose-50 dark:border-rose-700 dark:hover:bg-rose-950/30"
                   >
-                    Delete
+                    Loeschen
                   </button>
                 </ConfirmDeleteForm>
               )}
@@ -113,7 +137,7 @@ export function AuditTrailTabs({
           </div>
           {!active.schemaValidationPassed && active.validationErrorsJson ? (
             <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700 dark:border-rose-800 dark:bg-rose-950/30 dark:text-rose-300">
-              Validation errors:{" "}
+              Validierungsfehler:{" "}
               {Array.isArray(active.validationErrorsJson)
                 ? (active.validationErrorsJson as string[]).join("; ")
                 : String(JSON.stringify(active.validationErrorsJson))}
@@ -140,7 +164,7 @@ export function AuditTrailTabs({
                   rows={6}
                   defaultValue={active.userPastedResponse}
                   className="w-full rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-3 text-xs placeholder:text-[var(--muted)]"
-                  placeholder="Fix JSON and re-save..."
+                  placeholder="JSON korrigieren und erneut speichern..."
                 />
               </form>
               <div className="flex gap-2">
@@ -149,11 +173,11 @@ export function AuditTrailTabs({
                   form={`update-step-${active.id}`}
                   className="rounded-xl bg-teal-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-teal-700"
                 >
-                  Fix & Re-save
+                  Korrigieren & erneut speichern
                 </button>
                 <ConfirmDeleteForm
                   action={deleteStep}
-                  confirmMessage="Delete this step? The response will be removed and you can re-enter it."
+                  confirmMessage="Diesen Schritt löschen? Die Antwort wird entfernt und kann danach neu eingegeben werden."
                   className="inline"
                 >
                   <input type="hidden" name="step_id" value={active.id} />
@@ -162,7 +186,7 @@ export function AuditTrailTabs({
                     type="submit"
                     className="rounded-xl border border-rose-300 px-3 py-1.5 text-xs font-medium text-rose-600 transition hover:bg-rose-50 dark:border-rose-700 dark:hover:bg-rose-950/30"
                   >
-                    Delete
+                    Loeschen
                   </button>
                 </ConfirmDeleteForm>
               </div>
@@ -170,7 +194,7 @@ export function AuditTrailTabs({
           )}
           {active.verificationNotes && (
             <p className="mb-4 text-xs text-[var(--muted)]">
-              Notes: {active.verificationNotes}
+              Notizen: {active.verificationNotes}
             </p>
           )}
           <ReadableDataView
@@ -179,6 +203,20 @@ export function AuditTrailTabs({
             }
             collapsible={false}
           />
+          {!active.verifiedByUser && active.schemaValidationPassed && (
+            <form action={verifyStep} className="mt-4 inline">
+              <input type="hidden" name="step_id" value={active.id} />
+              <input type="hidden" name="run_id" value={runId} />
+              <input type="hidden" name="step" value={String(Math.max(0, active.stepNum - 1))} />
+              <input type="hidden" name="notes" value="" />
+              <button
+                type="submit"
+                className="rounded-xl border border-teal-600 px-3 py-1.5 text-xs font-medium text-teal-700 transition hover:bg-teal-50 dark:border-teal-500 dark:text-teal-300 dark:hover:bg-teal-950/50"
+              >
+                Verifizieren
+              </button>
+            </form>
+          )}
         </div>
       )}
     </div>

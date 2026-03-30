@@ -1,4 +1,4 @@
-import { promptTemplates } from "@/prompts/registry";
+import { getPromptTemplatesForLocale } from "@/prompts";
 
 const STRATEGY_INDICATOR_TARGETS: Record<string, string[]> = {
   "WF_SWOT:swot_analysis": ["strength_score", "weakness_score", "opportunity_score", "threat_score"],
@@ -16,7 +16,7 @@ const STRATEGY_INDICATOR_TARGETS: Record<string, string[]> = {
   "WF_NEXT_BEST_ACTIONS:decision_engine": ["evidence_confidence_score", "risk_exposure_score", "gtm_readiness_score"],
 };
 
-const STRATEGY_INDICATOR_INSTRUCTION = `
+const STRATEGY_INDICATOR_INSTRUCTION_EN = `
 STRATEGY INDICATORS (required when possible):
 - Add a top-level field "strategy_indicators".
 - Return ONLY indicators that can be justified by this step output.
@@ -24,6 +24,20 @@ STRATEGY INDICATORS (required when possible):
 - Value scale: mostly 0-100; for evidence_confidence_score use 0-1.
 - Include confidence (0-1), short rationale, and optional evidence_grade (A-E).
 Expected shape:
+{
+  "strategy_indicators": {
+    "<indicator_key>": { "value": 0, "confidence": 0.0, "rationale": "...", "evidence_grade": "A" }
+  }
+}`;
+
+const STRATEGY_INDICATOR_INSTRUCTION_DE = `
+STRATEGIE-INDIKATOREN (wenn möglich verpflichtend):
+- Füge ein Top-Level-Feld "strategy_indicators" hinzu.
+- Gib NUR Indikatoren zurück, die durch das Ergebnis dieses Schritts begründbar sind.
+- Nutze Indikator-Keys aus KONTEXT_JSON.strategy_indicators (z. B. strength_score, weakness_score, opportunity_score, threat_score, competitive_intensity_index, market_attractiveness_score, strategic_fit_score, differentiation_score, pricing_power_index, gtm_readiness_score, execution_feasibility_score, risk_exposure_score, evidence_confidence_score).
+- Werteskala: meist 0-100; für evidence_confidence_score 0-1.
+- Gib confidence (0-1), kurze Begründung und optional evidence_grade (A-E) an.
+Erwartete Struktur:
 {
   "strategy_indicators": {
     "<indicator_key>": { "value": 0, "confidence": 0.0, "rationale": "...", "evidence_grade": "A" }
@@ -43,8 +57,10 @@ function formatPersonnelCostsForPrompt(contextJson: unknown): string {
 export function renderPrompt(
   workflowKey: string,
   stepKey: string,
-  contextJson: unknown
+  contextJson: unknown,
+  locale: "de" | "en" = "de"
 ) {
+  const promptTemplates = getPromptTemplatesForLocale(locale);
   const template = promptTemplates.find(
     (item) => item.workflowKey === workflowKey && item.stepKey === stepKey
   );
@@ -76,9 +92,25 @@ export function renderPrompt(
   const strategyTargetKey = `${workflowKey}:${stepKey}`;
   const allowedIndicators = STRATEGY_INDICATOR_TARGETS[strategyTargetKey];
   if (allowedIndicators) {
-    rendered += `\n\n${STRATEGY_INDICATOR_INSTRUCTION}\nAllowed indicator keys for this step: ${allowedIndicators.join(", ")}.`;
+    const strategyInstruction =
+      locale === "de" ? STRATEGY_INDICATOR_INSTRUCTION_DE : STRATEGY_INDICATOR_INSTRUCTION_EN;
+    const allowedLabel =
+      locale === "de"
+        ? "Erlaubte Indikator-Keys für diesen Schritt"
+        : "Allowed indicator keys for this step";
+    rendered += `\n\n${strategyInstruction}\n${allowedLabel}: ${allowedIndicators.join(", ")}.`;
   }
-  rendered += "\n\n--- USER NOTES (optional, for steering) ---\n{{USER_NOTES}}";
+  rendered +=
+    locale === "de"
+      ? "\n\n--- NUTZERNOTIZEN (optional, zur Steuerung) ---\n{{USER_NOTES}}"
+      : "\n\n--- USER NOTES (optional, for steering) ---\n{{USER_NOTES}}";
+  if (locale === "de") {
+    rendered +=
+      "\n\nSPRACHE: Gib die Antwort ausschließlich auf Deutsch aus. Behalte das geforderte JSON-Format exakt bei und liefere nur valides JSON ohne zusätzlichen Fließtext.";
+  } else {
+    rendered +=
+      "\n\nLANGUAGE: Respond only in English. Keep the required JSON format exactly and return valid JSON only, without additional prose.";
+  }
   return {
     template,
     rendered,

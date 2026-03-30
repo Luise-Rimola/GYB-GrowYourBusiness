@@ -253,7 +253,7 @@ export async function buildScenarioEvaluationContext(companyId: string): Promise
       title: a.title,
       content: truncateJson(a.contentJson, 400),
     }));
-    parts.push("## Artefakte\n" + JSON.stringify(artifactContent));
+    parts.push("## Dokumente\n" + JSON.stringify(artifactContent));
   }
 
   if (kpis.length > 0) {

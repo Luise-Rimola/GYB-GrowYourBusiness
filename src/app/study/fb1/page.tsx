@@ -58,7 +58,7 @@ async function saveFb1(formData: FormData) {
   if (assistantEmbed) {
     redirect("/profile?embed=1&afterFb1=1");
   }
-  redirect("/study?saved=fb1");
+  redirect("/home?saved=fb1");
 }
 
 export default async function Fragebogen1Page({

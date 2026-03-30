@@ -28,7 +28,7 @@ const landingCopy = {
     ],
     finalTitle: "Bereit für bessere Entscheidungen?",
     finalSubtitle:
-      "Melde dich an und starte direkt im internen Home-Bereich mit Workflows, Entscheidungen und Artefakten.",
+      "Melde dich an und starte direkt im internen Home-Bereich mit Workflows, Entscheidungen und Dokumenten.",
     finalPrimary: "Jetzt registrieren",
     finalSecondary: "Zum Login",
     langSwitch: "Sprache",
@@ -43,7 +43,7 @@ const landingCopy = {
       },
       {
         title: "Entscheidung & Umsetzung",
-        text: "Empfehlungen, Artefakte und Audit-Trail machen jede Entscheidung nachvollziehbar.",
+        text: "Empfehlungen, Dokumente und Audit-Trail machen jede Entscheidung nachvollziehbar.",
       },
     ],
     features: [
@@ -56,7 +56,7 @@ const landingCopy = {
         text: "Datenpunkte, Herleitung und Unsicherheiten bleiben transparent und revisierbar.",
       },
       {
-        title: "Artefakte mit Substanz",
+        title: "Dokumente mit Substanz",
         text: "Business-relevante Ergebnisse statt nur Chat-Text: strukturierte Outputs für Team und Umsetzung.",
       },
       {

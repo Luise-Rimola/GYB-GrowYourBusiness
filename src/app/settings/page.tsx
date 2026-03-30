@@ -31,6 +31,21 @@ export default async function SettingsPage() {
         </p>
       </header>
 
+      <Section
+        title={t.settings.llmApi}
+        description={t.settings.llmApiDesc}
+      >
+        <SettingsForm
+          companyId={company.id}
+          initialValues={{
+            llmApiUrl: settings?.llmApiUrl ?? "",
+            llmApiKey: settings?.llmApiKey ? "••••••••" : "",
+            llmModel: settings?.llmModel ?? "gpt-4o-mini",
+          }}
+          hasStoredKey={!!settings?.llmApiKey}
+        />
+      </Section>
+
       {session && (
         <Section title={t.settings.accountSection} description={t.settings.accountLogoutHint}>
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -73,21 +88,6 @@ export default async function SettingsPage() {
             Profil bearbeiten →
           </Link>
         </div>
-      </Section>
-
-      <Section
-        title={t.settings.llmApi}
-        description={t.settings.llmApiDesc}
-      >
-        <SettingsForm
-          companyId={company.id}
-          initialValues={{
-            llmApiUrl: settings?.llmApiUrl ?? "",
-            llmApiKey: settings?.llmApiKey ? "••••••••" : "",
-            llmModel: settings?.llmModel ?? "gpt-4o-mini",
-          }}
-          hasStoredKey={!!settings?.llmApiKey}
-        />
       </Section>
     </div>
   );

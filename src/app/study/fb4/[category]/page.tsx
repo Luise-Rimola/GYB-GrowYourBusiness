@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import { createQuestionnaireItems } from "@/lib/questionnaire-items";
 import {
@@ -73,7 +72,7 @@ async function saveFb4Category(category: string, formData: FormData) {
   if (assistantEmbed) {
     redirect(urlAfterFb4Assistant(category));
   }
-  redirect(`/study?saved=fb4&category=${encodeURIComponent(category)}`);
+  redirect(`/home?saved=fb4&category=${encodeURIComponent(category)}`);
 }
 
 export default async function Fragebogen4CategoryPage({
@@ -105,10 +104,7 @@ export default async function Fragebogen4CategoryPage({
   return (
     <div className="space-y-8">
       <header>
-        <Link href="/study" className="text-sm font-medium text-teal-600 hover:underline dark:text-teal-400">
-          ← {t.study.studyStart}
-        </Link>
-        <h1 className="mt-4 text-3xl font-bold tracking-tight text-[var(--foreground)]">{t.study.fb4Title}</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-[var(--foreground)]">{t.study.fb4Title}</h1>
         <p className="mt-2 text-[var(--muted)]">{categoryLabel}</p>
       </header>
       <div className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-4 text-sm">

@@ -190,7 +190,8 @@ async function saveRunStep(formData: FormData) {
   const needsMergedContext = ["kpi_gap_scan", "industry_research", "financial_planning", "financial_monthly_h1", "financial_monthly_h2", "app_requirements", "app_tech_spec", "app_mvp_guide", "app_page_specs", "app_db_schema"].includes(stepKey);
   let contextPack = needsMergedContext ? mergeRunStepsIntoContext(freshBase, runStepsLatest, stepKey) : freshBase;
   contextPack = filterContextForStep(contextPack, run.workflowKey, stepKey);
-  const prompt = renderPrompt(run.workflowKey, stepKey, contextPack);
+  const locale = await getServerLocale();
+  const prompt = renderPrompt(run.workflowKey, stepKey, contextPack, locale);
   const userNotesForPrompt = notes.trim() || (run.userNotes ?? "").trim() || "(keine)";
   const promptRendered = prompt.rendered.replace("{{USER_NOTES}}", userNotesForPrompt);
 
@@ -345,11 +346,24 @@ export default async function RunDetailPage({
         title={getWorkflowName(run.workflowKey)}
         description={
           <>
-            <span className="block">{getWorkflowSubtitle(run.workflowKey, run.id, run.status)}</span>
+            <span className="block text-[11px] font-medium text-[var(--muted)]">{getWorkflowSubtitle(run.workflowKey, run.id, run.status)}</span>
             <div className="mt-2 space-y-1 text-xs leading-relaxed text-[var(--muted)]">
               {getWorkflowExplanationLines(run.workflowKey).map((line, i) => (
                 <div key={i}>{line}</div>
               ))}
+            </div>
+            <div className="mt-3">
+              <p className="text-xs font-semibold text-[var(--muted)]">Schritte</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {steps.map((s, i) => (
+                  <span
+                    key={s.stepKey}
+                    className="rounded-lg border border-[var(--card-border)] bg-[var(--background)] px-2.5 py-1 text-xs text-[var(--foreground)]"
+                  >
+                    {i + 1}. {s.label}
+                  </span>
+                ))}
+              </div>
             </div>
           </>
         }
@@ -361,21 +375,21 @@ export default async function RunDetailPage({
               href="/runs"
               className="font-medium text-[var(--muted)] transition hover:text-teal-600 dark:hover:text-teal-400"
             >
-              ← All runs
+              ← Alle Läufe
             </Link>
             {run.workflowKey !== "WF_BUSINESS_FORM" && (
               <>
                 <span className="rounded-lg border border-[var(--card-border)] bg-slate-50 px-2.5 py-1 text-xs font-medium dark:bg-slate-900/50">
-                  Steps: {runStepsLatest.length}/{steps.length}
+                  Schritte: {runStepsLatest.length}/{steps.length}
                 </span>
                 <span className="rounded-lg border border-[var(--card-border)] bg-slate-50 px-2.5 py-1 text-xs font-medium dark:bg-slate-900/50">
-                  Verified: {verifiedCount}/{runStepsLatest.length}
+                  Verifiziert: {verifiedCount}/{runStepsLatest.length}
                 </span>
               </>
             )}
             {allStepsComplete && (
               <span className="rounded-lg bg-teal-100 px-2.5 py-1 text-xs font-semibold text-teal-800 dark:bg-teal-900/50 dark:text-teal-200">
-                ✓ Complete
+                ✓ Abgeschlossen
               </span>
             )}
           </div>
@@ -385,7 +399,7 @@ export default async function RunDetailPage({
       </Section>
 
       <Section title="">
-        <Suspense fallback={<div className="rounded-2xl border border-[var(--card-border)] bg-[var(--card)] p-8 text-center text-[var(--muted)]">Loading wizard…</div>}>
+        <Suspense fallback={<div className="rounded-2xl border border-[var(--card-border)] bg-[var(--card)] p-8 text-center text-[var(--muted)]">Wizard wird geladen…</div>}>
           <RunWizard
             run={{
               id: run.id,
@@ -421,7 +435,7 @@ export default async function RunDetailPage({
                     ? mergeRunStepsIntoContext(freshContextRecord, runStepsLatest, s.stepKey)
                     : freshContextRecord;
                 context = filterContextForStep(context, run.workflowKey, s.stepKey);
-                const p = renderPrompt(run.workflowKey, s.stepKey, context);
+                const p = renderPrompt(run.workflowKey, s.stepKey, context, locale);
                 return [s.stepKey, p.rendered];
               })
             )}
@@ -429,44 +443,49 @@ export default async function RunDetailPage({
             verifyStep={verifyStep}
             updateStep={updateStep}
             saveRunNotes={updateRunNotes}
-            runNotesLabel={t.runs.runNotesLabel}
+            runNotesLabel={locale === "de" ? "Was sollte die KI zu diesem Thema wissen?" : "What should the AI know about this topic?"}
             runNotesPlaceholder={t.runs.runNotesPlaceholder}
             businessFormStep={businessFormStep}
             kpiQuestionsStep={kpiQuestionsStep}
             appDevelopmentConfig={appDevelopmentConfig}
+            showStepList={false}
           />
         </Suspense>
       </Section>
 
-      <Section title="Audit Trail" description="Ergebnisse pro Schritt prüfen.">
-        <AuditTrailTabs
-          steps={[...runStepsLatest]
-            .sort((a, b) => {
-              const orderA = steps.findIndex((s) => s.stepKey === a.stepKey);
-              const orderB = steps.findIndex((s) => s.stepKey === b.stepKey);
-              return (orderA === -1 ? 999 : orderA) - (orderB === -1 ? 999 : orderB);
-            })
-            .map((step) => ({
-              id: step.id,
-              stepKey: step.stepKey,
-              stepLabel: steps.find((s) => s.stepKey === step.stepKey)?.label ?? step.stepKey,
-              stepNum: steps.findIndex((s) => s.stepKey === step.stepKey) + 1,
-              parsedOutputJson: step.parsedOutputJson,
-              validationErrorsJson: step.validationErrorsJson,
-              schemaValidationPassed: step.schemaValidationPassed,
-              verifiedByUser: step.verifiedByUser ?? false,
-              userPastedResponse: step.userPastedResponse,
-              verificationNotes: step.verificationNotes,
-            }))}
-          runId={run.id}
-          schemaKeyByStepKey={Object.fromEntries(
-            (workflowSteps[run.workflowKey] ?? []).map((s) => [s.stepKey, s.schemaKey])
-          )}
-          verifyStep={verifyStep}
-          deleteStep={deleteStep}
-          updateStep={updateStep}
-        />
-      </Section>
+      {runStepsLatest.length > 0 && (
+        <div id="pruefprotokoll">
+          <Section title={locale === "de" ? "Prüfprotokoll" : "Audit Trail"} description="Ergebnisse pro Schritt prüfen.">
+            <AuditTrailTabs
+              steps={[...runStepsLatest]
+                .sort((a, b) => {
+                  const orderA = steps.findIndex((s) => s.stepKey === a.stepKey);
+                  const orderB = steps.findIndex((s) => s.stepKey === b.stepKey);
+                  return (orderA === -1 ? 999 : orderA) - (orderB === -1 ? 999 : orderB);
+                })
+                .map((step) => ({
+                  id: step.id,
+                  stepKey: step.stepKey,
+                  stepLabel: steps.find((s) => s.stepKey === step.stepKey)?.label ?? step.stepKey,
+                  stepNum: steps.findIndex((s) => s.stepKey === step.stepKey) + 1,
+                  parsedOutputJson: step.parsedOutputJson,
+                  validationErrorsJson: step.validationErrorsJson,
+                  schemaValidationPassed: step.schemaValidationPassed,
+                  verifiedByUser: step.verifiedByUser ?? false,
+                  userPastedResponse: step.userPastedResponse,
+                  verificationNotes: step.verificationNotes,
+                }))}
+              runId={run.id}
+              schemaKeyByStepKey={Object.fromEntries(
+                (workflowSteps[run.workflowKey] ?? []).map((s) => [s.stepKey, s.schemaKey])
+              )}
+              verifyStep={verifyStep}
+              deleteStep={deleteStep}
+              updateStep={updateStep}
+            />
+          </Section>
+        </div>
+      )}
     </div>
   );
 }

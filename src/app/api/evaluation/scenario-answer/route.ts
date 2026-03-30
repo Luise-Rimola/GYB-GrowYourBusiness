@@ -40,7 +40,7 @@ export async function POST(req: Request) {
     const companyContext = await buildScenarioEvaluationContext(company.id);
     const kpiList = scenario.kpis.join(", ");
 
-    const systemPrompt = `Du bist ein Unternehmensberater. Du beantwortest strategische Entscheidungsfragen auf Basis von Unternehmensdaten, Artefakten und Run-Ergebnissen.
+    const systemPrompt = `Du bist ein Unternehmensberater. Du beantwortest strategische Entscheidungsfragen auf Basis von Unternehmensdaten, Dokumenten und Run-Ergebnissen.
 Entscheide unabhängig und praxisnah. Antworte strukturiert mit klaren Empfehlungen.
 Am Ende gibst du deine Konfidenz in Prozent (0–100) und Quellen an.`;
 
@@ -49,7 +49,7 @@ Am Ende gibst du deine Konfidenz in Prozent (0–100) und Quellen an.`;
 
 **Relevante KPIs:** ${kpiList}
 
-## Unternehmensdaten (Profil, Artefakte, Runs)
+## Unternehmensdaten (Profil, Dokumente, Runs)
 ${companyContext}
 
 ---

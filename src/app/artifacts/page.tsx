@@ -13,11 +13,59 @@ function displayArtifactName(
   artifact: { title: string; type: string; run?: { workflowKey: string } | null },
   locale: "de" | "en"
 ) {
+  const deLabels: Record<string, string> = {
+    industry_research: "Branchen- und Standortdaten",
+    market: "Markt-Snapshot",
+    market_research: "Marktanalyse",
+    best_practices: "Best Practices",
+    failure_analysis: "Gründe fürs Scheitern",
+    value_proposition: "Wertversprechen",
+    competitor_analysis: "Wettbewerbsanalyse",
+    swot_analysis: "SWOT-Analyse",
+    trend_analysis: "Trendanalyse",
+    customer_validation: "Kundenvalidierung",
+    business_plan: "Businessplan",
+    menu_card: "Angebotskatalog",
+    supplier_list: "Lieferantenliste",
+    menu_cost: "Warenkosten",
+    menu_preiskalkulation: "Preiskalkulation",
+    real_estate: "Standortoptionen",
+    startup_guide: "Finanzierung",
+    go_to_market: "Go-to-Market & Preisstrategie",
+    work_processes: "Arbeitsprozesse",
+    personnel_plan: "Personalplan & Personalkosten",
+    financial_planning: "Finanzplanung",
+    diagnostic: "Ursachenanalyse",
+    decision_pack: "Top-Entscheidungen",
+    scaling_strategy: "Skalierungsstrategie",
+    marketing_strategy: "Marketingstrategie",
+    hr_planning: "Personalplanung",
+    process_optimization: "Prozessoptimierung",
+    portfolio_management: "Portfolio- & Markenstrategie",
+    strategic_options: "Strategische Optionen",
+    kpi_estimation: "KPI-Schätzung",
+    data_collection_plan: "Datenerhebungsplan",
+    scenario_analysis: "Szenario- & Risikoanalyse",
+    operative_plan: "Operativer Plan",
+    strategic_planning: "Strategische Planung",
+    tech_digitalization: "Technologie & Digitalisierung",
+    automation_roi: "Computer-Automatisierung & ROI",
+    physical_automation: "Physische Automatisierung",
+    app_project_plan: "App-Projektplan",
+    app_requirements: "App-Anforderungen",
+    app_tech_spec: "App-Technische Spezifikation",
+    app_mvp_guide: "App-MVP-Anleitung",
+    app_page_specs: "App-Seiten-Spezifikation",
+    app_db_schema: "App-Datenbank-Schema",
+  };
   if (artifact.run?.workflowKey === "WF_IDEA_USP_VALIDATION" && artifact.type === "value_proposition") {
     return locale === "en" ? "Idea & USP Validation" : "Idee- & USP-Validierung";
   }
   if (artifact.run?.workflowKey === "WF_LEGAL_FOUNDATION" && artifact.type === "startup_guide") {
     return locale === "en" ? "Legal Requirements & Company Form" : "Rechtliche Vorgaben & Unternehmensform";
+  }
+  if (locale === "de") {
+    return deLabels[artifact.type] || ARTIFACT_LABELS[artifact.type] || artifact.title || artifact.type;
   }
   return artifact.title || ARTIFACT_LABELS[artifact.type] || artifact.type;
 }
@@ -32,12 +80,13 @@ export default async function ArtifactsPage({
   const isEn = locale === "en";
   const copy = {
     warningWhy: isEn ? "Why this warning?" : "Warum dieser Hinweis?",
-    tabLibrary: isEn ? "Artifacts Library" : "Artefakt-Bibliothek",
-    tabEvaluations: isEn ? "Artifact Evaluations" : "Artefakt-Evaluationen",
+    pageTitle: isEn ? "Documents" : "Dokumente",
+    tabLibrary: isEn ? "Library" : "Bibliothek",
+    tabEvaluations: isEn ? "Evaluation" : "Evaluation",
     exportSpss: isEn ? "SPSS Download" : "SPSS-Download",
     exportPdf: isEn ? "PDF (Questions/Answers + Table)" : "PDF (Fragen/Antworten + Tabelle)",
     exportExcel: isEn ? "Excel (Analysis + Logs)" : "Excel (Auswertung + Logs)",
-    colArtifact: isEn ? "Artifact" : "Artefakt",
+    colArtifact: isEn ? "Artifact" : "Dokument",
     colQuality: isEn ? "Quality" : "Qualität",
     colSources: isEn ? "Sources" : "Quellen",
     colRealism: isEn ? "Realism" : "Realismus",
@@ -45,9 +94,9 @@ export default async function ArtifactsPage({
     colStructure: isEn ? "Structure" : "Struktur",
     colHallucination: isEn ? "Hallucination" : "Halluzination",
     colDate: isEn ? "Date" : "Datum",
-    noArtifacts: isEn ? "No artifacts yet." : "Noch keine Artefakte vorhanden.",
-    noArtifactsInPhase: isEn ? "No artifacts in this phase." : "Keine Artefakte in dieser Phase.",
-    moreArtifacts: isEn ? "More Artifacts" : "Weitere Artefakte",
+    noArtifacts: isEn ? "No artifacts yet." : "Noch keine Dokumente vorhanden.",
+    noArtifactsInPhase: isEn ? "No artifacts in this phase." : "Keine Dokumente in dieser Phase.",
+    moreArtifacts: isEn ? "More Artifacts" : "Weitere Dokumente",
     yes: isEn ? "Yes" : "Ja",
     no: isEn ? "No" : "Nein",
     boardsTitle: isEn ? "Boards & Launch Plan" : "Boards & Launch Plan",
@@ -66,7 +115,7 @@ export default async function ArtifactsPage({
     decisionReady: isEn ? "Ready: Decision Pack exists." : "Bereit: Decision Pack ist vorhanden.",
     decisionMissing: isEn
       ? "Not created yet: generated after workflow 'Top Decisions' (WF_NEXT_BEST_ACTIONS)."
-      : "Noch nicht erstellt: entsteht nach Workflow 'Top Decisions' (WF_NEXT_BEST_ACTIONS).",
+      : "Noch nicht erstellt: entsteht nach Prozess 'Top Decisions'.",
     dateLocale: isEn ? "en-US" : "de-DE",
   } as const;
   const company = await getOrCreateDemoCompany();
@@ -100,19 +149,18 @@ export default async function ArtifactsPage({
   const phaseArtifactTypeSet = new Set(phaseSections.flatMap((section) => section.artifacts.map((a) => a.type)));
   const unassignedArtifacts = artifacts.filter((a) => !phaseArtifactTypeSet.has(a.type));
   const decisionPackArtifact = artifacts.find((a) => a.type === "decision_pack");
-  let launchDoneCount = 0;
-  let launchTotalCount = 0;
-  if (prisma.launchStage) {
-    const launchStages = await prisma.launchStage.findMany({
-      where: { companyId: company.id },
-      include: { steps: { select: { done: true } } },
-    });
-    launchTotalCount = launchStages.reduce((sum, stage) => sum + stage.steps.length, 0);
-    launchDoneCount = launchStages.reduce(
-      (sum, stage) => sum + stage.steps.filter((step) => step.done).length,
-      0
-    );
-  }
+  const launchStages = prisma.launchStage
+    ? await prisma.launchStage.findMany({
+        where: { companyId: company.id },
+        include: { steps: { select: { done: true } } },
+      })
+    : [];
+
+  const launchTotalCount = launchStages.reduce((sum, stage) => sum + stage.steps.length, 0);
+  const launchDoneCount = launchStages.reduce(
+    (sum, stage) => sum + stage.steps.filter((step) => step.done).length,
+    0
+  );
   const evaluations = await getArtifactEvaluationsByCompany(company.id);
   const latestEvaluationByArtifactId = new Map<string, (typeof evaluations)[number]>();
   for (const ev of evaluations) {
@@ -121,37 +169,45 @@ export default async function ArtifactsPage({
     }
   }
 
-  const ArtifactCard = ({ artifact }: { artifact: (typeof artifacts)[0] }) => (
+  const ArtifactCard = ({ artifact }: { artifact: (typeof artifacts)[0] }) => {
+    const isEvaluated = latestEvaluationByArtifactId.has(artifact.id);
+    return (
     <div
-      className="flex items-center justify-between rounded-2xl border border-[var(--card-border)] bg-[var(--card)] p-4 transition hover:border-teal-200 hover:shadow-md dark:hover:border-teal-800"
+      className={`rounded-2xl border border-sky-200 bg-sky-50/80 p-4 transition ${
+        isEvaluated
+          ? "opacity-70 grayscale-[0.15] dark:border-sky-900/60 dark:bg-sky-950/30"
+          : "hover:border-sky-300 hover:shadow-md dark:border-sky-900/60 dark:bg-sky-950/25 dark:hover:border-sky-700"
+      }`}
     >
-      <Link href={`/artifacts/${artifact.id}`} className="min-w-0 flex-1">
-        <p className="font-semibold text-[var(--foreground)]">{displayArtifactName(artifact, locale)}</p>
-        <p className="text-xs text-[var(--muted)]">{artifact.type} · v{artifact.version}</p>
-      </Link>
-      <div className="flex shrink-0 items-center gap-2">
-        {hasEarlyWarningSignal(artifact) && (
-          <EarlyWarningPopover
-            size="compact"
-            panelTitle={copy.warningWhy}
-            primaryRiskText={getEarlyWarningPrimaryRiskText(artifact)}
-            detailMessages={getEarlyWarningDetails(artifact)}
-          />
-        )}
-        <Link
-          href={`/artifacts/${artifact.id}/evaluate`}
-          className="rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-teal-700"
-        >
-          {t.artifacts.evaluateArtifact}
+      <div className="flex items-start justify-between gap-3">
+        <Link href={`/artifacts/${artifact.id}`} className="min-w-0 flex-1">
+          <p className="font-semibold text-[var(--foreground)]">{displayArtifactName(artifact, locale)}</p>
         </Link>
+        <div className="flex shrink-0 items-center gap-2">
+          {hasEarlyWarningSignal(artifact) && (
+            <EarlyWarningPopover
+              size="compact"
+              panelTitle={copy.warningWhy}
+              primaryRiskText={getEarlyWarningPrimaryRiskText(artifact)}
+              detailMessages={getEarlyWarningDetails(artifact)}
+            />
+          )}
+          <Link
+            href={isEvaluated ? `/artifacts/${artifact.id}` : `/artifacts/${artifact.id}/evaluate`}
+            className="rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-teal-700"
+          >
+            {isEvaluated ? t.artifacts.viewDocument : t.artifacts.evaluateArtifact}
+          </Link>
+        </div>
       </div>
     </div>
-  );
+    );
+  };
 
   return (
     <div className="space-y-8">
       <Section
-        title={t.artifacts.title}
+        title={copy.pageTitle}
         description={t.artifacts.description}
       >
         <div className="space-y-6">
@@ -365,27 +421,15 @@ export default async function ArtifactsPage({
                 <div className="grid gap-3 md:grid-cols-2">
                   <Link
                     href="/checklist"
-                    className="rounded-xl border border-[var(--card-border)] bg-[var(--background)]/60 p-4 transition hover:border-teal-300 hover:bg-teal-50/40 dark:hover:border-teal-700 dark:hover:bg-teal-950/20"
+                    className="rounded-xl border border-sky-200 bg-sky-50/80 p-4 transition hover:border-sky-300 hover:shadow-sm dark:border-sky-900/60 dark:bg-sky-950/25 dark:hover:border-sky-700"
                   >
                     <p className="font-semibold text-[var(--foreground)]">{copy.checklistTitle}</p>
-                    <p className="mt-1 text-sm text-[var(--muted)]">{copy.checklistDesc}</p>
-                    <p className="mt-1 text-sm text-[var(--muted)]">
-                      {launchTotalCount > 0
-                        ? `${copy.checklistProgressLabel}: ${launchDoneCount}/${launchTotalCount} ${isEn ? "done" : "erledigt"}.`
-                        : copy.checklistInit}
-                    </p>
                   </Link>
                   <Link
                     href="/decisions"
-                    className="rounded-xl border border-[var(--card-border)] bg-[var(--background)]/60 p-4 transition hover:border-teal-300 hover:bg-teal-50/40 dark:hover:border-teal-700 dark:hover:bg-teal-950/20"
+                    className="rounded-xl border border-sky-200 bg-sky-50/80 p-4 transition hover:border-sky-300 hover:shadow-sm dark:border-sky-900/60 dark:bg-sky-950/25 dark:hover:border-sky-700"
                   >
                     <p className="font-semibold text-[var(--foreground)]">{copy.decisionTitle}</p>
-                    <p className="mt-1 text-sm text-[var(--muted)]">{copy.decisionDesc}</p>
-                    <p className="mt-1 text-sm text-[var(--muted)]">
-                      {decisionPackArtifact
-                        ? copy.decisionReady
-                        : copy.decisionMissing}
-                    </p>
                   </Link>
                 </div>
               </div>

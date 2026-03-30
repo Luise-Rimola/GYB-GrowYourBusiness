@@ -7,19 +7,19 @@ export const WORKFLOWS = [
   },
   {
     key: "WF_BASELINE",
-    name: "Baseline",
+    name: "Grundlagenanalyse",
     description: "Business model + KPI setup + gap scan.",
     explanation: "Erklärung: Grundlage für alle weiteren Workflows. Basiert auf: Company Profile (Intake). Zu Untersuchen: Geschäftsmodell, KPI-Auswahl, Lückenanalyse, Branchendaten. Output: Business-Model-Klassifikation, KPI-Set, KPI-Gap-Report, Industry Research (JSON).",
   },
   {
     key: "WF_MARKET",
-    name: "Market Snapshot",
+    name: "Marktüberblick",
     description: "Segments, competitors, pricing, demand.",
     explanation: "Erklärung: Kompakte Marktübersicht für spätere Workflows. Basiert auf: Industry Research, Company Profile. Zu Untersuchen: Marktsegmente, Wettbewerber, Preise, Nachfrage-Treiber. Output: Liste mit segments, competitors, pricing_index, demand_drivers, risks (JSON).",
   },
   {
     key: "WF_RESEARCH",
-    name: "Market & Best Practices Research",
+    name: "Markt- und Best-Practice-Analyse",
     description: "Kaufverhalten, Angebot/Nachfrage, feasibility, best practices, failure reasons.",
     explanation: "Erklärung: Vertiefte Markt- und Branchenanalyse. Basiert auf: Market Snapshot, Industry Research, Company Profile. Zu Untersuchen: Kaufverhalten, Angebot/Nachfrage, Machbarkeit, Best Practices, Misserfolgsgründe. Output: market_research, best_practices, failure_reasons (JSON).",
   },
@@ -31,7 +31,7 @@ export const WORKFLOWS = [
   },
   {
     key: "WF_SUPPLIER_LIST",
-    name: "Supplier List",
+    name: "Lieferantenliste",
     description: "Suppliers per ingredient (meat, sauces, avocado, etc.) – for cost calculation.",
     explanation: "Erklärung: Lieferantenrecherche pro Zutat. Basiert auf: Menu Card (alle Zutaten aus Gerichten), Market Snapshot, Company Profile. Zu Untersuchen: Lieferant pro Zutat (Fleisch, Saucen, Avocado, Gemüse, etc.). Output: Liste mit material, supplier, price_per_unit (JSON).",
   },
@@ -49,19 +49,19 @@ export const WORKFLOWS = [
   },
   {
     key: "WF_REAL_ESTATE",
-    name: "Real Estate",
+    name: "Standortoptionen",
     description: "Rent, utilities (Strom, Wasser etc.) – for fixed costs.",
     explanation: "Erklärung: Immobilienoptionen für Fixkostenplanung (Miete, Nebenkosten). Basiert auf: Market Snapshot (Segmente), Industry Research, Company Profile (Standort, Branche, Angebot). Zu Untersuchen: Büros, Retail, Lager – Miete, Strom, Wasser, Nebenkosten. Output: Liste von Optionen mit type, location, price_range, suitability (JSON).",
   },
   {
     key: "WF_DIAGNOSTIC",
-    name: "Diagnostics",
+    name: "Ursachenanalyse",
     description: "Root-Cause-Bäume für KPI-Lücken – Basis für Skalierung.",
     explanation: "Erklärung: Ursachenanalyse für KPI-Lücken in der Wachstumsphase. Basiert auf: Baseline (kpi_table, top_gaps, data_quality_alerts), KPI-Set, Industry Research. Zu Untersuchen: Root-Cause-Bäume für Top-Gaps. Prozesse standardisieren vor Skalierung. Output: root_cause_trees (JSON).",
   },
   {
     key: "WF_NEXT_BEST_ACTIONS",
-    name: "Next Best Actions",
+    name: "Nächste beste Schritte",
     description: "Top-5 decisions + 30/60/90 plan.",
     explanation: "Erklärung: Top-5-Entscheidungen und 30/60/90-Plan. Basiert auf: Market Research (feasibility, supply_demand), Best Practices, Failure Analysis, Industry Research, KPI-Set. Zu Untersuchen: Priorisierte Initiativen, Umsetzungsplan, Guardrails. Output: decision_proposals, execution_plan_30_60_90, guardrails (JSON).",
   },
@@ -73,19 +73,19 @@ export const WORKFLOWS = [
   },
   {
     key: "WF_BUSINESS_PLAN",
-    name: "Business Plan & Finance",
+    name: "Businessplan & Finanzen",
     description: "Businessplan, Marketingstrategie, 3 Finanzszenarien.",
     explanation: "Erklärung: Vollständiger Businessplan für Launch. Basiert auf: Market Snapshot, Failure Analysis, Supplier List, Real Estate, Industry Research, Company Profile. Zu Untersuchen: Executive Summary, Marktanalyse, Marketingstrategie, Finanzszenarien (3 Szenarien), Risikoanalyse. Kritisch: Cashflow Management. Output: Business Plan mit 5 Sektionen (JSON).",
   },
   {
     key: "WF_KPI_ESTIMATION",
-    name: "KPI Estimation",
+    name: "KPI-Schätzung",
     description: "Estimate KPIs from business data, market analysis, strategies, and growth plans.",
     explanation: "Erklärung: KPI-Prognosen (Monat 1 und Monat 12) für alle geschäftsrelevanten KPIs. Zeigt die erwartete Entwicklung über das Jahr. Basiert auf: Company Profile, Industry Research, Market Snapshot, Market Research, Baseline, Business Plan, Financial Planning. Output: kpi_estimates mit value_month_1 und value_month_12 pro KPI.",
   },
   {
     key: "WF_DATA_COLLECTION_PLAN",
-    name: "Data Collection Plan",
+    name: "Datenerhebungsplan",
     description: "Fallback when data is missing.",
     explanation: "Erklärung: Plan zur Datenerhebung für fehlende KPIs. Basiert auf: KPI-Set, missing_inputs, Company Profile. Zu Untersuchen: Welche Daten fehlen, wie sie erhoben werden. Output: questions_simple, mapping_to_kpi_keys (JSON).",
   },
@@ -139,7 +139,7 @@ export const WORKFLOWS = [
   },
   {
     key: "WF_VALUE_PROPOSITION",
-    name: "Value Proposition & Problem-Solution-Fit",
+    name: "Wertversprechen & Problem-Lösungs-Fit",
     description: "Problem-Solution-Fit, Value Proposition Design, Zielgruppenanalyse.",
     explanation: "Erklärung: Prüfen, ob Problem und Lösung zusammenpassen. Basiert auf: Company Profile, Market Snapshot, Industry Research. Zu Untersuchen: Welches Problem? Wer hat es? Bestehende Lösungen? USP? Output: problem_statement, target_customers, unique_value_proposition, key_differentiators (JSON).",
   },
@@ -151,25 +151,25 @@ export const WORKFLOWS = [
   },
   {
     key: "WF_SCALING_STRATEGY",
-    name: "Scaling Strategy",
+    name: "Skalierungsstrategie",
     description: "Skalierung, Automatisierung, Marketing-Skalierung, Vertriebssysteme.",
     explanation: "Erklärung: Skalierungsstrategie für Wachstumsphase. Basiert auf: Company Profile, KPI-Snapshot, Market Research, Baseline. Zu Untersuchen: Skalierbarkeit des Modells, Automatisierung von Prozessen, Marketing-Skalierung, Vertriebssysteme. KPIs: CAC, LTV, Conversion Rate, Churn Rate, Umsatzwachstum. Output: scalability_assessment, automation_priorities, key_metrics (JSON).",
   },
   {
     key: "WF_PORTFOLIO_MANAGEMENT",
-    name: "Portfolio & Brand Strategy",
+    name: "Portfolio- & Markenstrategie",
     description: "Portfolio Management, Markenstrategie, Internationalisierung, strategische Partnerschaften.",
     explanation: "Erklärung: Portfolio- und Markenstrategie für Reifephase. Basiert auf: Company Profile, KPI-Snapshot, Industry Research. Zu Untersuchen: Produktportfolio optimieren, Marktsegmente erweitern, strategische Partnerschaften. Kennzahlen: Marktanteil, Kundenbindung. Output: portfolio_analysis, brand_strategy_recommendations (JSON).",
   },
   {
     key: "WF_SCENARIO_ANALYSIS",
-    name: "Scenario & Risk Analysis",
+    name: "Szenario- & Risikoanalyse",
     description: "Szenarioanalyse, Sensitivitätsanalyse, Risikomatrix.",
     explanation: "Erklärung: Szenario- und Risikoanalyse. Basiert auf: Company Profile, Market Research, Baseline, Business Plan. Zu Untersuchen: Szenarien, Sensitivität, Risikomatrix. Output: scenarios, sensitivity_analysis, risk_matrix (JSON).",
   },
   {
     key: "WF_OPERATIVE_PLAN",
-    name: "Operative Plan",
+    name: "Operativer Plan",
     description: "Jahresplanung, Marketingplan, Vertriebsplanung, Budgetplanung.",
     explanation: "Erklärung: Operative Jahresplanung. Basiert auf: Company Profile, KPI-Snapshot, Industry Research, Market Research. Zu Untersuchen: Jahresplan, Marketing, Vertrieb, Budget. Output: annual_plan_summary, key_milestones, recommendations (JSON).",
   },
@@ -238,7 +238,17 @@ export function getWorkflowName(key: string): string {
 export function getWorkflowSubtitle(key: string, runId?: string, status?: string): string {
   const parts = [key];
   if (runId) parts.push(`#${runId.slice(0, 8)}`);
-  if (status) parts.push(status);
+  if (status) {
+    const statusLabel: Record<string, string> = {
+      draft: "Entwurf",
+      running: "Läuft",
+      incomplete: "Unvollständig",
+      complete: "Abgeschlossen",
+      approved: "Freigegeben",
+      failed: "Fehlgeschlagen",
+    };
+    parts.push(statusLabel[status] ?? status);
+  }
   return parts.join(" · ");
 }
 
@@ -246,12 +256,99 @@ export function getWorkflowExplanation(key: string): string {
   return WORKFLOW_BY_KEY[key]?.explanation ?? "";
 }
 
-/** Splits explanation into lines (Erklärung, Basiert auf, Zu Untersuchen, Output) */
+const SIMPLE_EXPLANATIONS: Record<string, string> = {
+  WF_BUSINESS_FORM:
+    "Hier gibst du die wichtigsten Basisdaten zu deinem Unternehmen ein. Diese Angaben sind die Grundlage, damit die KI die folgenden Prozesse passend für deine Situation ausführen kann.",
+  WF_BASELINE:
+    "Dieser Prozess erstellt eine Ausgangsanalyse deines Unternehmens. Du bekommst ein erstes Bild zu Geschäftsmodell, wichtigen Kennzahlen und möglichen Lücken als Startpunkt für alle weiteren Schritte.",
+  WF_MARKET:
+    "Es wird ein Überblick über die Marktsituation mit Hilfe von Analysen erstellt – als Grundlage für weitere Prozesse und erste Einschätzungen. Das Ergebnis wird als Dokument gespeichert und in der nächsten Phase weiterverwendet.",
+  WF_RESEARCH:
+    "Hier wird untersucht, wie Kundinnen und Kunden wirklich entscheiden, welche Angebote es am Markt gibt und was erfolgreiche Unternehmen in deiner Branche konkret gut machen (Best Practices = bewährte Vorgehensweisen). Daraus bekommst du klare Empfehlungen, was du übernehmen und was du vermeiden solltest. Das Ergebnis wird als Dokument für die nächste Phase gespeichert.",
+  WF_MENU_CARD:
+    "Hier wird dein Angebot strukturiert beschrieben, also was du genau anbietest und aus welchen Bestandteilen es besteht. Das hilft, Preise, Einkauf und weitere Planungen realistischer zu machen.",
+  WF_SUPPLIER_LIST:
+    "Dieser Prozess sucht passende Lieferanten für die benötigten Bestandteile deines Angebots. So bekommst du eine praktische Grundlage für Einkauf, Kostenplanung und Verhandlungen.",
+  WF_MENU_COST:
+    "Hier werden die Kosten pro Angebot oder Produkt berechnet. Dadurch siehst du, was dich einzelne Leistungen wirklich kosten und wie viel Marge übrig bleibt.",
+  WF_MENU_PRICING:
+    "In diesem Prozess werden auf Basis deiner Kosten sinnvolle Verkaufspreise vorgeschlagen. Ziel ist, dass deine Preise marktgerecht sind und gleichzeitig wirtschaftlich funktionieren.",
+  WF_REAL_ESTATE:
+    "Hier werden mögliche Standorte und deren Kosten verglichen. So erkennst du, welche Option zu deinem Geschäftsmodell passt und welche laufenden Belastungen zu erwarten sind.",
+  WF_DIAGNOSTIC:
+    "Dieser Prozess erklärt, warum bestimmte Kennzahlen schlecht oder besser als erwartet ausfallen. Er zeigt die wichtigsten Ursachen, damit du gezielt an den richtigen Stellen ansetzt.",
+  WF_NEXT_BEST_ACTIONS:
+    "Hier bekommst du priorisierte nächste Schritte mit klarem Fokus auf Wirkung und Umsetzbarkeit. So weißt du, was du als Nächstes konkret tun solltest.",
+  WF_MARKETING_STRATEGY:
+    "Dieser Prozess erstellt eine verständliche Marketingstrategie für deine Zielgruppe. Du erhältst konkrete Maßnahmen, Kanäle und Prioritäten für bessere Sichtbarkeit und Kundengewinnung.",
+  WF_BUSINESS_PLAN:
+    "Hier wird ein strukturierter Businessplan mit Markt-, Strategie- und Finanzteilen erstellt. Das hilft dir bei Entscheidungen, bei Gesprächen mit Partnern und bei Finanzierungsfragen.",
+  WF_KPI_ESTIMATION:
+    "Dieser Prozess schätzt wichtige Kennzahlen für die nächsten Monate. So bekommst du eine realistische Orientierung, wie sich Umsatz, Kosten und andere KPIs entwickeln können.",
+  WF_DATA_COLLECTION_PLAN:
+    "Hier wird festgelegt, welche Daten dir noch fehlen und wie du sie sammeln kannst. Dadurch werden spätere Auswertungen verlässlicher und Entscheidungen fundierter.",
+  WF_STARTUP_CONSULTING:
+    "Dieser Prozess gibt Orientierung zu Gründung, Finanzierung und passenden Optionen für dein Vorhaben. Er hilft dir, typische Startfehler zu vermeiden und den nächsten Schritt klar zu planen.",
+  WF_IDEA_USP_VALIDATION:
+    "Hier wird geprüft, ob deine Idee wirklich ein relevantes Problem löst und klar unterscheidbar ist. Du erkennst, ob dein Nutzenversprechen für Kunden verständlich und stark genug ist.",
+  WF_FEASIBILITY_VALIDATION:
+    "Dieser Prozess prüft, ob dein Vorhaben praktisch und wirtschaftlich umsetzbar ist. Du erhältst eine Einschätzung zu Risiken, Voraussetzungen und realistischer Machbarkeit.",
+  WF_PATENT_CHECK:
+    "Hier wird eingeschätzt, ob Teile deiner Idee schutzfähig sind und welche nächsten Schritte sinnvoll wären. Das hilft dir, rechtliche Risiken früh zu erkennen.",
+  WF_LEGAL_FOUNDATION:
+    "Dieser Prozess zeigt die wichtigsten rechtlichen Anforderungen für Gründung und Betrieb. Du bekommst Klarheit zu Rechtsform, Pflichten und notwendigen Schritten.",
+  WF_CUSTOMER_VALIDATION:
+    "Hier wird geprüft, ob echte Kundinnen und Kunden dein Angebot tatsächlich kaufen würden. Du bekommst konkrete Signale aus Tests, Interviews oder Pilotfeedback.",
+  WF_PROCESS_OPTIMIZATION:
+    "Dieser Prozess analysiert deine Abläufe und zeigt, wo Zeit, Geld oder Qualität verloren geht. Ziel ist, Prozesse einfacher, schneller und wirtschaftlicher zu machen.",
+  WF_STRATEGIC_OPTIONS:
+    "Hier werden strategische Optionen gegenübergestellt, zum Beispiel Wachstum, Neuausrichtung oder Exit. So kannst du fundiert entscheiden, welche Richtung am besten passt.",
+  WF_VALUE_PROPOSITION:
+    "Dieser Prozess schärft dein Wertversprechen: Für wen ist dein Angebot, welches Problem löst es und warum ist es besser als Alternativen. Das schafft Klarheit für Produkt, Marketing und Vertrieb.",
+  WF_GO_TO_MARKET:
+    "Hier wird geplant, wie du dein Angebot erfolgreich in den Markt bringst. Du erhältst eine klare Linie für Positionierung, Preise, Kanäle und erste Verkaufsaktivitäten.",
+  WF_SCALING_STRATEGY:
+    "Dieser Prozess zeigt, wie dein Unternehmen kontrolliert wachsen kann. Er macht sichtbar, welche Bereiche zuerst skaliert werden sollten und welche Voraussetzungen dafür nötig sind.",
+  WF_PORTFOLIO_MANAGEMENT:
+    "Hier wird bewertet, welche Produkte oder Leistungen gestärkt, angepasst oder reduziert werden sollten. Das hilft, Ressourcen auf die wichtigsten Umsatztreiber zu konzentrieren.",
+  WF_SCENARIO_ANALYSIS:
+    "Dieser Prozess betrachtet verschiedene Zukunftsszenarien und deren Auswirkungen. So bist du besser auf Unsicherheiten vorbereitet und kannst robuster planen.",
+  WF_OPERATIVE_PLAN:
+    "Hier wird die Umsetzung für den Alltag geplant, mit konkreten Aufgaben, Meilensteinen und Verantwortlichkeiten. Dadurch wird aus Strategie ein machbarer Arbeitsplan.",
+  WF_COMPETITOR_ANALYSIS:
+    "Dieser Prozess analysiert deine wichtigsten Wettbewerber, deren Stärken und Schwächen. So erkennst du, wie du dich klar abgrenzen und besser positionieren kannst.",
+  WF_SWOT:
+    "In dieser SWOT-Analyse werden die Stärken und Schwächen deines Unternehmens sowie Chancen und Risiken im Markt übersichtlich gegenübergestellt. So erkennst du schnell, wo du gut aufgestellt bist, wo Handlungsbedarf besteht und welche nächsten Schritte strategisch sinnvoll sind.",
+  WF_FINANCIAL_PLANNING:
+    "Hier wird deine Finanzplanung aufgebaut, zum Beispiel Kosten, Liquidität, Kapitalbedarf und Break-even. Damit siehst du früh, ob dein Vorhaben finanziell tragfähig ist.",
+  WF_STRATEGIC_PLANNING:
+    "Dieser Prozess richtet dein Unternehmen langfristig aus und definiert klare Ziele für die nächsten Jahre. So entsteht ein roter Faden für wichtige Entscheidungen.",
+  WF_TREND_ANALYSIS:
+    "Hier werden relevante Markt-, Technologie- und Branchentrends eingeordnet. Dadurch erkennst du früh Chancen und Risiken, die dein Geschäft beeinflussen.",
+  WF_TECH_DIGITALIZATION:
+    "Dieser Prozess empfiehlt passende digitale Tools für dein Unternehmen. Ziel ist, Arbeitsabläufe zu vereinfachen, Transparenz zu erhöhen und Zeit zu sparen.",
+  WF_AUTOMATION_ROI:
+    "Hier wird geprüft, welche Aufgaben digital automatisiert werden können und ob sich das wirtschaftlich lohnt. Du bekommst eine klare Einschätzung zu Kosten und Nutzen.",
+  WF_PHYSICAL_AUTOMATION:
+    "Dieser Prozess bewertet Maschinen oder physische Automatisierungslösungen für deinen Betrieb. So siehst du, ob Investitionen in Geräte deinen Alltag messbar verbessern.",
+  WF_APP_DEVELOPMENT:
+    "Hier wird die Entwicklung einer eigenen App von der Idee bis zur technischen Struktur geplant. Du bekommst einen klaren Fahrplan, was gebaut werden soll und in welcher Reihenfolge.",
+};
+
+/** Returns one short, simple explanation line per process. */
 export function getWorkflowExplanationLines(key: string): string[] {
-  const text = getWorkflowExplanation(key);
-  if (!text) return [];
-  return text
-    .split(/\s+(?=Basiert auf:|Zu Untersuchen:|Output:)/)
-    .map((s) => s.trim())
-    .filter(Boolean);
+  const workflow = WORKFLOW_BY_KEY[key];
+  if (!workflow) return [];
+  if (SIMPLE_EXPLANATIONS[key]) return [SIMPLE_EXPLANATIONS[key]];
+  const raw = (workflow.explanation ?? "").trim();
+  if (raw) {
+    const withoutPrefix = raw.replace(/^Erklärung:\s*/i, "");
+    const mainPart = withoutPrefix.split(/\s+(?=Basiert auf:|Zu Untersuchen:|Output:)/)[0]?.trim() ?? "";
+    if (mainPart) {
+      return [mainPart];
+    }
+  }
+  return [
+    `Dieser Prozess erstellt eine strukturierte Auswertung zu "${workflow.name}" als Grundlage für die nächsten Entscheidungen.`,
+  ];
 }

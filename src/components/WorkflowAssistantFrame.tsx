@@ -254,7 +254,8 @@ export function WorkflowAssistantFrame({
           </p>
         </div>
         <Link
-          href="/study"
+          href="/home"
+          prefetch={false}
           className="shrink-0 self-start rounded-xl border border-[var(--card-border)] bg-[var(--card)] px-3 py-2 text-sm font-medium text-[var(--foreground)] transition hover:bg-[var(--background)] sm:self-auto"
         >
           Assistent beenden

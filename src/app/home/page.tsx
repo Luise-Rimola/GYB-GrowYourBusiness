@@ -10,6 +10,7 @@ import { SCENARIO_CATEGORIES, type ScenarioCategory } from "@/lib/scenarios";
 import { getOrCreateStudyParticipant } from "@/lib/study";
 import { getActiveIndicatorRuleAlerts } from "@/lib/indicatorMappingRulesEngine";
 import { loadAssistantSteps } from "@/lib/assistantSteps";
+import { AssistantStepsList } from "@/components/AssistantStepsList";
 
 export default async function Home({
   searchParams,
@@ -115,24 +116,16 @@ export default async function Home({
         <p className="max-w-2xl text-lg leading-relaxed text-[var(--muted)]">
           {t.home.subtitle}
         </p>
+        <p className="max-w-2xl text-sm leading-relaxed text-[var(--muted)]">
+          {t.home.subtitleDetails}
+        </p>
         <div className="flex flex-wrap gap-3">
           <Link
             href="/assistant"
+            prefetch={false}
             className="rounded-xl bg-teal-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-teal-500/25 transition hover:bg-teal-700 hover:shadow-teal-500/30"
           >
             {t.home.startAssistant}
-          </Link>
-          <Link
-            href="/artifacts"
-            className="rounded-xl border border-teal-600 px-5 py-2.5 text-sm font-semibold text-teal-700 transition hover:bg-teal-50 dark:border-teal-500 dark:text-teal-300 dark:hover:bg-teal-950/30"
-          >
-            {t.common.viewArtifacts}
-          </Link>
-          <Link
-            href="/dashboard"
-            className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] px-5 py-2.5 text-sm font-semibold text-[var(--foreground)] transition hover:bg-teal-50 hover:border-teal-200 dark:hover:bg-teal-950/30 dark:hover:border-teal-800"
-          >
-            {t.common.runWorkflows}
           </Link>
         </div>
       </header>
@@ -174,7 +167,7 @@ export default async function Home({
         </div>
       )}
 
-      <div className="overflow-x-auto pb-1">
+      <div className="hidden overflow-x-auto pb-1">
         <div className="grid min-w-[980px] grid-cols-4 gap-5">
           <StatCard
             href="/profile"
@@ -183,7 +176,7 @@ export default async function Home({
             hint={`${profileComplete}% ${t.home.complete}`}
           />
           <StatCard
-            href="/data"
+            href="/insights"
             title={t.home.kpiCoverage}
             value={kpiCoverage ? `${kpiCoverage}%` : "—"}
             hint={kpiValues.length > 0 ? `${kpiValues.length} ${t.home.values}` : t.home.addKpisInData}
@@ -207,32 +200,21 @@ export default async function Home({
         title={t.common.nextSteps}
         description={t.home.guidedPath}
       >
-        <ul className="space-y-3">
-          {nextSteps.map((item, i) => (
-            <li key={i}>
-              <Link
-                href={item.href}
-                className={
-                  item.completed
-                    ? "flex items-start gap-3 rounded-xl border border-emerald-300 bg-emerald-50/70 px-4 py-3 text-sm font-medium text-emerald-900 transition hover:border-emerald-400 hover:bg-emerald-100/70 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-200 dark:hover:border-emerald-700 dark:hover:bg-emerald-900/40"
-                    : "flex items-start gap-3 rounded-xl border border-transparent px-4 py-3 text-sm font-medium text-[var(--foreground)] transition hover:border-teal-200 hover:bg-teal-50/50 dark:hover:border-teal-800 dark:hover:bg-teal-950/20"
-                }
-              >
-                <span
-                  className={
-                    item.completed
-                      ? "flex h-7 min-h-7 w-7 min-w-7 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-xs font-semibold text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300"
-                      : "flex h-7 min-h-7 w-7 min-w-7 shrink-0 items-center justify-center rounded-full bg-teal-100 text-xs font-semibold text-teal-700 dark:bg-teal-900/50 dark:text-teal-300"
-                  }
-                >
-                  {item.completed ? "✓" : i + 1}
-                </span>
-                <span className="min-w-0 flex-1 break-words leading-snug">{item.label}</span>
-              </Link>
-            </li>
-          ))}
-        </ul>
+        <AssistantStepsList steps={nextSteps} />
       </Section>
+
+      <Link
+        href="/chat?new=1"
+        prefetch={false}
+        aria-label={locale === "de" ? "Neuen KI-Berater-Chat starten" : "Start new AI advisor chat"}
+        title={locale === "de" ? "KI-Berater" : "AI advisor"}
+        className="group fixed bottom-6 right-6 z-50 inline-flex h-14 w-14 items-center justify-center rounded-full bg-teal-600 text-white shadow-lg shadow-teal-500/30 transition hover:scale-105 hover:bg-teal-700"
+      >
+        <span className="text-xl leading-none">🤖</span>
+        <span className="pointer-events-none absolute right-16 top-1/2 -translate-y-1/2 whitespace-nowrap rounded-lg bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white opacity-0 shadow-md transition group-hover:opacity-100 dark:bg-zinc-800">
+          {locale === "de" ? "KI-Berater" : "AI advisor"}
+        </span>
+      </Link>
     </div>
   );
 }

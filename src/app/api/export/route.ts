@@ -848,7 +848,7 @@ async function buildArtifactsCompanyReportPdf(tables: Table[], locale: Locale): 
   write(isEn ? "Artifacts library" : "Artefakt-Bibliothek", true, 12);
   if (artifactsTable) {
     const compact: Table = {
-      title: isEn ? "Artifacts" : "Artefakte",
+      title: isEn ? "Artifacts" : "Dokumente",
       headers: isEn ? ["title", "type", "version", "workflow"] : ["titel", "typ", "version", "workflow"],
       rows: artifactsTable.rows.map((r) => [r[1], r[2], r[3], r[4]]),
     };

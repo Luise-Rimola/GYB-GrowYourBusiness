@@ -13,9 +13,9 @@ const WORKFLOW_STEPS: Record<string, { stepKey: string; label: string }[]> = {
   ],
   WF_MARKET: [{ stepKey: "market_snapshot", label: "Market snapshot" }],
   WF_RESEARCH: [
-    { stepKey: "market_research", label: "Market research" },
-    { stepKey: "best_practices", label: "Best practices" },
-    { stepKey: "failure_reasons", label: "Failure reasons" },
+    { stepKey: "market_research", label: "Marktforschung" },
+    { stepKey: "best_practices", label: "Bewährte Vorgehensweisen" },
+    { stepKey: "failure_reasons", label: "Misserfolgsgründe" },
   ],
   WF_VALUE_PROPOSITION: [{ stepKey: "value_proposition", label: "Value Proposition" }],
   WF_COMPETITOR_ANALYSIS: [{ stepKey: "competitor_analysis", label: "Competitor analysis" }],

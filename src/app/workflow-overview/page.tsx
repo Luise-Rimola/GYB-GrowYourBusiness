@@ -8,6 +8,7 @@ import { PLANNING_PHASES, PLANNING_AREAS } from "@/lib/planningFramework";
 import { getServerLocale } from "@/lib/locale";
 import { getTranslations } from "@/lib/i18n";
 import { getWorkflowOverviewCharts } from "@/lib/workflowOverviewCharts";
+import { WORKFLOW_BY_KEY } from "@/lib/workflows";
 
 export default async function WorkflowOverviewPage() {
   const company = await getOrCreateDemoCompany();
@@ -44,6 +45,49 @@ export default async function WorkflowOverviewPage() {
           <Link href="/dashboard" className="inline-block text-sm font-medium text-teal-600 hover:text-teal-700 dark:text-teal-400">
             {w.dashboardLink}
           </Link>
+        </div>
+      </Section>
+
+      <Section title={w.planningAreasHeading} description={w.planningAreasDesc}>
+        <div className="grid gap-4 md:grid-cols-2">
+          {PLANNING_AREAS.map((area) => {
+            const areaWorkflows = area.workflowKeys
+              .map((k) => WORKFLOW_BY_KEY[k])
+              .filter(Boolean) as { key: string; name: string; description: string }[];
+            return (
+              <div key={area.id} className="rounded-2xl border border-[var(--card-border)] bg-[var(--card)] p-5">
+                <h3 className="font-semibold text-[var(--foreground)]">{area.name}</h3>
+                <p className="mt-1 text-sm text-[var(--muted)]">{area.description}</p>
+                {area.horizon && <p className="mt-0.5 text-xs text-[var(--muted)]">Zeithorizont: {area.horizon}</p>}
+                {(area.instruments ?? area.examples)?.length ? (
+                  <p className="mt-1 text-xs text-[var(--muted)]">
+                    {area.instruments ? "Instrumente" : "Beispiele"}: {(area.instruments ?? area.examples)!.slice(0, 4).join(", ")}
+                    {((area.instruments ?? area.examples)!.length > 4) ? " …" : ""}
+                  </p>
+                ) : null}
+                {areaWorkflows.length > 0 ? (
+                  <div className="mt-4 space-y-2">
+                    {areaWorkflows.map((wf) => (
+                      <div
+                        key={wf.key}
+                        className="flex items-center justify-between rounded-lg border border-[var(--card-border)] bg-[var(--background)]/50 px-3 py-2"
+                      >
+                        <span className="text-sm font-medium">{wf.name}</span>
+                        <Link
+                          href="/dashboard"
+                          className="rounded border px-2 py-1 text-xs transition hover:bg-teal-50 dark:hover:bg-teal-950/30"
+                        >
+                          In Pläne
+                        </Link>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-3 text-xs text-[var(--muted)]">Noch keine Prozesse zugeordnet.</p>
+                )}
+              </div>
+            );
+          })}
         </div>
       </Section>
 

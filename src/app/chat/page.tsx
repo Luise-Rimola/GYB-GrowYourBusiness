@@ -6,16 +6,21 @@ import { getOrCreateDemoCompany } from "@/lib/demo";
 import { ConfirmDeleteForm } from "@/components/ConfirmDeleteForm";
 import { getServerLocale } from "@/lib/locale";
 import { getTranslations } from "@/lib/i18n";
-import { areAllWorkflowsComplete } from "@/lib/chatPolicy";
 
 async function createThread(formData: FormData) {
   "use server";
   const company = await getOrCreateDemoCompany();
-  const allComplete = await areAllWorkflowsComplete(company.id);
-  if (!allComplete) redirect("/chat");
   const title = String(formData.get("title") || "New chat").trim() || "New chat";
   const thread = await prisma.chatThread.create({
     data: { companyId: company.id, title },
+  });
+  await prisma.chatMessage.create({
+    data: {
+      threadId: thread.id,
+      role: "assistant",
+      content:
+        "Ich bin dein individueller KI-Unternehmensberater. Ich kann dich bei Strategie, KPIs, Entscheidungen, Dokumenten und nächsten Schritten unterstützen. Was kann ich für dich tun?",
+    },
   });
   redirect(`/chat/${thread.id}`);
 }
@@ -40,9 +45,6 @@ export async function sendMessage(formData: FormData) {
     include: { messages: true },
   });
   if (!thread) return;
-
-  const allComplete = await areAllWorkflowsComplete(thread.companyId);
-  if (!allComplete) redirect(`/chat/${threadId}`);
 
   await prisma.chatMessage.create({
     data: {
@@ -75,11 +77,32 @@ export async function sendMessage(formData: FormData) {
   redirect(`/chat/${threadId}`);
 }
 
-export default async function ChatPage() {
+export default async function ChatPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ new?: string }>;
+}) {
+  const params = await searchParams;
   const locale = await getServerLocale();
   const t = getTranslations(locale);
   const company = await getOrCreateDemoCompany();
-  const allRunsComplete = await areAllWorkflowsComplete(company.id);
+  if (params.new === "1") {
+    const title = locale === "de" ? "Neuer KI-Berater Chat" : "New advisor chat";
+    const thread = await prisma.chatThread.create({
+      data: { companyId: company.id, title },
+    });
+    await prisma.chatMessage.create({
+      data: {
+        threadId: thread.id,
+        role: "assistant",
+        content:
+          locale === "de"
+            ? "Ich bin dein individueller KI-Unternehmensberater. Ich kann dich bei Strategie, KPIs, Entscheidungen, Dokumenten und nächsten Schritten unterstützen. Was kann ich für dich tun?"
+            : "I am your individual AI business advisor. I can help with strategy, KPIs, decisions, documents, and next steps. How can I help you?",
+      },
+    });
+    redirect(`/chat/${thread.id}`);
+  }
   const threads = await prisma.chatThread.findMany({
     where: { companyId: company.id },
     include: { messages: true },
@@ -100,32 +123,22 @@ export default async function ChatPage() {
           </Link>
         }
       >
-        {!allRunsComplete && (
-          <div className="mb-6 rounded-xl border border-amber-300 bg-amber-50/90 p-4 dark:border-amber-600 dark:bg-amber-900/30">
-            <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
-              {locale === "de"
-                ? "Bitte schließen Sie alle Workflows ab, bevor Sie den Berater-Chat nutzen. Der Chat nutzt Ihre Unternehmensdaten für kontextbezogene Recherche und bewertete Antworten."
-                : "Please complete all workflows before using the advisor chat. The chat uses your company data for context-based research and evaluated answers."}
-            </p>
-            <Link
-              href="/dashboard"
-              className="mt-3 inline-block text-sm font-semibold text-amber-700 underline dark:text-amber-300"
-            >
-              {locale === "de" ? "→ Zu den Plänen" : "→ Go to Plans"}
-            </Link>
-          </div>
-        )}
+        <div className="mb-6 rounded-xl border border-amber-300 bg-amber-50/90 p-4 dark:border-amber-600 dark:bg-amber-900/30">
+          <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
+            {locale === "de"
+              ? "Hinweis: Der Berater-Chat ist jederzeit nutzbar. Je mehr Daten (z. B. Dokumente, KPIs, Runs) vorhanden sind, desto besser und präziser werden die Antworten."
+              : "Note: The advisor chat is always available. The more data (e.g., documents, KPIs, runs) is available, the better and more precise the answers will be."}
+          </p>
+        </div>
         <form action={createThread} className="mb-6 flex gap-3">
           <input
             name="title"
             placeholder={t.chat.chatTitle}
-            disabled={!allRunsComplete}
-            className="rounded-xl border border-zinc-200 px-4 py-2 text-sm dark:border-zinc-800 dark:bg-zinc-950 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="rounded-xl border border-zinc-200 px-4 py-2 text-sm dark:border-zinc-800 dark:bg-zinc-950"
           />
           <button
             type="submit"
-            disabled={!allRunsComplete}
-            className="rounded-full bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="rounded-full bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-800"
           >
             New Chat
           </button>
@@ -150,9 +163,6 @@ export default async function ChatPage() {
                     {thread.title}
                   </Link>
                   <div className="flex items-center gap-3">
-                    <span className="text-xs text-zinc-500 dark:text-zinc-400">
-                      {thread.messages.length} {t.chat.messages}
-                    </span>
                     <ConfirmDeleteForm
                       action={deleteThread}
                       confirmMessage={t.chat.deleteConfirm}
@@ -168,21 +178,6 @@ export default async function ChatPage() {
                       </button>
                     </ConfirmDeleteForm>
                   </div>
-                </div>
-                <div className="mt-3 space-y-3">
-                  {thread.messages.slice(0, 2).map((message) => (
-                    <div
-                      key={message.id}
-                      className="rounded-xl border border-zinc-200 p-3 text-sm dark:border-zinc-800"
-                    >
-                      <p className="text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400">
-                        {message.role}
-                      </p>
-                      <p className="mt-2 line-clamp-2 text-sm text-zinc-700 dark:text-zinc-200">
-                        {message.content}
-                      </p>
-                    </div>
-                  ))}
                 </div>
               </div>
             ))

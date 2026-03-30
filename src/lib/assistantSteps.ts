@@ -109,27 +109,27 @@ export async function loadAssistantSteps(params: {
       },
       {
         href: `/study/fb2/${category}`,
-        label: `${t.study.fb2Title} — ${categoryLabel}`,
+        label: t.study.fb2Title,
         completed: fb2DoneByCategory.has(category),
       },
       {
         href: workflowDashboardHrefForCategory(category),
-        label: `${t.study.studyWorkflowStep}: ${categoryLabel}`,
+        label: t.study.studyWorkflowStep,
         completed: hasCompletedRuns,
       },
       {
         href: `/artifacts#artifacts-phase-${STUDY_CATEGORY_PHASE_ID[category]}`,
-        label: `${t.common.viewArtifacts}: ${categoryLabel}`,
+        label: t.common.viewArtifacts,
         completed: hasArtifacts,
       },
       {
         href: `/study/fb3/${category}`,
-        label: `${t.study.fb3Title} — ${categoryLabel}`,
+        label: t.study.fb3Title,
         completed: fb3DoneByCategory.has(category),
       },
       {
         href: `/study/fb4/${category}`,
-        label: `${t.study.fb4Title} — ${categoryLabel}`,
+        label: t.study.fb4Title,
         completed: fb4DoneByCategory.has(category),
       },
     ];

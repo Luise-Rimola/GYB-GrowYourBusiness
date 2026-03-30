@@ -28,10 +28,7 @@ export default async function StudyCategoryInfoPage({
   return (
     <div className="space-y-8">
       <header>
-        <Link href="/study" className="text-sm font-medium text-teal-600 hover:underline dark:text-teal-400">
-          ← {t.study.studyStart}
-        </Link>
-        <h1 className="mt-4 text-3xl font-bold tracking-tight text-[var(--foreground)]">
+        <h1 className="text-3xl font-bold tracking-tight text-[var(--foreground)]">
           {t.study.studyInfoBeforeFb2Prefix} {t.study.studyFb2BeforeCategory} — {categoryLabel}
         </h1>
         <p className="mt-2 text-[var(--muted)]">{t.study.studyInfoIntro}</p>
@@ -48,6 +45,22 @@ export default async function StudyCategoryInfoPage({
             <li key={w}>{w}</li>
           ))}
         </ul>
+        <p className="mt-4 text-sm text-[var(--muted)]">{t.study.studyInfoDocs}</p>
+        <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-[var(--muted)]">
+          {locale === "de" ? (
+            <>
+              <li>Ein Übersichts-Dokument mit den wichtigsten Erkenntnissen.</li>
+              <li>Ein Dokument mit Chancen, Risiken und offenen Fragen.</li>
+              <li>Ein Entscheidungs-Dokument mit klaren nächsten Schritten.</li>
+            </>
+          ) : (
+            <>
+              <li>An overview document with the most important findings.</li>
+              <li>A document with opportunities, risks, and open questions.</li>
+              <li>A decision document with clear next steps.</li>
+            </>
+          )}
+        </ul>
         <p className="mt-4 text-sm font-semibold text-[var(--foreground)]">{t.study.studyInfoWhatImportant}</p>
         <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-[var(--muted)]">
           {ctx.important.map((it) => (
@@ -56,14 +69,16 @@ export default async function StudyCategoryInfoPage({
         </ul>
       </section>
 
-      <div className="flex justify-end">
-        <Link
-          href={isEmbed ? `/study/fb2/${cat}?embed=1` : `/study/fb2/${cat}`}
-          className="rounded-xl bg-teal-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-700"
-        >
-          {t.study.studyInfoContinueTo} {t.study.studyFb2BeforeCategory}
-        </Link>
-      </div>
+      {!isEmbed ? (
+        <div className="flex justify-end">
+          <Link
+            href={`/study/fb2/${cat}`}
+            className="rounded-xl bg-teal-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-700"
+          >
+            {t.study.studyInfoContinueTo} {t.study.studyFb2BeforeCategory}
+          </Link>
+        </div>
+      ) : null}
     </div>
   );
 }

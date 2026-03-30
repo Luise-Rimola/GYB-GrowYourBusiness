@@ -5,10 +5,10 @@ const PLATFORM_FLOW = {
 flowchart TB
     A0[Profil / Intake / Dokumente]
     A0k[Wissen: Quellen verarbeiten, Text, Chunks, Embeddings, pgvector]
-    A1[Dashboard: Phasen + Workflows]
+    A1[Dashboard: Phasen + Prozesse]
     A2[Run starten]
     A3[Step bearbeiten]
-    A3b[ContextPack: Profil, KPIs, Artefakte, optional RAG-Chunks]
+    A3b[ContextPack: Profil, KPIs, Dokumente, optional RAG-Chunks]
     A4[LLM-Output + Schema-Validierung]
     A5[Artefakt speichern]
     A6[Freigabe / Evaluation]
@@ -56,7 +56,7 @@ flowchart TB
     R8[Strategy Indicators extrahieren]
     R9[Indicator-Mapping-Regeln auswerten]
     R10[Run-Status aktualisieren]
-    R11["Persistierte Werte & Indikatoren für Insights und Artefakte"]
+    R11["Persistierte Werte & Indikatoren für Insights und Dokumente"]
 
     R0 --> R0b --> R1
     R1 --> R2 --> R3 --> R4 --> R5
@@ -94,7 +94,7 @@ flowchart TB
     S3[LLM / API Einstellungen]
     S4[Dokumente & Quellen]
     S4b[Optional: Wissen verarbeiten, Chunks, Embeddings, Index]
-    S5[Je Planungsbereich 5×: Info → FB2 → Workflow-Runs → Artefakte → FB3 → FB4 Direktvergleich]
+    S5[Je Planungsbereich 5×: Info → FB2 → Prozess-Runs → Dokumente → FB3 → FB4 Direktvergleich]
     S6["Entscheidungen (Route /decisions)"]
     S7[Use-Case- / Szenario-Evaluation]
     S8[FB5: Integration, Phasen & Alltag]
@@ -124,7 +124,7 @@ const KPI_MODEL_FLOW = {
 flowchart TB
     K2[KPI-Bibliothek]
     Kw[Wissensobjekte aus Dokumenten]
-    K1[KPI-Werte: manuell, Extrakt, Text-Update, Workflow]
+    K1[KPI-Werte: manuell, Extrakt, Text-Update, Prozess]
     K3["Deskriptive Statistik & Verlauf (Seite /insights)"]
     Kai["Integrierte KPI KI-Analyse (Seite /insights, API)"]
     K4[Strategy Indicators]
@@ -189,7 +189,7 @@ flowchart TB
 `,
 };
 
-/** Vereinfachte Kern-Abhängigkeiten (weitere Workflows im Dashboard gruppiert) */
+/** Vereinfachte Kern-Abhängigkeiten (weitere Prozesse im Dashboard gruppiert) */
 const DEPENDENCIES = {
   de: `
 flowchart LR
@@ -252,7 +252,7 @@ const TOOL_FUNCTION_MAP = {
 flowchart TB
     Hub["Dashboard / Pläne"]
     R["Runs: Steps, ContextPack, Validierung"]
-    A["Artefakte: Freigabe, Evaluation"]
+    A["Dokumente: Freigabe, Evaluation"]
     I["Insights (/insights): KPIs, KI-Analyse, Rules"]
     K["Wissen (/knowledge): Upload, RAG"]
     D["Daten (/data): Profil, KPI-Werte"]
@@ -260,7 +260,7 @@ flowchart TB
     Ev[Evaluation]
     Dec["Entscheidungen (/decisions)"]
     Se["Einstellungen: LLM/API"]
-    Wo[Workflow-Übersicht]
+    Wo[Prozess-Übersicht]
     C[Berater-Chat]
 
     Hub --> R --> A
@@ -307,9 +307,9 @@ const USER_MANUAL_STEPS = {
 flowchart LR
     U1[1. Profil + Intake]
     U2[2. Quellen & optional Wissen]
-    U3[3. LLM/API & Phase / Workflow]
+    U3[3. LLM/API & Phase / Prozess]
     U4[4. Runs: Prompts, Output, Validierung]
-    U5[5. Artefakte freigeben & evaluieren]
+    U5[5. Dokumente freigeben & evaluieren]
     U6[6. Frühwarnhinweise]
     U7["7. Insights (/insights): KPIs & KPI KI-Analyse, Rules"]
     U8[8. Study FB1–FB5, Evaluation, Export]

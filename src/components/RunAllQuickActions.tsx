@@ -13,6 +13,7 @@ type RunAllQuickActionsProps = {
   defaultSelectedOptionalWorkflowKeys?: string[];
   artifactsHref: string;
   artifactsLabel: string;
+  showArtifactsButton?: boolean;
 };
 
 export function RunAllQuickActions({
@@ -21,6 +22,7 @@ export function RunAllQuickActions({
   defaultSelectedOptionalWorkflowKeys = [],
   artifactsHref,
   artifactsLabel,
+  showArtifactsButton = true,
 }: RunAllQuickActionsProps) {
   const normalizedOptionalWorkflowKeys = optionalWorkflowKeys.filter((k) => k !== WF_APP_DEVELOPMENT);
 
@@ -40,42 +42,53 @@ export function RunAllQuickActions({
   }
 
   const effectiveKeys = dedupe([...workflowKeys, ...selectedOptionalWorkflowKeys]);
+  const allKeys = dedupe([...workflowKeys, ...normalizedOptionalWorkflowKeys]);
 
   return (
     <div className="flex flex-nowrap items-center gap-4">
-      <RunAllButton workflowKeys={effectiveKeys} />
+      <RunAllButton selectedWorkflowKeys={effectiveKeys} allWorkflowKeys={allKeys} />
 
-      <Link
-        href={artifactsHref}
-        className="rounded-xl border border-teal-600 px-5 py-2.5 text-sm font-semibold text-teal-700 transition hover:bg-teal-50 dark:border-teal-500 dark:text-teal-300 dark:hover:bg-teal-950/50"
-      >
-        {artifactsLabel}
-      </Link>
+      {showArtifactsButton && (
+        <Link
+          href={artifactsHref}
+          className="rounded-xl border border-teal-600 px-5 py-2.5 text-sm font-semibold text-teal-700 transition hover:bg-teal-50 dark:border-teal-500 dark:text-teal-300 dark:hover:bg-teal-950/50"
+        >
+          {artifactsLabel}
+        </Link>
+      )}
 
       {normalizedOptionalWorkflowKeys.length > 0 && (
-        <details className="group relative" open={false}>
-          <summary className="cursor-pointer list-none rounded-lg border border-[var(--card-border)] px-5 py-2.5 text-sm font-semibold transition hover:bg-[var(--background)]">
-            Optionale Workflows
-          </summary>
-          <div className="absolute right-0 top-full z-50 mt-1 w-[320px] rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-3 shadow-lg">
-            <div className="max-h-[55vh] space-y-2 overflow-auto">
-              {normalizedOptionalWorkflowKeys.map((key) => (
-                <label
-                  key={key}
-                  className="flex cursor-pointer items-center gap-2 rounded-lg border border-transparent px-2 py-1.5 transition hover:bg-[var(--background)]"
-                >
-                  <input
-                    type="checkbox"
-                    checked={selectedOptionalSet.has(key)}
-                    onChange={() => toggleOptionalKey(key)}
-                    className="h-4 w-4 rounded border-[var(--card-border)] text-teal-600 focus:ring-teal-500"
-                  />
-                  <span className="text-sm">{WORKFLOW_NAMES[key] ?? key}</span>
-                </label>
-              ))}
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            className="rounded-lg border border-[var(--card-border)] px-3 py-2.5 text-sm font-semibold transition hover:bg-[var(--background)]"
+          >
+            Filter
+          </button>
+          <details className="group relative" open={false}>
+            <summary className="cursor-pointer list-none rounded-lg border border-[var(--card-border)] px-5 py-2.5 text-sm font-semibold transition hover:bg-[var(--background)]">
+              Optionale Prozesse
+            </summary>
+            <div className="absolute right-0 top-full z-50 mt-1 w-[320px] rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-3 shadow-lg">
+              <div className="max-h-[55vh] space-y-2 overflow-auto">
+                {normalizedOptionalWorkflowKeys.map((key) => (
+                  <label
+                    key={key}
+                    className="flex cursor-pointer items-center gap-2 rounded-lg border border-transparent px-2 py-1.5 transition hover:bg-[var(--background)]"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedOptionalSet.has(key)}
+                      onChange={() => toggleOptionalKey(key)}
+                      className="h-4 w-4 rounded border-[var(--card-border)] text-teal-600 focus:ring-teal-500"
+                    />
+                    <span className="text-sm">{WORKFLOW_NAMES[key] ?? key}</span>
+                  </label>
+                ))}
+              </div>
             </div>
-          </div>
-        </details>
+          </details>
+        </div>
       )}
     </div>
   );

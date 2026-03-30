@@ -7,6 +7,7 @@ import { WorkflowService } from "@/services/workflows";
 import { mergeRunStepsIntoContext, workflowSteps, MANUAL_STEP_KEYS } from "@/lib/workflowSteps";
 import { filterContextForStep } from "@/services/contextPack";
 import { SchemaKey } from "@/types/schemas";
+import { getServerLocale } from "@/lib/locale";
 
 export async function POST(req: Request) {
   try {
@@ -53,7 +54,8 @@ export async function POST(req: Request) {
     let contextPack = needsMergedContext ? mergeRunStepsIntoContext(freshBase, runStepsLatest, stepKey) : freshBase;
     contextPack = filterContextForStep(contextPack, run.workflowKey, stepKey);
 
-    const prompt = renderPrompt(run.workflowKey, stepKey, contextPack);
+    const locale = await getServerLocale();
+    const prompt = renderPrompt(run.workflowKey, stepKey, contextPack, locale);
     const promptRendered = prompt.rendered.replace("{{USER_NOTES}}", (run.userNotes ?? "").trim() || "(keine)");
 
     const settings = await prisma.companySettings.findUnique({
@@ -76,15 +78,41 @@ export async function POST(req: Request) {
     const headers: Record<string, string> = { "Content-Type": "application/json" };
     if (apiKey) headers["Authorization"] = `Bearer ${apiKey}`;
 
-    const llmRes = await fetch(chatUrl, {
+    const payloadWithJsonMode = {
+      model,
+      messages: [{ role: "user", content: promptRendered }],
+      temperature: 0.3,
+      response_format: { type: "json_object" as const },
+    };
+
+    let llmRes = await fetch(chatUrl, {
       method: "POST",
       headers,
-      body: JSON.stringify({
-        model,
-        messages: [{ role: "user", content: promptRendered }],
-        temperature: 0.3,
-      }),
+      body: JSON.stringify(payloadWithJsonMode),
     });
+
+    // Fallback for providers that don't support response_format.
+    if (!llmRes.ok) {
+      const firstErr = await llmRes.text();
+      const unsupportedJsonMode =
+        /response_format|json_object|unsupported|unknown/i.test(firstErr);
+      if (unsupportedJsonMode) {
+        llmRes = await fetch(chatUrl, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            model,
+            messages: [{ role: "user", content: promptRendered }],
+            temperature: 0.3,
+          }),
+        });
+      } else {
+        return NextResponse.json(
+          { error: `LLM-API Fehler (${llmRes.status}): ${firstErr.slice(0, 200)}` },
+          { status: 502 }
+        );
+      }
+    }
 
     if (!llmRes.ok) {
       const errText = await llmRes.text();
