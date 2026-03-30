@@ -24,6 +24,10 @@ const LABELS: Record<string, string> = {
   fixed_costs: "Fixkosten",
   variable_costs: "Variable Kosten",
   competitors: "Wettbewerber",
+  market_position: "Marktposition",
+  differentiation: "Differenzierung",
+  strengths_summary: "Stärken (Zusammenfassung)",
+  weaknesses_summary: "Schwächen (Zusammenfassung)",
   growth_challenge: "Wachstumsherausforderung",
   differentiators: "Differenzierung",
   sales_channels: "Vertriebskanäle",
@@ -182,7 +186,7 @@ export function ReadableDataView({ data, collapsible = true, summary, defaultOpe
 
   if (collapsible) {
     const itemCount = typeof obj === "object" ? Object.keys(obj).length : 1;
-    const label = summary ?? `View data (${itemCount} Felder)`;
+    const label = summary ?? `Daten anzeigen (${itemCount} Felder)`;
     return (
       <details className="group rounded-xl border border-[var(--card-border)]" open={defaultOpen}>
         <summary className="cursor-pointer list-none rounded-xl px-4 py-3 text-sm font-medium text-[var(--foreground)] transition hover:bg-slate-50 dark:hover:bg-slate-900/30 [&::-webkit-details-marker]:hidden">
