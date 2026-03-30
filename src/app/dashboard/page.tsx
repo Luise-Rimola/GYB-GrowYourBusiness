@@ -4,10 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { createRunWorkflowAction } from "@/app/actions";
 import { Section } from "@/components/Section";
 import { getOrCreateDemoCompany } from "@/lib/demo";
-import { WORKFLOWS, WORKFLOW_BY_KEY, getWorkflowSubtitle } from "@/lib/workflows";
+import { WORKFLOWS, WORKFLOW_BY_KEY } from "@/lib/workflows";
 import { PLANNING_PHASES, PLANNING_AREAS, WIZARD_WORKFLOW_ORDER, WORKFLOW_STEP_LABELS, WORKFLOW_TO_ARTIFACTS, ARTIFACT_LABELS } from "@/lib/planningFramework";
-import { getEarlyWarningDetails, getEarlyWarningPrimaryRiskText, hasEarlyWarningSignal } from "@/lib/earlyWarning";
-import { EarlyWarningPopover } from "@/components/EarlyWarningPopover";
 import { RunAllQuickActions } from "@/components/RunAllQuickActions";
 import { getServerLocale } from "@/lib/locale";
 import { getTranslations } from "@/lib/i18n";
@@ -367,7 +365,10 @@ export default async function DashboardPage({
                 {phaseWorkflows.length > 0 ? (
                   <details data-phase-details={phase.id} className="group rounded-xl border border-[var(--card-border)] bg-[var(--background)]/40 p-3">
                     <summary className="cursor-pointer list-none text-sm font-medium text-[var(--foreground)]">
-                      Prozesse anzeigen
+                      <span className="inline-flex items-center gap-2">
+                        <span aria-hidden>⚙️</span>
+                        Prozesse anzeigen
+                      </span>
                     </summary>
                     <div className="mt-3 space-y-3">
                       <div className="flex items-center justify-end">
@@ -385,7 +386,6 @@ export default async function DashboardPage({
                       const locked = isLocked[wf.key];
                       const hasComplete = runsByWorkflow[wf.key]?.some((r) => r.status === "complete" || r.status === "approved");
                       const hasInProgress = runsByWorkflow[wf.key]?.some((r) => ["draft", "running", "incomplete"].includes(r.status));
-                      const latestRun = runsByWorkflow[wf.key]?.[0];
                       const completeRun = runsByWorkflow[wf.key]?.find((r) => r.status === "complete" || r.status === "approved");
                       const wfArtifactTypes = WORKFLOW_TO_ARTIFACTS[wf.key] ?? [];
                       const wfArtifactItems = wfArtifactTypes.map((artifactType) => {
@@ -425,7 +425,6 @@ export default async function DashboardPage({
                                 />
                                 <p className="font-medium text-[var(--foreground)]">{wf.name}</p>
                               </div>
-                              <p className="text-xs text-[var(--muted)]">{getWorkflowSubtitle(wf.key, latestRun?.id, latestRun?.status)}</p>
                               {(WORKFLOW_STEP_LABELS[wf.key]?.length ?? 0) > 1 && (
                                 <p className="mt-1 text-xs text-[var(--muted)]/80">
                                   Unterworkflows: {WORKFLOW_STEP_LABELS[wf.key]!.join(" → ")}
@@ -489,22 +488,13 @@ export default async function DashboardPage({
                             <div className="mt-3 flex flex-wrap gap-2 border-t border-[var(--card-border)] pt-3">
                               {wfArtifactItems.map(({ type, artifact }) =>
                                 artifact ? (
-                                  <div key={artifact.id} className="inline-flex items-center gap-2">
-                                    <Link
-                                      href={type === "decision_pack" ? "/decisions" : `/artifacts/${artifact.id}`}
-                                      className="rounded-lg border border-teal-200 bg-teal-50/50 px-3 py-1.5 text-xs font-medium text-teal-800 transition hover:bg-teal-100 dark:border-teal-800 dark:bg-teal-950/30 dark:text-teal-200 dark:hover:bg-teal-900/50"
-                                    >
-                                      {getWorkflowArtifactLabel(wf.key, type)} →
-                                    </Link>
-                                    {hasEarlyWarningSignal(artifact) && (
-                                      <EarlyWarningPopover
-                                        size="compact"
-                                        panelTitle="Warum dieser Hinweis?"
-                                        primaryRiskText={getEarlyWarningPrimaryRiskText(artifact)}
-                                        detailMessages={getEarlyWarningDetails(artifact)}
-                                      />
-                                    )}
-                                  </div>
+                                  <Link
+                                    key={artifact.id}
+                                    href={type === "decision_pack" ? "/decisions" : `/artifacts/${artifact.id}`}
+                                    className="rounded-lg border border-teal-200 bg-teal-50/50 px-3 py-1.5 text-xs font-medium text-teal-800 transition hover:bg-teal-100 dark:border-teal-800 dark:bg-teal-950/30 dark:text-teal-200 dark:hover:bg-teal-900/50"
+                                  >
+                                    {getWorkflowArtifactLabel(wf.key, type)} →
+                                  </Link>
                                 ) : (
                                   <span
                                     key={type}
@@ -549,22 +539,13 @@ export default async function DashboardPage({
                   >
                     <>
                       {phaseArtifacts.map(({ type, artifact }) => (
-                        <div key={artifact.id} className="inline-flex items-center gap-2">
-                          <Link
-                            href={`/artifacts/${artifact.id}`}
-                            className="rounded-lg border border-teal-200/70 bg-teal-100/50 px-3 py-2 text-sm font-medium text-teal-900/80 grayscale-[0.2] transition hover:border-teal-300 hover:bg-teal-100/70 dark:border-teal-800/70 dark:bg-teal-950/35 dark:text-teal-100/80 dark:hover:border-teal-700 dark:hover:bg-teal-950/45"
-                          >
-                            Dokument: {artifact.title || ARTIFACT_LABELS[type] || type}
-                          </Link>
-                          {hasEarlyWarningSignal(artifact) && (
-                            <EarlyWarningPopover
-                              size="compact"
-                              panelTitle="Warum dieser Hinweis?"
-                              primaryRiskText={getEarlyWarningPrimaryRiskText(artifact)}
-                              detailMessages={getEarlyWarningDetails(artifact)}
-                            />
-                          )}
-                        </div>
+                        <Link
+                          key={artifact.id}
+                          href={`/artifacts/${artifact.id}`}
+                          className="rounded-lg border border-teal-200/70 bg-teal-100/50 px-3 py-2 text-sm font-medium text-teal-900/80 grayscale-[0.2] transition hover:border-teal-300 hover:bg-teal-100/70 dark:border-teal-800/70 dark:bg-teal-950/35 dark:text-teal-100/80 dark:hover:border-teal-700 dark:hover:bg-teal-950/45"
+                        >
+                          {artifact.title || ARTIFACT_LABELS[type] || type}
+                        </Link>
                       ))}
                       {decisionPackInPhase && (
                         <Link href="/decisions" className="rounded-lg border border-[var(--card-border)] bg-[var(--card)] px-3 py-2 text-sm font-medium transition hover:border-teal-300 hover:shadow dark:hover:border-teal-700">
@@ -640,3 +621,4 @@ export default async function DashboardPage({
     </div>
   );
 }
+

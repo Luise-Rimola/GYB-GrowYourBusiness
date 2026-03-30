@@ -8,7 +8,6 @@ import { getServerLocale } from "@/lib/locale";
 import { getTranslations } from "@/lib/i18n";
 import { SCENARIO_CATEGORIES, type ScenarioCategory } from "@/lib/scenarios";
 import { getOrCreateStudyParticipant } from "@/lib/study";
-import { getActiveIndicatorRuleAlerts } from "@/lib/indicatorMappingRulesEngine";
 import { loadAssistantSteps } from "@/lib/assistantSteps";
 import { AssistantStepsList } from "@/components/AssistantStepsList";
 
@@ -21,15 +20,7 @@ export default async function Home({
   const locale = await getServerLocale();
   const t = getTranslations(locale);
   const company = await getOrCreateDemoCompany();
-  const [
-    latestProfile,
-    kpiValues,
-    kpiSet,
-    runs,
-    decisions,
-    participant,
-    activeRuleAlerts,
-  ] = await Promise.all([
+  const [latestProfile, kpiValues, kpiSet, runs, decisions, participant] = await Promise.all([
     prisma.companyProfile.findFirst({
       where: { companyId: company.id },
       orderBy: { version: "desc" },
@@ -42,7 +33,6 @@ export default async function Home({
     prisma.run.findMany({ where: { companyId: company.id } }),
     prisma.decision.findMany({ where: { companyId: company.id } }),
     getOrCreateStudyParticipant(company.id),
-    getActiveIndicatorRuleAlerts(company.id).catch(() => []),
   ]);
 
   const profileComplete = latestProfile
@@ -62,28 +52,6 @@ export default async function Home({
     ["complete", "approved"].includes(r.status)
   ).length;
   const implementedDecisions = decisions.filter((d) => d.status === "scaled").length;
-
-  const selectedKpis = (kpiSet?.selectedKpisJson as string[] | null) ?? [];
-  const missingKpis = selectedKpis.length > 0
-    ? selectedKpis.filter((k) => !kpiValues.some((v) => v.kpiKey === k))
-    : (kpiValues.length === 0 ? ["revenue", "customers", "marketing_spend"] : []);
-  const lowConfidenceCount = kpiValues.filter((v) => v.confidence < 0.5).length;
-  const staleThreshold = new Date();
-  staleThreshold.setDate(staleThreshold.getDate() - 30);
-  const staleCount = kpiValues.filter((v) => v.createdAt < staleThreshold).length;
-
-  const alerts: { msg: string; tone: "warning" | "danger" }[] = [];
-  if (missingKpis.length > 0) alerts.push({ msg: `${t.home.missingKpis}: ${missingKpis.slice(0, 3).join(", ")}${missingKpis.length > 3 ? "..." : ""}`, tone: "warning" });
-  if (lowConfidenceCount > 0) alerts.push({ msg: `${lowConfidenceCount} ${t.home.lowConfidence}`, tone: "warning" });
-  if (staleCount > 0) alerts.push({ msg: `${staleCount} ${t.home.staleValues}`, tone: "warning" });
-  if (profileComplete < 50 && !latestProfile) alerts.push({ msg: t.home.completeProfile, tone: "danger" });
-  if (activeRuleAlerts.length > 0) {
-    const first = activeRuleAlerts[0];
-    alerts.push({
-      msg: `Rule-Hinweis aktiv: ${first.ruleKey}${first.message ? ` - ${first.message}` : ""}${activeRuleAlerts.length > 1 ? ` (+${activeRuleAlerts.length - 1})` : ""}`,
-      tone: "warning",
-    });
-  }
 
   const nextSteps = await loadAssistantSteps({
     companyId: company.id,
@@ -153,17 +121,6 @@ export default async function Home({
               ({SCENARIO_CATEGORIES[params.category as ScenarioCategory] ?? params.category})
             </span>
           )}
-        </div>
-      )}
-
-      {alerts.length > 0 && (
-        <div className="rounded-2xl border border-amber-200/80 bg-amber-50/80 p-5 dark:border-amber-800/50 dark:bg-amber-950/30">
-          <p className="text-sm font-semibold text-amber-800 dark:text-amber-200">{t.common.alerts}</p>
-          <ul className="mt-2 space-y-1 text-sm text-amber-700 dark:text-amber-300">
-            {alerts.map((a, i) => (
-              <li key={i}>{a.msg}</li>
-            ))}
-          </ul>
         </div>
       )}
 

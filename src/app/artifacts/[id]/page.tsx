@@ -1,36 +1,16 @@
-import type { ComponentType, ReactNode } from "react";
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Section } from "@/components/Section";
 import { AdvancedJson } from "@/components/AdvancedJson";
-import { ReadableDataView } from "@/components/ReadableDataView";
-import {
-  BaselineReportView,
-  IndustryResearchReportView,
-  MarketSnapshotView,
-  MarketResearchView,
-  DiagnosticReportView,
-  DataCollectionPlanView,
-  DecisionPackView,
-  BestPracticesView,
-  FailureAnalysisView,
-  BusinessPlanView,
-  MenuCardView,
-  SupplierListView,
-  MenuCostView,
-  MenuPreiskalkulationView,
-  RealEstateView,
-  FinancialPlanningView,
-  PersonnelPlanView,
-  WorkProcessesView,
-  StartupConsultingGuideView,
-  MarketingStrategyView,
-} from "@/components/ArtifactReportView";
+import { ARTIFACT_REPORT_VIEW_MAP } from "@/lib/artifactReportViews";
+import { prepareArtifactReportContent } from "@/lib/artifactReportDocument";
 import { KpiQuestionsForm } from "@/components/KpiQuestionsForm";
 import { submitKpiAnswersAction, updateArtifactAction } from "@/app/actions";
 import { ArtifactEditor } from "@/components/ArtifactEditor";
 import { SourcesFooter } from "@/components/SourcesFooter";
+import { ArtifactContentMode } from "@/components/ArtifactContentMode";
 import { getEarlyWarningDetails, getEarlyWarningPrimaryRiskText, hasEarlyWarningSignal } from "@/lib/earlyWarning";
 import { EarlyWarningPopover } from "@/components/EarlyWarningPopover";
 
@@ -48,70 +28,10 @@ export default async function ArtifactDetailPage({
     notFound();
   }
 
-  let content = artifact.contentJson as Record<string, unknown>;
+  const content = await prepareArtifactReportContent(artifact);
   const primaryRiskText = getEarlyWarningPrimaryRiskText({ type: artifact.type, title: artifact.title, contentJson: content });
 
-  // Business Plan: merge latest financial_planning.monthly_projection so updates appear without re-running
-  if (artifact.type === "business_plan" && artifact.companyId) {
-    const fpArtifact = await prisma.artifact.findFirst({
-      where: { companyId: artifact.companyId, type: "financial_planning" },
-      orderBy: { createdAt: "desc" },
-    });
-    const fpContent = fpArtifact?.contentJson as { monthly_projection?: unknown[] } | null;
-    if (fpContent?.monthly_projection?.length) {
-      content = { ...content, monthly_projection: fpContent.monthly_projection };
-    }
-  }
-  const kpiKeysFromTable =
-    content?.kpi_table && Array.isArray(content.kpi_table)
-      ? (content.kpi_table as Record<string, unknown>[]).flatMap((r) => Object.keys(r))
-      : [];
-  const kpiKeysFromIndicators =
-    content?.strategy_indicators && typeof content.strategy_indicators === "object" && !Array.isArray(content.strategy_indicators)
-      ? Object.keys(content.strategy_indicators as Record<string, unknown>)
-      : [];
-  const kpiKeysFromImpact =
-    content?.kpi_impact_range && typeof content.kpi_impact_range === "object" && !Array.isArray(content.kpi_impact_range)
-      ? Object.keys(content.kpi_impact_range as Record<string, unknown>)
-      : [];
-  const refs = {
-    kpi_keys: [...new Set([...kpiKeysFromTable, ...kpiKeysFromIndicators, ...kpiKeysFromImpact])],
-    artifact_ids: [artifact.id],
-    source_ids: [] as string[],
-    knowledge_object_ids: [] as string[],
-  };
-  const citations = (content?.citations_json as Record<string, string[]>) ?? content?.citations_json;
-  if (citations && typeof citations === "object") {
-    refs.kpi_keys = [...new Set([...refs.kpi_keys, ...(citations.kpi_keys ?? [])])];
-    refs.source_ids = citations.source_ids ?? [];
-    refs.knowledge_object_ids = citations.knowledge_object_ids ?? [];
-  }
-
-  const reportViewMap: Record<string, ComponentType<{ content: Record<string, unknown> }> | null> = {
-    baseline: BaselineReportView,
-    industry_research: IndustryResearchReportView,
-    market: MarketSnapshotView,
-    market_research: MarketResearchView,
-    diagnostic: DiagnosticReportView,
-    data_collection_plan: DataCollectionPlanView,
-    decision_pack: DecisionPackView,
-    best_practices: BestPracticesView,
-    failure_analysis: FailureAnalysisView,
-    business_plan: BusinessPlanView,
-    menu_card: MenuCardView,
-    supplier_list: SupplierListView,
-    menu_cost: MenuCostView,
-    menu_preiskalkulation: MenuPreiskalkulationView,
-    real_estate: RealEstateView,
-    financial_planning: FinancialPlanningView,
-    personnel_plan: PersonnelPlanView,
-    work_processes: WorkProcessesView,
-    startup_guide: StartupConsultingGuideView,
-    marketing_strategy: MarketingStrategyView,
-    knowledge_digest: null,
-    strategy_pack: null,
-  };
-  const ReportView = reportViewMap[artifact.type] ?? null;
+  const ReportView = ARTIFACT_REPORT_VIEW_MAP[artifact.type] ?? null;
 
   // For data_collection_plan with runId: fetch answers and show editable form
   let kpiAnswersSection: ReactNode = null;
@@ -146,7 +66,6 @@ export default async function ArtifactDetailPage({
     <div className="space-y-8">
       <Section
         title={artifact.title}
-        description={`${artifact.type} · v${artifact.version}`}
         actions={
           <div className="flex flex-wrap items-center gap-2">
             {hasEarlyWarningSignal(artifact) && (
@@ -203,46 +122,37 @@ export default async function ArtifactDetailPage({
             </div>
           );
         })()}
-        {ReportView ? (
-          <ReportView content={content} />
-        ) : (
-          <div
-            className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-4 text-sm"
-            dangerouslySetInnerHTML={{
-              __html: artifact.exportHtml ?? "<em>No content</em>",
-            }}
-          />
-        )}
-      </Section>
-
-      {((content?.sources_used as string[]) ?? []).length > 0 && (
-        <Section title="Quellen" description="Nummerierte Quellen – bei Bedarf aufrufbar.">
-          <SourcesFooter sources={(content.sources_used as string[]) ?? []} showTitle={false} />
-        </Section>
-      )}
-
-      {kpiAnswersSection}
-
-      <Section
-        title="Vollständige Felder (strukturiert)"
-        description="Alle im Dokument gespeicherten Felder in strukturierter Darstellung."
-      >
-        <ReadableDataView
+        <ArtifactContentMode
           data={content}
-          collapsible={false}
+          defaultMode="report"
+          documentTitle={artifact.title}
+          generatedAtIso={artifact.createdAt.toISOString()}
+          pdfFilenameBase={artifact.title || artifact.id}
+          artifactId={artifact.id}
+          reportSlot={
+            <>
+              {ReportView ? (
+                <ReportView content={content} />
+              ) : (
+                <div
+                  className="max-w-none text-sm leading-relaxed text-slate-800 [&_h1]:mb-2 [&_h1]:text-lg [&_h1]:font-semibold [&_h2]:mb-2 [&_h2]:text-base [&_h2]:font-semibold [&_p]:mb-2 [&_ul]:mb-2 [&_ul]:list-disc [&_ul]:pl-5"
+                  dangerouslySetInnerHTML={{
+                    __html: artifact.exportHtml ?? "<p><em>Kein Inhalt</em></p>",
+                  }}
+                />
+              )}
+              {((content?.sources_used as string[]) ?? []).length > 0 ? (
+                <section className="mt-10 border-t border-slate-200 pt-6">
+                  <h3 className="mb-3 text-lg font-semibold text-slate-900">Quellen</h3>
+                  <SourcesFooter sources={(content.sources_used as string[]) ?? []} showTitle={false} />
+                </section>
+              ) : null}
+            </>
+          }
         />
       </Section>
 
-      <Section title="References" description="KPIs, sources, and KB objects used.">
-        <div className="space-y-2 text-sm">
-          {refs.kpi_keys.length > 0 && <p><span className="font-semibold">KPIs:</span> {refs.kpi_keys.join(", ")}</p>}
-          {refs.source_ids.length > 0 && <p><span className="font-semibold">Sources:</span> {refs.source_ids.join(", ")}</p>}
-          {refs.knowledge_object_ids.length > 0 && <p><span className="font-semibold">KB Objects:</span> {refs.knowledge_object_ids.join(", ")}</p>}
-          {refs.kpi_keys.length === 0 && refs.source_ids.length === 0 && refs.knowledge_object_ids.length === 0 && (
-            <p className="text-[var(--muted)]">No references extracted.</p>
-          )}
-        </div>
-      </Section>
+      {kpiAnswersSection}
 
       <Section title="Advanced" description="Rohdaten (JSON) – nur Anzeige.">
         <details className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-4">

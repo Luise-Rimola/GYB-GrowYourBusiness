@@ -32,7 +32,54 @@ function extractRealEstateUrl(raw: string): string | null {
   return null;
 }
 
+/** Deutsche Bezeichner für typische LLM-/JSON-Felder (Kleinbuchstaben-Key) */
+const REPORT_FIELD_LABELS_DE: Record<string, string> = {
+  name: "Name",
+  description: "Beschreibung",
+  attractiveness: "Attraktivität",
+  rationale: "Begründung",
+  type: "Typ",
+  competitive_pressure: "Wettbewerbsdruck",
+  behavior: "Verhalten",
+  triggers: "Auslöser",
+  segment_or_trait: "Segment / Merkmal",
+  source_type: "Quellentyp",
+  key_findings: "Kernerkenntnisse",
+  gap_key: "Lücke",
+  key: "Schlüssel",
+  affected_kpis: "Betroffene KPIs",
+  root_cause_tree: "Ursachenbaum",
+  source_ref: "Quellen-Nr.",
+  source_hint: "Quellenhinweis",
+  blocks_kpis: "Blockierte KPIs",
+  severity: "Schweregrad",
+  recommended_collection_method: "Empfohlene Datenerhebung",
+  minimum_data_to_fix: "Mindestdaten zur Behebung",
+  revenue_description: "Umsatzbeschreibung",
+  assumptions: "Annahmen",
+  risks: "Risiken",
+  enablers: "Treiber",
+  confidence: "Konfidenz",
+  competitor_impact_note: "Wettbewerbs-Einfluss",
+  pricing_index: "Preisindex",
+  buyer_behavior: "Kaufverhalten",
+  supply_overview: "Angebotsüberblick",
+  demand_overview: "Nachfrageüberblick",
+  balance_assessment: "Einordnung",
+  is_makeable: "Umsetzbar",
+  recommendation: "Empfehlung",
+  key_blockers: "Haupt-Hindernisse",
+  preconditions: "Voraussetzungen",
+  frequency: "Häufigkeit",
+  mitigation: "Gegenmaßnahme",
+  founder_simple_summary: "Kurzfassung",
+  fit_score: "Eignung",
+  jurisdiction: "Rechtsraum",
+};
+
 function formatLabel(key: string): string {
+  const lower = key.toLowerCase();
+  if (REPORT_FIELD_LABELS_DE[lower]) return REPORT_FIELD_LABELS_DE[lower];
   return key
     .replace(/_/g, " ")
     .replace(/\b\w/g, (c) => c.toUpperCase());
@@ -47,14 +94,14 @@ export function BaselineReportView({ content }: { content: Record<string, unknow
       {/* Top KPI Gaps */}
       <section>
         <h3 className="mb-4 text-lg font-semibold text-[var(--foreground)]">
-          Top KPI Gaps
+          Top-KPI-Lücken
         </h3>
         <div className="space-y-4">
           {gaps.length === 0 ? (
-            <p className="text-sm text-[var(--muted)]">No gaps identified.</p>
+            <p className="text-sm text-[var(--muted)]">Keine Lücken identifiziert.</p>
           ) : (
             gaps.map((gap, i) => {
-              const gapKey = String(gap.gap_key ?? gap.key ?? `Gap ${i + 1}`);
+              const gapKey = String(gap.gap_key ?? gap.key ?? `Lücke ${i + 1}`);
               const severity = String(gap.severity ?? "medium");
               const blocksKpis = (gap.blocks_kpis as string[] | undefined) ?? [];
               const recommended = String(gap.recommended_collection_method ?? gap.recommendation ?? "");
@@ -83,7 +130,7 @@ export function BaselineReportView({ content }: { content: Record<string, unknow
                   {blocksKpis.length > 0 && (
                     <div className="mt-3">
                       <p className="text-xs font-medium uppercase tracking-wide text-[var(--muted)]">
-                        Blocked KPIs
+                        Blockierte KPIs
                       </p>
                       <p className="mt-1 text-sm text-[var(--foreground)]">
                         {blocksKpis.map((k) => formatLabel(k)).join(", ")}
@@ -93,7 +140,7 @@ export function BaselineReportView({ content }: { content: Record<string, unknow
                   {minimumData && (
                     <div className="mt-2">
                       <p className="text-xs font-medium uppercase tracking-wide text-[var(--muted)]">
-                        Minimum data to fix
+                        Mindestdaten zur Behebung
                       </p>
                       <p className="mt-1 text-sm text-[var(--foreground)]">{minimumData}</p>
                     </div>
@@ -101,7 +148,7 @@ export function BaselineReportView({ content }: { content: Record<string, unknow
                   {recommended && (
                     <div className="mt-3 rounded-lg border border-teal-200 bg-teal-50/50 p-3 dark:border-teal-800 dark:bg-teal-950/20">
                       <p className="text-xs font-medium uppercase tracking-wide text-teal-700 dark:text-teal-300">
-                        Recommended collection method
+                        Empfohlene Datenerhebung
                       </p>
                       <p className="mt-1 text-sm text-teal-800 dark:text-teal-200">
                         {recommended}
@@ -118,11 +165,11 @@ export function BaselineReportView({ content }: { content: Record<string, unknow
       {/* Data Quality Alerts */}
       <section>
         <h3 className="mb-4 text-lg font-semibold text-[var(--foreground)]">
-          Data Quality Alerts
+          Datenqualitäts-Hinweise
         </h3>
         <div className="space-y-3">
           {alerts.length === 0 ? (
-            <p className="text-sm text-[var(--muted)]">No alerts.</p>
+            <p className="text-sm text-[var(--muted)]">Keine Hinweise.</p>
           ) : (
             alerts.map((alert, i) => (
               <div
@@ -252,6 +299,29 @@ export function IndustryResearchReportView({ content }: { content: Record<string
   );
 }
 
+function SteckbriefRecordTable({ record }: { record: GapRecord }) {
+  const entries = Object.entries(record).filter(
+    ([, v]) => v != null && v !== "" && !(Array.isArray(v) && v.length === 0)
+  );
+  if (entries.length === 0) {
+    return <p className="text-sm text-[var(--muted)]">—</p>;
+  }
+  return (
+    <table className="steckbrief-table w-full border-collapse text-sm">
+      <tbody>
+        {entries.map(([k, v]) => (
+          <tr key={k} className="border-b border-slate-100 last:border-0">
+            <th className="px-3 py-2.5 text-left align-top">{formatLabel(k)}</th>
+            <td className="px-3 py-2.5 align-top text-slate-800">
+              {Array.isArray(v) ? v.join(", ") : String(v)}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
 export function MarketSnapshotView({ content }: { content: Record<string, unknown> }) {
   const segments = (content.segments as GapRecord[] | undefined) ?? [];
   const competitors = (content.competitors as GapRecord[] | undefined) ?? [];
@@ -260,31 +330,19 @@ export function MarketSnapshotView({ content }: { content: Record<string, unknow
   return (
     <div className="space-y-8">
       <section>
-        <h3 className="mb-4 text-lg font-semibold text-[var(--foreground)]">Segments</h3>
-        <div className="space-y-2">
+        <h3 className="mb-4 text-lg font-semibold text-[var(--foreground)]">Segmente</h3>
+        <div className="space-y-4">
           {segments.length === 0 ? (
-            <p className="text-sm text-[var(--muted)]">No segments.</p>
+            <p className="text-sm text-[var(--muted)]">Keine Segmente.</p>
           ) : (
             segments.map((s, i) => (
-              <div
-                key={i}
-                className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-4"
-              >
+              <div key={i} className="steckbrief-card shadow-sm">
                 {typeof s === "object" && s !== null ? (
-                  <div className="space-y-1 text-sm">
-                    {Object.entries(s).map(([k, v]) =>
-                      v != null && v !== "" ? (
-                        <p key={k}>
-                          <span className="font-medium text-[var(--muted)]">
-                            {formatLabel(k)}:
-                          </span>{" "}
-                          {Array.isArray(v) ? v.join(", ") : String(v)}
-                        </p>
-                      ) : null
-                    )}
-                  </div>
+                  <SteckbriefRecordTable record={s as GapRecord} />
                 ) : (
-                  <p className="text-sm">{String(s)}</p>
+                  <div className="p-4">
+                    <p className="text-sm">{String(s)}</p>
+                  </div>
                 )}
               </div>
             ))
@@ -293,31 +351,19 @@ export function MarketSnapshotView({ content }: { content: Record<string, unknow
       </section>
 
       <section>
-        <h3 className="mb-4 text-lg font-semibold text-[var(--foreground)]">Competitors</h3>
-        <div className="space-y-2">
+        <h3 className="mb-4 text-lg font-semibold text-[var(--foreground)]">Wettbewerber</h3>
+        <div className="space-y-4">
           {competitors.length === 0 ? (
-            <p className="text-sm text-[var(--muted)]">No competitors.</p>
+            <p className="text-sm text-[var(--muted)]">Keine Wettbewerber.</p>
           ) : (
             competitors.map((c, i) => (
-              <div
-                key={i}
-                className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-4"
-              >
+              <div key={i} className="steckbrief-card shadow-sm">
                 {typeof c === "object" && c !== null ? (
-                  <div className="space-y-1 text-sm">
-                    {Object.entries(c).map(([k, v]) =>
-                      v != null && v !== "" ? (
-                        <p key={k}>
-                          <span className="font-medium text-[var(--muted)]">
-                            {formatLabel(k)}:
-                          </span>{" "}
-                          {Array.isArray(v) ? v.join(", ") : String(v)}
-                        </p>
-                      ) : null
-                    )}
-                  </div>
+                  <SteckbriefRecordTable record={c as GapRecord} />
                 ) : (
-                  <p className="text-sm">{String(c)}</p>
+                  <div className="p-4">
+                    <p className="text-sm">{String(c)}</p>
+                  </div>
                 )}
               </div>
             ))
@@ -328,7 +374,7 @@ export function MarketSnapshotView({ content }: { content: Record<string, unknow
       {drivers.length > 0 && (
         <section>
           <h3 className="mb-4 text-lg font-semibold text-[var(--foreground)]">
-            Demand Drivers
+            Nachfrage-Treiber
           </h3>
           <ul className="space-y-2">
             {drivers.map((d, i) => (
@@ -358,14 +404,14 @@ export function MarketResearchView({ content }: { content: Record<string, unknow
       <MarketSnapshotView content={content} />
       {buyer.length > 0 && (
         <section>
-          <h3 className="mb-4 text-lg font-semibold text-[var(--foreground)]">Kaufverhalten (Buyer Behavior)</h3>
+          <h3 className="mb-4 text-lg font-semibold text-[var(--foreground)]">Kaufverhalten</h3>
           <div className="space-y-4">
             {buyer.map((b, i) => (
               <div key={i} className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-5">
                 <h4 className="font-semibold text-[var(--foreground)]">{b.segment_or_trait ?? "—"}</h4>
                 <p className="mt-2 text-sm text-[var(--muted)]">{b.behavior ?? ""}</p>
                 {b.triggers && b.triggers.length > 0 && (
-                  <p className="mt-2 text-xs text-teal-600 dark:text-teal-400">Triggers: {b.triggers.join(", ")}</p>
+                  <p className="mt-2 text-xs text-teal-600 dark:text-teal-400">Auslöser: {b.triggers.join(", ")}</p>
                 )}
               </div>
             ))}
@@ -376,34 +422,34 @@ export function MarketResearchView({ content }: { content: Record<string, unknow
         <section>
           <h3 className="mb-4 text-lg font-semibold text-[var(--foreground)]">Angebot & Nachfrage</h3>
           <div className="space-y-3 rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-5">
-            <p><span className="font-medium text-[var(--muted)]">Supply:</span> {sd.supply_overview ?? "—"}</p>
-            <p><span className="font-medium text-[var(--muted)]">Demand:</span> {sd.demand_overview ?? "—"}</p>
-            <p><span className="font-medium text-[var(--muted)]">Balance:</span> {sd.balance_assessment ?? "—"}</p>
+            <p><span className="font-medium text-[var(--muted)]">Angebot:</span> {sd.supply_overview ?? "—"}</p>
+            <p><span className="font-medium text-[var(--muted)]">Nachfrage:</span> {sd.demand_overview ?? "—"}</p>
+            <p><span className="font-medium text-[var(--muted)]">Bilanz:</span> {sd.balance_assessment ?? "—"}</p>
           </div>
         </section>
       )}
       {feas && (
         <section>
-          <h3 className="mb-4 text-lg font-semibold text-[var(--foreground)]">Feasibility (Pre-Revenue)</h3>
+          <h3 className="mb-4 text-lg font-semibold text-[var(--foreground)]">Machbarkeit (vor Umsatz)</h3>
           <div className={`rounded-xl border p-5 ${feas.recommendation === "not_recommended" ? "border-amber-200 bg-amber-50/50 dark:border-amber-800 dark:bg-amber-950/20" : "border-[var(--card-border)] bg-[var(--card)]"}`}>
             <div className="flex flex-wrap items-center gap-2">
-              <span className="font-medium">Makeable:</span>
-              <Badge label={feas.is_makeable ? "Yes" : "No"} tone={feas.is_makeable ? "success" : "danger"} />
+              <span className="font-medium">Umsetzbar:</span>
+              <Badge label={feas.is_makeable ? "Ja" : "Nein"} tone={feas.is_makeable ? "success" : "danger"} />
               <Badge label={feas.recommendation ?? "—"} tone={feas.recommendation === "not_recommended" ? "danger" : feas.recommendation === "conditional" ? "warning" : "success"} />
             </div>
             <p className="mt-3 text-sm">{feas.rationale ?? ""}</p>
             {feas.key_blockers && feas.key_blockers.length > 0 && (
-              <p className="mt-2 text-xs text-amber-700 dark:text-amber-300">Blockers: {feas.key_blockers.join(", ")}</p>
+              <p className="mt-2 text-xs text-amber-700 dark:text-amber-300">Hindernisse: {feas.key_blockers.join(", ")}</p>
             )}
             {feas.preconditions && feas.preconditions.length > 0 && (
-              <p className="mt-2 text-xs text-teal-600 dark:text-teal-400">Preconditions: {feas.preconditions.join(", ")}</p>
+              <p className="mt-2 text-xs text-teal-600 dark:text-teal-400">Voraussetzungen: {feas.preconditions.join(", ")}</p>
             )}
           </div>
         </section>
       )}
       {brd.length > 0 && (
         <section>
-          <h3 className="mb-4 text-lg font-semibold text-[var(--foreground)]">Business Research (Northdata-like)</h3>
+          <h3 className="mb-4 text-lg font-semibold text-[var(--foreground)]">Unternehmensrecherche</h3>
           <div className="space-y-4">
             {brd.map((b, i) => (
               <div key={i} className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-5">
@@ -469,7 +515,7 @@ export function BusinessPlanView({ content }: { content: Record<string, unknown>
     <div className="space-y-8">
       {isMultiSection && exec?.content && (
         <section>
-          <h3 className="mb-4 text-lg font-semibold text-[var(--foreground)]">Executive Summary</h3>
+          <h3 className="mb-4 text-lg font-semibold text-[var(--foreground)]">Management-Zusammenfassung</h3>
           <div className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-5">
             <p className="whitespace-pre-wrap text-sm text-[var(--foreground)]">{exec.content}</p>
             {(exec.key_points ?? []).length > 0 && (
@@ -484,7 +530,7 @@ export function BusinessPlanView({ content }: { content: Record<string, unknown>
       )}
       {isMultiSection && market?.content && (
         <section>
-          <h3 className="mb-4 text-lg font-semibold text-[var(--foreground)]">Market Analysis</h3>
+          <h3 className="mb-4 text-lg font-semibold text-[var(--foreground)]">Marktanalyse</h3>
           <div className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-5">
             <p className="whitespace-pre-wrap text-sm text-[var(--foreground)]">{market.content}</p>
             {(market.key_points ?? []).length > 0 && (
@@ -499,7 +545,7 @@ export function BusinessPlanView({ content }: { content: Record<string, unknown>
       )}
       {isMultiSection && marketing?.content && (
         <section>
-          <h3 className="mb-4 text-lg font-semibold text-[var(--foreground)]">Marketing Plan</h3>
+          <h3 className="mb-4 text-lg font-semibold text-[var(--foreground)]">Marketingplan</h3>
           <div className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-5">
             <p className="whitespace-pre-wrap text-sm text-[var(--foreground)]">{marketing.content}</p>
             {(marketing.key_points ?? []).length > 0 && (
@@ -513,30 +559,30 @@ export function BusinessPlanView({ content }: { content: Record<string, unknown>
         </section>
       )}
       <section>
-        <h3 className="mb-4 text-lg font-semibold text-[var(--foreground)]">Worst Case (Minimal Revenue)</h3>
+        <h3 className="mb-4 text-lg font-semibold text-[var(--foreground)]">Worst Case (min. Umsatz)</h3>
         <div className="rounded-xl border border-amber-200/80 bg-amber-50/50 p-5 dark:border-amber-800/50 dark:bg-amber-950/20">
           <p className="text-lg font-semibold text-amber-900 dark:text-amber-100">{w?.revenue_min != null ? `€${w.revenue_min.toLocaleString()}` : "—"}</p>
           <p className="mt-2 text-sm text-amber-800 dark:text-amber-200">{w?.revenue_description ?? ""}</p>
-          {(w?.assumptions ?? []).length > 0 && <p className="mt-2 text-xs">Assumptions: {(w?.assumptions ?? []).join("; ")}</p>}
-          {(w?.risks ?? []).length > 0 && <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">Risks: {(w?.risks ?? []).join("; ")}</p>}
+          {(w?.assumptions ?? []).length > 0 && <p className="mt-2 text-xs">Annahmen: {(w?.assumptions ?? []).join("; ")}</p>}
+          {(w?.risks ?? []).length > 0 && <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">Risiken: {(w?.risks ?? []).join("; ")}</p>}
         </div>
       </section>
       <section>
-        <h3 className="mb-4 text-lg font-semibold text-[var(--foreground)]">Best Case (Maximum Revenue)</h3>
+        <h3 className="mb-4 text-lg font-semibold text-[var(--foreground)]">Best Case (max. Umsatz)</h3>
         <div className="rounded-xl border border-teal-200 bg-teal-50/50 p-5 dark:border-teal-800 dark:bg-teal-950/20">
           <p className="text-lg font-semibold text-teal-900 dark:text-teal-100">{b?.revenue_max != null ? `€${b.revenue_max.toLocaleString()}` : "—"}</p>
           <p className="mt-2 text-sm text-teal-800 dark:text-teal-200">{b?.revenue_description ?? ""}</p>
-          {(b?.assumptions ?? []).length > 0 && <p className="mt-2 text-xs">Assumptions: {(b?.assumptions ?? []).join("; ")}</p>}
-          {(b?.enablers ?? []).length > 0 && <p className="mt-1 text-xs text-teal-700 dark:text-teal-300">Enablers: {(b?.enablers ?? []).join("; ")}</p>}
+          {(b?.assumptions ?? []).length > 0 && <p className="mt-2 text-xs">Annahmen: {(b?.assumptions ?? []).join("; ")}</p>}
+          {(b?.enablers ?? []).length > 0 && <p className="mt-1 text-xs text-teal-700 dark:text-teal-300">Treiber: {(b?.enablers ?? []).join("; ")}</p>}
         </div>
       </section>
       <section>
-        <h3 className="mb-4 text-lg font-semibold text-[var(--foreground)]">Realistic Case</h3>
+        <h3 className="mb-4 text-lg font-semibold text-[var(--foreground)]">Realistisches Szenario</h3>
         <div className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-5">
           <p className="text-lg font-semibold text-[var(--foreground)]">{r?.revenue_expected != null ? `€${r.revenue_expected.toLocaleString()}` : "—"}</p>
           <p className="mt-2 text-sm text-[var(--muted)]">{r?.revenue_description ?? ""}</p>
-          {(r?.assumptions ?? []).length > 0 && <p className="mt-2 text-xs">Assumptions: {(r?.assumptions ?? []).join("; ")}</p>}
-          {r?.confidence != null && <p className="mt-1 text-xs">Confidence: {Math.round((r.confidence ?? 0) * 100)}%</p>}
+          {(r?.assumptions ?? []).length > 0 && <p className="mt-2 text-xs">Annahmen: {(r?.assumptions ?? []).join("; ")}</p>}
+          {r?.confidence != null && <p className="mt-1 text-xs">Konfidenz: {Math.round((r.confidence ?? 0) * 100)}%</p>}
         </div>
       </section>
       {capital && (
@@ -658,7 +704,7 @@ export function BusinessPlanView({ content }: { content: Record<string, unknown>
       )}
       {isMultiSection && risk?.content && (
         <section>
-          <h3 className="mb-4 text-lg font-semibold text-[var(--foreground)]">Risk Analysis</h3>
+          <h3 className="mb-4 text-lg font-semibold text-[var(--foreground)]">Risikoanalyse</h3>
           <div className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-5">
             <p className="whitespace-pre-wrap text-sm text-[var(--foreground)]">{risk.content}</p>
             {(risk.key_points ?? []).length > 0 && (
@@ -673,7 +719,7 @@ export function BusinessPlanView({ content }: { content: Record<string, unknown>
       )}
       {brd.length > 0 && (
         <section>
-          <h3 className="mb-4 text-lg font-semibold text-[var(--foreground)]">Business Research Data</h3>
+          <h3 className="mb-4 text-lg font-semibold text-[var(--foreground)]">Unternehmensrecherche (Daten)</h3>
           <div className="space-y-4">
             {brd.map((x, i) => (
               <div key={i} className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-5">
@@ -744,9 +790,9 @@ export function DiagnosticReportView({ content }: { content: Record<string, unkn
 
   return (
     <div className="space-y-6">
-      <h3 className="text-lg font-semibold text-[var(--foreground)]">Root Cause Trees</h3>
+      <h3 className="text-lg font-semibold text-[var(--foreground)]">Ursachenbäume</h3>
       {trees.length === 0 ? (
-        <p className="text-sm text-[var(--muted)]">No trees.</p>
+        <p className="text-sm text-[var(--muted)]">Keine Ursachenbäume.</p>
       ) : (
         trees.map((t, i) => (
           <div
@@ -757,7 +803,7 @@ export function DiagnosticReportView({ content }: { content: Record<string, unkn
               <div className="space-y-4 text-sm">
                 <div>
                   <p className="font-medium text-[var(--foreground)]">
-                    Gap: {String(t.gap_key ?? t.key ?? `Gap ${i + 1}`)}
+                    Lücke: {String(t.gap_key ?? t.key ?? `Lücke ${i + 1}`)}
                   </p>
                 </div>
                 <div>
@@ -790,7 +836,7 @@ export function DataCollectionPlanView({ content }: { content: Record<string, un
   return (
     <div className="space-y-8">
       <section>
-        <h3 className="mb-4 text-lg font-semibold text-[var(--foreground)]">Questions</h3>
+        <h3 className="mb-4 text-lg font-semibold text-[var(--foreground)]">Fragen</h3>
         <ol className="space-y-2">
           {questions.map((q, i) => (
             <li
@@ -809,7 +855,7 @@ export function DataCollectionPlanView({ content }: { content: Record<string, un
       {mapping.length > 0 && (
         <section>
           <h3 className="mb-4 text-lg font-semibold text-[var(--foreground)]">
-            KPI Mapping
+            KPI-Zuordnung
           </h3>
           <ul className="space-y-2">
             {mapping.map((m, i) => (
@@ -835,7 +881,7 @@ export function BestPracticesView({ content }: { content: Record<string, unknown
   return (
     <div className="space-y-8">
       <section>
-        <h3 className="mb-4 text-lg font-semibold text-[var(--foreground)]">Best Practices</h3>
+        <h3 className="mb-4 text-lg font-semibold text-[var(--foreground)]">Bewährte Praktiken</h3>
         <div className="space-y-4">
           {practices.map((p, i) => (
             <div
@@ -853,7 +899,7 @@ export function BestPracticesView({ content }: { content: Record<string, unknown
       </section>
       {industry.length > 0 && (
         <section>
-          <h3 className="mb-4 text-lg font-semibold text-[var(--foreground)]">Industry-Specific</h3>
+          <h3 className="mb-4 text-lg font-semibold text-[var(--foreground)]">Branchenspezifisch</h3>
           <ul className="space-y-2">
             {industry.map((item, i) => (
               <li key={i} className="flex gap-2 rounded-lg border border-[var(--card-border)] bg-[var(--card)] px-4 py-2 text-sm">
@@ -875,7 +921,7 @@ export function FailureAnalysisView({ content }: { content: Record<string, unkno
   return (
     <div className="space-y-8">
       <section>
-        <h3 className="mb-4 text-lg font-semibold text-[var(--foreground)]">Why Businesses Fail</h3>
+        <h3 className="mb-4 text-lg font-semibold text-[var(--foreground)]">Warum Unternehmen scheitern</h3>
         <div className="space-y-4">
           {reasons.map((r, i) => (
             <div
@@ -884,11 +930,11 @@ export function FailureAnalysisView({ content }: { content: Record<string, unkno
             >
               <h4 className="font-semibold text-amber-900 dark:text-amber-100">{r.reason}</h4>
               {r.frequency && (
-                <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">Frequency: {r.frequency}</p>
+                <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">Häufigkeit: {r.frequency}</p>
               )}
               {r.mitigation && (
                 <div className="mt-3 rounded-lg border border-teal-200 bg-teal-50/50 p-3 dark:border-teal-800 dark:bg-teal-950/20">
-                  <p className="text-xs font-medium uppercase tracking-wide text-teal-700 dark:text-teal-300">Mitigation</p>
+                  <p className="text-xs font-medium uppercase tracking-wide text-teal-700 dark:text-teal-300">Gegenmaßnahme</p>
                   <p className="mt-1 text-sm text-teal-800 dark:text-teal-200">{r.mitigation}</p>
                 </div>
               )}
@@ -898,7 +944,7 @@ export function FailureAnalysisView({ content }: { content: Record<string, unkno
       </section>
       {risks.length > 0 && (
         <section>
-          <h3 className="mb-4 text-lg font-semibold text-[var(--foreground)]">Industry Risks</h3>
+          <h3 className="mb-4 text-lg font-semibold text-[var(--foreground)]">Branchenrisiken</h3>
           <ul className="space-y-2">
             {risks.map((risk, i) => (
               <li key={i} className="flex gap-2 rounded-lg border border-amber-200/80 bg-amber-50/50 px-4 py-2 text-sm dark:border-amber-800/50 dark:bg-amber-950/20">
@@ -921,7 +967,7 @@ export function DecisionPackView({ content }: { content: Record<string, unknown>
     <div className="space-y-8">
       <section>
         <h3 className="mb-4 text-lg font-semibold text-[var(--foreground)]">
-          Top Decisions
+          Top-Entscheidungen
         </h3>
         <div className="space-y-4">
           {proposals.map((p, i) => (
@@ -930,7 +976,7 @@ export function DecisionPackView({ content }: { content: Record<string, unknown>
               className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-5"
             >
               <h4 className="font-semibold text-[var(--foreground)]">
-                {String(p.title ?? `Decision ${i + 1}`)}
+                {String(p.title ?? `Entscheidung ${i + 1}`)}
               </h4>
               {p.founder_simple_summary != null && (
                 <p className="mt-2 text-sm text-[var(--muted)]">
@@ -995,7 +1041,7 @@ export function SupplierListView({ content }: { content: Record<string, unknown>
   return (
     <div className="space-y-8">
       <section>
-        <h3 className="mb-4 text-lg font-semibold text-[var(--foreground)]">Suppliers</h3>
+        <h3 className="mb-4 text-lg font-semibold text-[var(--foreground)]">Lieferanten</h3>
         <div className="space-y-4">
           {suppliers.map((s, i) => (
             <div key={i} className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-5">
@@ -1632,21 +1678,21 @@ export function StartupConsultingGuideView({ content }: { content: Record<string
   return (
     <div className="space-y-8">
       <section>
-        <h3 className="mb-4 text-lg font-semibold text-[var(--foreground)]">Funding Recommendations</h3>
+        <h3 className="mb-4 text-lg font-semibold text-[var(--foreground)]">Finanzierungsempfehlungen</h3>
         <div className="space-y-4">
           {funding.map((f, i) => (
             <div key={i} className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-5">
               <h4 className="font-semibold text-[var(--foreground)]">{f.model}</h4>
               <p className="mt-2 text-sm text-[var(--muted)]">{f.rationale}</p>
               {f.fit_score != null && (
-                <p className="mt-1 text-xs text-teal-600 dark:text-teal-400">Fit: {Math.round(f.fit_score * 100)}%</p>
+                <p className="mt-1 text-xs text-teal-600 dark:text-teal-400">Passung: {Math.round(f.fit_score * 100)}%</p>
               )}
             </div>
           ))}
         </div>
       </section>
       <section>
-        <h3 className="mb-4 text-lg font-semibold text-[var(--foreground)]">Incorporation Recommendations</h3>
+        <h3 className="mb-4 text-lg font-semibold text-[var(--foreground)]">Empfehlungen Rechtsform / Gründung</h3>
         <div className="space-y-4">
           {incorp.map((i, idx) => (
             <div key={idx} className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-5">
@@ -1659,10 +1705,85 @@ export function StartupConsultingGuideView({ content }: { content: Record<string
       </section>
       {considerations.length > 0 && (
         <section>
-          <h3 className="mb-4 text-lg font-semibold text-[var(--foreground)]">Key Considerations</h3>
+          <h3 className="mb-4 text-lg font-semibold text-[var(--foreground)]">Wesentliche Punkte</h3>
           <ul className="space-y-2">
             {considerations.map((c, i) => (
               <li key={i} className="rounded-lg border border-[var(--card-border)] bg-[var(--card)] px-4 py-2 text-sm">{c}</li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </div>
+  );
+}
+
+function SwotQuadrant({
+  title,
+  tone,
+  items,
+}: {
+  title: string;
+  tone: "s" | "w" | "o" | "t";
+  items: string[];
+}) {
+  return (
+    <div className={`swot-cell swot-cell--${tone}`}>
+      <h4>{title}</h4>
+      {items.length === 0 ? (
+        <p className="text-sm text-slate-400">—</p>
+      ) : (
+        <ul>
+          {items.map((x, i) => (
+            <li key={i}>{x}</li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+/** SWOT im 2×2-Raster (wie klassischer Steckbrief / Präsentationsfolie) */
+export function SwotReportView({ content }: { content: Record<string, unknown> }) {
+  const strengths = (content.strengths as string[]) ?? [];
+  const weaknesses = (content.weaknesses as string[]) ?? [];
+  const opportunities = (content.opportunities as string[]) ?? [];
+  const threats = (content.threats as string[]) ?? [];
+  const summary = content.swot_matrix_summary as string | undefined;
+  const strategic = (content.strategic_implications as string[]) ?? [];
+  const recommendations = (content.recommendations as string[]) ?? [];
+
+  return (
+    <div className="space-y-8">
+      {summary ? (
+        <p className="rounded-lg border border-slate-200 bg-slate-50/80 px-4 py-3 text-sm leading-relaxed text-slate-700">
+          {summary}
+        </p>
+      ) : null}
+
+      <div className="swot-grid">
+        <SwotQuadrant title="Stärken" tone="s" items={strengths} />
+        <SwotQuadrant title="Schwächen" tone="w" items={weaknesses} />
+        <SwotQuadrant title="Chancen" tone="o" items={opportunities} />
+        <SwotQuadrant title="Risiken / Bedrohungen" tone="t" items={threats} />
+      </div>
+
+      {strategic.length > 0 && (
+        <section>
+          <h3 className="mb-3 text-lg font-semibold text-[var(--foreground)]">Strategische Implikationen</h3>
+          <ul className="list-disc space-y-1.5 pl-5 text-sm leading-relaxed">
+            {strategic.map((s, i) => (
+              <li key={i}>{s}</li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {recommendations.length > 0 && (
+        <section>
+          <h3 className="mb-3 text-lg font-semibold text-[var(--foreground)]">Empfehlungen</h3>
+          <ul className="list-disc space-y-1.5 pl-5 text-sm leading-relaxed">
+            {recommendations.map((r, i) => (
+              <li key={i}>{r}</li>
             ))}
           </ul>
         </section>

@@ -40,29 +40,13 @@ export default async function ProfilePage({
   return (
     <div className="space-y-8">
       <Section title={t.profile.title} description={t.profile.description}>
-        <div className="space-y-8">
-          <div>
-            <p className="text-sm font-semibold text-zinc-700 dark:text-zinc-200">
-              {t.profile.latestProfile.replace("{version}", String(latest?.version ?? 0))}
-            </p>
-            {showSavedBanner ? <ProfileSavedNotifier /> : null}
-          </div>
-
-          <div>
-            <p className="text-sm font-semibold text-zinc-700 dark:text-zinc-200">
-              {t.profile.editProfile}
-            </p>
-            <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-              {t.profile.editProfileDesc}
-            </p>
-            <div className="mt-4">
-              <IntakeForm
-                existing={existing}
-                submitAction={saveProfile}
-                assistantEmbed={isEmbed}
-              />
-            </div>
-          </div>
+        <div className="space-y-6">
+          {showSavedBanner ? <ProfileSavedNotifier /> : null}
+          <IntakeForm
+            existing={existing}
+            submitAction={saveProfile}
+            assistantEmbed={isEmbed}
+          />
         </div>
       </Section>
 

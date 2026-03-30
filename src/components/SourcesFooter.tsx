@@ -1,25 +1,54 @@
 "use client";
 
 /**
+ * Parse one sources_used line into title + optional URL.
+ * Supports: "Title (https://...)", markdown "[label](url)", and "Title ([label](url))" from LLMs.
+ */
+function parseSourceLine(str: string): { title: string; url: string | null } {
+  const s = String(str).trim();
+  if (!s) return { title: "", url: null };
+
+  // Plain "Title (https://...)" — not markdown inside the parens
+  const plain = s.match(/^(.+?)\s*\((https?:\/\/[^)]+)\)$/);
+  if (plain && !/^\[/.test(plain[1]) && !plain[1].includes("](")) {
+    return { title: plain[1].trim(), url: plain[2] };
+  }
+
+  // Markdown [text](url) — take last match (often the real link after a duplicate label URL)
+  const mdMatches = [...s.matchAll(/\[([^\]]*)\]\((https?:\/\/[^)]+)\)/g)];
+  if (mdMatches.length) {
+    const url = mdMatches[mdMatches.length - 1][2];
+    let title = s
+      .replace(/\s*\(\[[^\]]*\]\([^)]+\)\)\s*$/, "")
+      .replace(/\s*\[[^\]]*\]\([^)]+\)\s*$/, "")
+      .trim();
+    if (!title) title = mdMatches[mdMatches.length - 1][1].trim() || url;
+    return { title, url };
+  }
+
+  if (s.startsWith("http://") || s.startsWith("https://")) {
+    return { title: s, url: s };
+  }
+
+  // Any bare URL in the line (fallback)
+  const urlMatch = s.match(/(https?:\/\/[^\s)\]]+)/);
+  if (urlMatch) {
+    const url = urlMatch[1];
+    let title = s.slice(0, urlMatch.index).trim().replace(/\(\s*$/, "").trim();
+    return { title: title || url, url };
+  }
+
+  return { title: s, url: null };
+}
+
+/**
  * Renders sources_used as a numbered list at the end of an artifact.
- * Parses "Title (URL)" format and makes URLs clickable.
+ * Parses "Title (URL)" and common markdown link shapes; makes URLs clickable.
  */
 export function SourcesFooter({ sources, showTitle = true }: { sources: string[]; showTitle?: boolean }) {
   if (!sources || sources.length === 0) return null;
 
-  const parsed = sources.map((s) => {
-    const str = String(s).trim();
-    // Match "Title (https://...)" or "Title (http://...)"
-    const match = str.match(/^(.+?)\s*\((https?:\/\/[^)]+)\)$/);
-    if (match) {
-      return { title: match[1].trim(), url: match[2] };
-    }
-    // If starts with http, treat as URL
-    if (str.startsWith("http://") || str.startsWith("https://")) {
-      return { title: str, url: str };
-    }
-    return { title: str, url: null };
-  });
+  const parsed = sources.map((s) => parseSourceLine(s));
 
   return (
     <section className={showTitle ? "mt-8 border-t border-[var(--card-border)] pt-6" : ""}>

@@ -48,7 +48,7 @@ export default async function WorkflowOverviewPage() {
         </div>
       </Section>
 
-      <Section title={w.planningAreasHeading} description={w.planningAreasDesc}>
+      <Section title={w.planningAreasHeading} description={w.planningFrameworkDesc}>
         <div className="grid gap-4 md:grid-cols-2">
           {PLANNING_AREAS.map((area) => {
             const areaWorkflows = area.workflowKeys

@@ -90,6 +90,10 @@ const STUDY_CATEGORY_CONTEXT_DE: Record<ScenarioCategory, StudyCategoryLocaleBlo
     ],
     fb3Description:
       "Bewerte die erzeugten Launch-Ergebnisse hinsichtlich Umsetzbarkeit, Klarheit und Relevanz für den Markteintritt.",
+    fb2WithoutToolScenario:
+      "Stellen Sie sich vor, Sie erarbeiten Go-to-Market und Marketingstrategie ohne KI — auf Basis interner Unterlagen, Benchmarks, Kanaltests, Budgetierung, KPIs und Abstimmung im Team (z. B. Workshops oder schriftliche Pläne).\n\n" +
+      "Denken Sie an den manuellen Aufwand: Segmente beschreiben; Botschaften und Angebote formulieren; Kanäle und Maßnahmen vergleichen; Budget und Zeitplan schätzen; KPIs und Erfolgskriterien definieren; Risiken und Abhängigkeiten benennen; Dokumentation für Umsetzung und Freigaben konsistent halten.\n\n" +
+      "Bewerten Sie, wie belastend Koordination und Unsicherheit ohne strukturierte KI-Unterstützung wären — bevor Sie die KI-gestützten Schritte in dieser Phase nutzen.",
   },
   wachstum_expansion: {
     phase: "Wachstumsphase",
@@ -172,6 +176,10 @@ const STUDY_CATEGORY_CONTEXT_EN: Record<ScenarioCategory, StudyCategoryLocaleBlo
     ],
     fb3Description:
       "Rate validation workflow results by how much they reduce uncertainty and increase decision confidence.",
+    fb2WithoutToolScenario:
+      "Imagine you validate idea, USP, feasibility, and customer fit without AI — using workshops, surveys, prototypes, expert feedback, research, and manual analysis in spreadsheets and documents.\n\n" +
+      "For a realistic rating, think about: which hypotheses must be tested; what data and samples are missing; how you coordinate stakeholders and schedules; where uncertainty, legal, or technical risks sit; how you keep findings traceable for later decisions.\n\n" +
+      "Your answers should reflect how strenuous, slow, or uncertain such a validation process would feel without AI support — before you use the assisted processes.",
   },
   marketing: {
     phase: "Founding / launch phase",

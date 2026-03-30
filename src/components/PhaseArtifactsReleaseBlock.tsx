@@ -51,7 +51,10 @@ export function PhaseArtifactsReleaseBlock({
     <>
       <details className={`group mt-4 rounded-xl border p-3 ${shellClass}`}>
         <summary className="cursor-pointer list-none text-sm font-medium text-[var(--foreground)]">
-          {labels.sectionTitle}
+          <span className="inline-flex items-center gap-2">
+            <span aria-hidden>📄</span>
+            {labels.sectionTitle}
+          </span>
         </summary>
         <div className="mt-3 flex flex-wrap gap-2">{children}</div>
         <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-[var(--card-border)] pt-3">
@@ -128,3 +131,4 @@ export function PhaseArtifactsReleaseBlock({
     </>
   );
 }
+

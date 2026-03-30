@@ -14,6 +14,7 @@ import { SchemaKey } from "@/types/schemas";
 import { getWorkflowName, getWorkflowSubtitle, getWorkflowExplanationLines } from "@/lib/workflows";
 import { mergeRunStepsIntoContext, workflowSteps } from "@/lib/workflowSteps";
 import { isRunProcessFullyComplete } from "@/lib/runProcessCompletion";
+import { getNextWorkflowNavigation } from "@/lib/nextWorkflowNavigation";
 import { AssistantRunEmbedBridge } from "@/components/AssistantRunEmbedBridge";
 import { filterContextForStep } from "@/services/contextPack";
 import { getServerLocale } from "@/lib/locale";
@@ -330,6 +331,8 @@ export default async function RunDetailPage({
     runStepsLatest.map((s) => ({ stepKey: s.stepKey, schemaValidationPassed: s.schemaValidationPassed })),
   );
 
+  const nextWorkflowNav = await getNextWorkflowNavigation(run.companyId, run.workflowKey);
+
   let appDevelopmentConfig: { existingIdeas: { id: string; title: string }[] } | undefined;
   if (run.workflowKey === "WF_APP_DEVELOPMENT") {
     const appIdeas = await prisma.artifact.findMany({
@@ -495,6 +498,8 @@ export default async function RunDetailPage({
               verifyStep={verifyStep}
               deleteStep={deleteStep}
               updateStep={updateStep}
+              nextWorkflowNav={nextWorkflowNav}
+              nextWorkflowCta={locale === "de" ? "Nächster Prozess" : "Next process"}
             />
           </Section>
         </div>

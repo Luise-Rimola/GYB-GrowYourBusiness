@@ -274,7 +274,7 @@ export default async function KnowledgePage({
   }
   const needsRerun = params.needsRerun === "1";
   const workflowKeys = params.workflows ? params.workflows.split(",").filter(Boolean) : [];
-  const allowedTabs = ["objects", "kpis", "measures", "contradictions", "extractions"] as const;
+  const allowedTabs = ["sources", "objects", "kpis", "measures", "contradictions", "extractions"] as const;
   const activeTab = allowedTabs.includes((params.tab ?? "objects") as (typeof allowedTabs)[number])
     ? (params.tab as (typeof allowedTabs)[number] | undefined) ?? "objects"
     : "objects";
@@ -402,6 +402,7 @@ export default async function KnowledgePage({
       <div className="overflow-x-auto">
         <div className="inline-flex min-w-full gap-2 border-b border-[var(--card-border)] pb-2">
           {[
+            { key: "sources", label: t.knowledge.sourcesQueue },
             { key: "objects", label: t.knowledge.knowledgeObjects },
             { key: "kpis", label: t.knowledge.kpiUpdateData },
             { key: "measures", label: t.knowledge.measuresList },

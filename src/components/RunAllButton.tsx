@@ -98,9 +98,8 @@ export function RunAllButton({ selectedWorkflowKeys, allWorkflowKeys }: RunAllBu
     abortRef.current = false;
     setLoading(true);
 
-    let items: StepItem[];
+    const items: StepItem[] = [];
     if (mode === "selected" || mode === "all") {
-      items = [];
       for (const wf of workflowKeys) {
         const steps = workflowSteps[wf] ?? [];
         for (const s of steps) {
