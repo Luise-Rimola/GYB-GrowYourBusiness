@@ -102,6 +102,12 @@ export default async function Fragebogen2Page({
           <span className="font-semibold">{t.study.fb2TypicalTasksLabel}</span> {workflowList}
         </p>
         <p className="mt-2 text-[var(--muted)]">{t.study.fb2IntroParagraph}</p>
+        {context ? (
+          <>
+            <p className="mt-4 font-semibold text-[var(--foreground)]">{t.study.fb2WithoutToolScenarioTitle}</p>
+            <p className="mt-2 whitespace-pre-line text-[var(--muted)] leading-relaxed">{context.fb2WithoutToolScenario}</p>
+          </>
+        ) : null}
       </div>
       <Fragebogen2Form
         action={saveFb2}

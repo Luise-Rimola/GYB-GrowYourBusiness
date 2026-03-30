@@ -13,6 +13,8 @@ import { submitKpiAnswersAction } from "@/app/actions";
 import { SchemaKey } from "@/types/schemas";
 import { getWorkflowName, getWorkflowSubtitle, getWorkflowExplanationLines } from "@/lib/workflows";
 import { mergeRunStepsIntoContext, workflowSteps } from "@/lib/workflowSteps";
+import { isRunProcessFullyComplete } from "@/lib/runProcessCompletion";
+import { AssistantRunEmbedBridge } from "@/components/AssistantRunEmbedBridge";
 import { filterContextForStep } from "@/services/contextPack";
 import { getServerLocale } from "@/lib/locale";
 import { getTranslations } from "@/lib/i18n";
@@ -250,12 +252,16 @@ async function saveRunStep(formData: FormData) {
 
 export default async function RunDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams?: Promise<{ embed?: string }>;
 }) {
   const locale = await getServerLocale();
   const t = getTranslations(locale);
   const { id } = await params;
+  const sp = (await searchParams) ?? {};
+  const embedAssistant = String(sp.embed ?? "") === "1";
   const run = await prisma.run.findUnique({
     where: { id },
     include: { steps: true },
@@ -319,6 +325,10 @@ export default async function RunDetailPage({
 
   const allStepsComplete = steps.length > 0 && steps.every((s) => completedStepKeys.has(s.stepKey));
   const verifiedCount = runStepsLatest.filter((s) => s.verifiedByUser).length;
+  const allProcessStepsValid = isRunProcessFullyComplete(
+    steps,
+    runStepsLatest.map((s) => ({ stepKey: s.stepKey, schemaValidationPassed: s.schemaValidationPassed })),
+  );
 
   let appDevelopmentConfig: { existingIdeas: { id: string; title: string }[] } | undefined;
   if (run.workflowKey === "WF_APP_DEVELOPMENT") {
@@ -341,6 +351,9 @@ export default async function RunDetailPage({
 
   return (
     <div className="space-y-8">
+      {embedAssistant ? (
+        <AssistantRunEmbedBridge embed={embedAssistant} runId={run.id} allComplete={allProcessStepsValid} />
+      ) : null}
       <Section
         compact
         title={getWorkflowName(run.workflowKey)}

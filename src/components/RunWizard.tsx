@@ -423,13 +423,17 @@ export function RunWizard({
           <>
         {/* Wizard: Prompt + Response */}
         <div className="mb-4 space-y-3">
-        {/* Prompt (read-only) */}
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-xs font-semibold text-[var(--muted)]">
+        {/* Prompt (read-only, standardmäßig eingeklappt) */}
+        <details className="group rounded-xl border border-[var(--card-border)] bg-slate-50/50 dark:bg-slate-900/20">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-3 py-2.5 text-xs font-semibold text-[var(--muted)] [&::-webkit-details-marker]:hidden">
+            <span className="inline-flex min-w-0 items-center gap-2">
+              <span className="shrink-0 text-[var(--muted)] transition group-open:rotate-90">▸</span>
               Prompt
-            </p>
-            <div className="flex items-center gap-2">
+            </span>
+            <div
+              className="flex shrink-0 items-center gap-2"
+              onClick={(e) => e.stopPropagation()}
+            >
               <CopyButton text={prompt} label="Kopieren" copiedLabel="Kopiert!" />
               <RunLlmButton
                 prompt={prompt}
@@ -440,14 +444,16 @@ export function RunWizard({
                 setLoading={setRunLoading}
               />
             </div>
+          </summary>
+          <div className="border-t border-[var(--card-border)] p-3">
+            <textarea
+              readOnly
+              rows={8}
+              className="max-h-[min(50vh,24rem)] w-full resize-none overflow-y-auto rounded-xl border border-[var(--card-border)] bg-slate-50 p-3 text-xs text-[var(--foreground)] dark:bg-slate-900/30"
+              value={prompt}
+            />
           </div>
-          <textarea
-            readOnly
-            rows={6}
-            className="w-full rounded-xl border border-[var(--card-border)] bg-slate-50 p-3 text-xs text-[var(--foreground)] dark:bg-slate-900/30 resize-none"
-            value={prompt}
-          />
-        </div>
+        </details>
 
         {/* Answer textarea + Save form */}
         <div>

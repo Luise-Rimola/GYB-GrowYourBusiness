@@ -106,7 +106,8 @@ export function renderPrompt(
       : "\n\n--- USER NOTES (optional, for steering) ---\n{{USER_NOTES}}";
   if (locale === "de") {
     rendered +=
-      "\n\nSPRACHE: Gib die Antwort ausschließlich auf Deutsch aus. Behalte das geforderte JSON-Format exakt bei und liefere nur valides JSON ohne zusätzlichen Fließtext.";
+      "\n\nSPRACHE: Gib die Antwort ausschließlich auf Deutsch aus. Behalte das geforderte JSON-Format exakt bei und liefere nur valides JSON ohne zusätzlichen Fließtext." +
+      "\n\nORTHOGRAPHIE / ZEICHENSATZ: JSON-Strings sind UTF-8 — Umlaute (ä, ö, ü) und das Eszett (ß) in deutschem Fließtext sind erlaubt und erwünscht. Verwende diese Zeichen direkt; ersetze Umlaute nicht durch ae, oe oder ue (z. B. „Frühphasen“, „Geschäftsmodelle“, „branchenübergreifend“). Escaping betrifft nur Anführungszeichen innerhalb von Strings, nicht Umlaute.";
   } else {
     rendered +=
       "\n\nLANGUAGE: Respond only in English. Keep the required JSON format exactly and return valid JSON only, without additional prose.";

@@ -22,6 +22,11 @@ export type StudyCategoryLocaleBlock = {
   important: string[];
   /** FB3: Fließtext unter den Workflows */
   fb3Description: string;
+  /**
+   * FB2 (ohne KI-Tool): Konkrete Vorstellung manueller Arbeit und Analyse,
+   * damit die Skalen „Prozess ohne KI“ fair bewertet werden können.
+   */
+  fb2WithoutToolScenario: string;
 };
 
 const STUDY_CATEGORY_CONTEXT_DE: Record<ScenarioCategory, StudyCategoryLocaleBlock> = {
@@ -43,6 +48,10 @@ const STUDY_CATEGORY_CONTEXT_DE: Record<ScenarioCategory, StudyCategoryLocaleBlo
     ],
     fb3Description:
       "Bewerte die Ergebnisse der Konzept-Workflows (Dokumente, Argumentation, Nachvollziehbarkeit) als Nachher-Messung gegenüber FB2.",
+    fb2WithoutToolScenario:
+      "Stellen Sie sich vor, Sie müssten Wertversprechen, Wettbewerbsanalyse und SWOT für Ihr Vorhaben ohne KI-Unterstützung erarbeiten — nur mit Tabellen, Textdokumenten, Internetrecherche, Branchenberichten und ggf. Gesprächen mit Kolleginnen, Kollegen oder Kundinnen.\n\n" +
+      "Damit Sie den Prozess fair beurteilen können, fokussieren Sie die typische Arbeit: Zielgruppe und Kernproblem schärfen; Angebote, Positionierung und Preise von Wettbewerbern einzeln recherchieren und vergleichen; Markt- und Trendinformationen sichten und einordnen; Stärken und Schwächen Ihres Unternehmens mit Belegen herausarbeiten; Chancen und Risiken aus Markt- und Wettbewerbssicht ableiten; Annahmen, Datenlücken und offene Punkte dokumentieren.\n\n" +
+      "Genau diese mentale und zeitliche Belastung — Informationen sammeln, strukturieren, abgleichen, begründen und dokumentieren — soll Ihre Bewertung in diesem Fragebogen widerspiegeln, bevor Sie die KI-gestützten Prozesse nutzen.",
   },
   produktstrategie: {
     phase: "Validierungsphase",
@@ -63,6 +72,10 @@ const STUDY_CATEGORY_CONTEXT_DE: Record<ScenarioCategory, StudyCategoryLocaleBlo
     ],
     fb3Description:
       "Bewerte die Resultate der Validierungs-Workflows danach, wie stark sie Unsicherheit reduzieren und Entscheidungssicherheit erhöhen.",
+    fb2WithoutToolScenario:
+      "Stellen Sie sich vor, Sie prüfen Idee, Alleinstellungsmerkmal (USP), Machbarkeit und Kundenpassung ohne KI — mit Workshops, Umfragen, Prototypen, Expertenfeedback, Recherche und manueller Auswertung in Tabellen und Dokumenten.\n\n" +
+      "Für eine realistische Bewertung denken Sie an: Welche Hypothesen müssen getestet werden? Welche Daten und Stichproben fehlen? Wie koordinieren Sie Stakeholder und Termine? Wo liegen Unsicherheiten, rechtliche oder technische Risiken? Wie halten Sie Erkenntnisse nachvollziehbar fest, damit spätere Entscheidungen begründbar sind?\n\n" +
+      "Ihre Antworten sollen widerspiegeln, wie anstrengend, langsam oder unsicher sich ein solcher Validierungsprozess ohne KI-Unterstützung anfühlen würde — bevor Sie die unterstützten Prozesse nutzen.",
   },
   marketing: {
     phase: "Gründungs- / Launchphase",
@@ -91,6 +104,10 @@ const STUDY_CATEGORY_CONTEXT_DE: Record<ScenarioCategory, StudyCategoryLocaleBlo
     ],
     fb3Description:
       "Bewerte die Outputs zu Skalierung und Priorisierung auf Wirksamkeit, Transparenz und direkte Handlungsfähigkeit.",
+    fb2WithoutToolScenario:
+      "Stellen Sie sich vor, Sie priorisieren Wachstum und die nächsten Schritte ohne KI — mit Kennzahlen aus Controlling oder CRM, Kapazitätsabschätzungen, Risikolisten, Szenarioüberlegungen und Abstimmungen zwischen Bereichen.\n\n" +
+      "Typische Analyse ohne Tool: Engpässe und Engpassursachen identifizieren; Wachstumshebel gegenüber Risiken abwägen; Investitionen und Personalbedarf grob quantifizieren; Alternativen und Reihenfolge der Maßnahmen begründen; Entscheidungsvorlagen manuell erstellen.\n\n" +
+      "Ihre Skalen sollen erfassen, wie belastend und unsicher sich ein solcher Prozess ohne KI-Unterstützung darstellt — bevor Sie die unterstützten Abläufe nutzen.",
   },
   investition_strategie: {
     phase: "Reifephase: Investition und Strategie",
@@ -105,6 +122,10 @@ const STUDY_CATEGORY_CONTEXT_DE: Record<ScenarioCategory, StudyCategoryLocaleBlo
     ],
     fb3Description:
       "Bewerte die Ergebnisse für Investitions-/Strategieentscheidungen nach Belastbarkeit, Risikoabbildung und Entscheidungslogik.",
+    fb2WithoutToolScenario:
+      "Stellen Sie sich vor, Sie bereiten strategische und finanzielle Entscheidungen vor ohne KI — mit Excel, Jahresabschlüssen, Planungsannahmen, Investitionsrechnungen, Szenarien (Basis, pessimistisch, optimistisch) und schriftlichen Argumentationslinien für Geschäftsführung oder Investoren.\n\n" +
+      "Konkret: Liquidität und Kapitalbedarf nachvollziehen; Sensitivitäten und Break-even durchrechnen; Risiken, Alternativen und Mitigationsmaßnahmen formulieren; Annahmen transparent machen und belegen; Dokumente so aufbereiten, dass Prüfende Entscheidungen nachvollziehen können.\n\n" +
+      "Bewerten Sie, wie zeitintensiv, fehleranfällig und kognitiv belastend ein solcher Prozess ohne KI-Unterstützung wäre — bevor Sie die KI-gestützten Prozesse einsetzen.",
   },
 };
 
@@ -127,6 +148,10 @@ const STUDY_CATEGORY_CONTEXT_EN: Record<ScenarioCategory, StudyCategoryLocaleBlo
     ],
     fb3Description:
       "Rate the outcomes of the concept workflows (artifacts, reasoning, traceability) as an after measure compared to questionnaire 2.",
+    fb2WithoutToolScenario:
+      "Imagine you must produce value proposition, competitor analysis, and SWOT for your initiative without AI support — only spreadsheets, documents, web research, industry reports, and conversations with colleagues or customers.\n\n" +
+      "To judge the process fairly, focus on the typical work: sharpen target group and core problem; research and compare competitors’ offers, positioning, and pricing; scan and interpret market/trend information; substantiate strengths and weaknesses of your company; derive opportunities and threats from market/competition; document assumptions, data gaps, and open questions.\n\n" +
+      "That cognitive and time burden — collect, structure, reconcile, justify, document — is what this questionnaire should reflect before you use the AI-assisted processes.",
   },
   produktstrategie: {
     phase: "Validation phase",
@@ -161,6 +186,10 @@ const STUDY_CATEGORY_CONTEXT_EN: Record<ScenarioCategory, StudyCategoryLocaleBlo
     ],
     fb3Description:
       "Rate launch outputs for feasibility, clarity, and relevance for market entry.",
+    fb2WithoutToolScenario:
+      "Imagine you build go-to-market and marketing strategy without AI — from internal materials, benchmarks, channel tests, budgeting, KPIs, and team alignment (e.g. workshops or written plans).\n\n" +
+      "Consider the manual effort: describe segments; craft messages and offers; compare channels and tactics; estimate budget and timeline; define KPIs and success criteria; name risks and dependencies; keep documentation consistent for execution and approvals.\n\n" +
+      "Rate how heavy coordination and uncertainty would be without structured AI assistance — before you run the AI-supported steps in this phase.",
   },
   wachstum_expansion: {
     phase: "Growth phase",
@@ -175,6 +204,10 @@ const STUDY_CATEGORY_CONTEXT_EN: Record<ScenarioCategory, StudyCategoryLocaleBlo
     ],
     fb3Description:
       "Rate scaling and prioritisation outputs for impact, transparency, and actionable next steps.",
+    fb2WithoutToolScenario:
+      "Imagine you prioritise growth and next actions without AI — using KPIs from finance or CRM, capacity estimates, risk lists, scenario thinking, and alignment across functions.\n\n" +
+      "Typical analysis without a tool: find bottlenecks and causes; weigh growth levers against risks; roughly quantify investment and staffing needs; justify sequencing and alternatives; produce decision templates manually.\n\n" +
+      "Your scales should capture how burdensome and uncertain such a process would feel without AI support — before you use the assisted flows.",
   },
   investition_strategie: {
     phase: "Maturity / investment & strategy",
@@ -189,6 +222,10 @@ const STUDY_CATEGORY_CONTEXT_EN: Record<ScenarioCategory, StudyCategoryLocaleBlo
     ],
     fb3Description:
       "Rate outputs for investment/strategy decisions by robustness, risk coverage, and decision logic.",
+    fb2WithoutToolScenario:
+      "Imagine you prepare strategic and financial decisions without AI — using spreadsheets, financial statements, planning assumptions, investment calculations, scenarios (base/downside/upside), and written arguments for leadership or investors.\n\n" +
+      "Concretely: trace liquidity and funding needs; run sensitivities and break-even; spell out risks, alternatives, and mitigations; make assumptions explicit and evidenced; prepare materials so reviewers can follow the decision.\n\n" +
+      "Rate how time-consuming, error-prone, and cognitively demanding such a process would be without AI assistance — before you use the AI-supported workflows.",
   },
 };
 

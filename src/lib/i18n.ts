@@ -360,6 +360,7 @@ export const translations = {
       fb2CategoryWorkflowsLabel: "Workflows in this category:",
       fb2IntroParagraph:
         "Answer the questions as a baseline before the processes in the selected phase. This makes improvements through documents and decisions measurable.",
+      fb2WithoutToolScenarioTitle: "Scenario to put yourself in (without AI tool)",
       fb2PhaseNotSet: "Not set yet",
       fb2PickCategoryFirst: "Please select a category/phase in the study first.",
       fb3CurrentPhaseLabel: "Current phase:",
@@ -434,7 +435,7 @@ export const translations = {
         "Load base data, optional RAG (query embedding, vector search over knowledge chunks), assemble ContextPack, fill prompt templates with data, validation loop, save run step, create artifact/decision, extract indicators, evaluate rules, update run status.",
       dsrStudyTitle: "DSR study process",
       dsrStudyDesc:
-        "FB1 → profile → LLM settings → sources (optional ingest) → per planning area: info, FB2, runs, artifacts, FB3, FB4 (direct comparison) → decisions → evaluation → FB5 → export.",
+        "The study is structured into business phases. Below you see all steps of this study in order. When you start the assistant, these steps run one after another automatically. In between, questionnaires appear so you can assess the process with and without AI and evaluate the results produced by the AI. Flow in brief: FB1 → profile → LLM settings → sources (optional ingest) → per planning area: info, FB2, runs, artifacts, FB3, FB4 (direct comparison) → decisions → evaluation → FB5 → export.",
       kpiModelTitle: "KPI & evaluation model",
       kpiModelDesc:
         "KPI library and document-derived knowledge feed values; descriptive stats and history, integrated KPI AI (knowledge + KPIs + measures), strategy indicators, mapping rules, active rule hints.",
@@ -1176,6 +1177,7 @@ export const translations = {
       fb2CategoryWorkflowsLabel: "Prozesse in dieser Kategorie:",
       fb2IntroParagraph:
         "Beantworten Sie die Fragen als Ausgangsbewertung vor den Prozessen der gewählten Phase. So werden Verbesserungen durch Dokumente und Entscheidungen messbar.",
+      fb2WithoutToolScenarioTitle: "Situation für Ihre Bewertung (ohne KI-Tool)",
       fb2PhaseNotSet: "Noch nicht festgelegt",
       fb2PickCategoryFirst: "Bitte zuerst einen Bereich / eine Phase in der Studie wählen.",
       fb3CurrentPhaseLabel: "Aktuelle Phase:",
@@ -1250,7 +1252,7 @@ export const translations = {
         "Basisdaten laden, optionales RAG (Query-Embedding, Vektorsuche), ContextPack, Prompt-Vorlagen mit Daten füllen, Validierungsschleife, RunStep speichern, Dokument/Decision, Indikatoren, Regeln, Run-Status.",
       dsrStudyTitle: "DSR-Studienprozess",
       dsrStudyDesc:
-        "FB1 → Profil → LLM → Quellen (optional Wissen) → je Bereich: Info, FB2, Runs, Dokumente, FB3, FB4 Direktvergleich → Entscheidungen → Evaluation → FB5 → Export.",
+        "Der Ablauf ist in Unternehmensphasen unterteilt. Unten sind alle Schritte dieser Studie in der Reihenfolge dargestellt. Mit „Assistent starten“ werden die Schritte nacheinander automatisch durchlaufen. Dazwischen erscheinen Fragebögen: zur Einschätzung des Vorgehens mit und ohne KI sowie zur Beurteilung der Ergebnisse aus der KI. Kurzablauf: FB1 → Profil → LLM → Quellen (optional Wissen) → je Bereich: Info, FB2, Prozesse, Dokumente, FB3, FB4 Direktvergleich → Entscheidungen → Evaluation → FB5 → Export.",
       kpiModelTitle: "KPI- & Auswertungsmodell",
       kpiModelDesc:
         "KPI-Bibliothek und Wissen aus Dokumenten speisen KPI-Werte; Deskriptive Statistik/Verlauf, KPI KI-Analyse (Wissen + KPIs + Maßnahmen), Strategy Indicators, Mapping Rules, aktive Hinweise.",

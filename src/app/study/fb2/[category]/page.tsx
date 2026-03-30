@@ -12,12 +12,11 @@ import { getTranslations } from "@/lib/i18n";
 import { SCENARIO_CATEGORIES, type ScenarioCategory } from "@/lib/scenarios";
 import { Fragebogen2Form } from "@/components/Fragebogen2Form";
 import { WORKFLOW_NAMES } from "@/lib/planningFramework";
-import { STUDY_CATEGORY_CONTEXT, VALID_STUDY_CATEGORIES } from "@/lib/studyCategoryContext";
+import { getStudyCategoryContext, VALID_STUDY_CATEGORIES } from "@/lib/studyCategoryContext";
 import { AssistantSubmitBridge } from "@/components/AssistantSubmitBridge";
 import { dashboardUrlAfterFb2Assistant } from "@/lib/studyAssistantEmbed";
 
 const VALID_CATEGORIES: ScenarioCategory[] = VALID_STUDY_CATEGORIES;
-const CATEGORY_CONTEXT = STUDY_CATEGORY_CONTEXT;
 
 function parseFb2FormData(formData: FormData) {
   const dq = { DQ1: Number(formData.get("DQ1")), DQ2: Number(formData.get("DQ2")), DQ3: Number(formData.get("DQ3")), DQ4: Number(formData.get("DQ4")) };
@@ -75,7 +74,7 @@ export default async function Fragebogen2CategoryPage({
   const locale = await getServerLocale();
   const t = getTranslations(locale);
   const categoryLabel = SCENARIO_CATEGORIES[category as ScenarioCategory];
-  const context = CATEGORY_CONTEXT[category as ScenarioCategory];
+  const context = getStudyCategoryContext(locale)[category as ScenarioCategory];
   const workflowNames = context.workflowKeys.map((k) => WORKFLOW_NAMES[k] ?? k).join(", ");
 
   return (
@@ -87,11 +86,15 @@ export default async function Fragebogen2CategoryPage({
         <p className="mt-2 text-[var(--muted)]">{categoryLabel}</p>
       </header>
       <div className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-4 text-sm">
-        <p><span className="font-semibold">Aktuelle Phase:</span> {context.phase}</p>
-        <p className="mt-2"><span className="font-semibold">Workflows in dieser Kategorie:</span> {workflowNames}</p>
-        <p className="mt-2 text-[var(--muted)]">
-          {context.description}
+        <p>
+          <span className="font-semibold">{t.study.fb2CurrentPhaseLabel}</span> {context.phase}
         </p>
+        <p className="mt-2">
+          <span className="font-semibold">{t.study.fb2CategoryWorkflowsLabel}</span> {workflowNames}
+        </p>
+        <p className="mt-2 text-[var(--muted)]">{context.description}</p>
+        <p className="mt-4 font-semibold text-[var(--foreground)]">{t.study.fb2WithoutToolScenarioTitle}</p>
+        <p className="mt-2 whitespace-pre-line text-[var(--muted)] leading-relaxed">{context.fb2WithoutToolScenario}</p>
       </div>
       <Fragebogen2Form
         action={saveFb2Category.bind(null, category)}

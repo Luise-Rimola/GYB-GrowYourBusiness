@@ -8,6 +8,16 @@ import { SUBMIT_BUTTON_PENDING_CLASS } from "@/lib/submitButtonStyle";
 
 const ASSISTANT_DONE_HREFS_KEY = "gyb-assistant-done-hrefs-v1";
 
+function parseRunIdFromAssistantHref(href: string): string | null {
+  const path = href.split("#")[0]?.split("?")[0] ?? "";
+  const m = /^\/runs\/([^/]+)/.exec(path);
+  return m ? m[1] : null;
+}
+
+function isRunAssistantStepHref(href: string): boolean {
+  return parseRunIdFromAssistantHref(href) !== null;
+}
+
 type AssistantStep = {
   href: string;
   label: string;
@@ -62,6 +72,8 @@ export function WorkflowAssistantFrame({
   const hydratedFromStorage = useRef(false);
 
   const [pendingSubmit, setPendingSubmit] = useState(false);
+  const [runProcessUnlocked, setRunProcessUnlocked] = useState<Record<number, boolean>>({});
+  const [processCompleteModalOpen, setProcessCompleteModalOpen] = useState(false);
   const pendingNextIndexRef = useRef<number | null>(null);
   const pendingTimeoutRef = useRef<number | null>(null);
   const lastCompletionUrlRef = useRef<string | null>(null);
@@ -163,6 +175,7 @@ export function WorkflowAssistantFrame({
 
   function goNext(markDone: boolean) {
     if (pendingSubmit) return;
+    setProcessCompleteModalOpen(false);
     dispatchAssistantPulse("start");
 
     let nextDone = locallyDone;
@@ -220,10 +233,21 @@ export function WorkflowAssistantFrame({
 
   useEffect(() => {
     function onMsg(e: MessageEvent) {
-      const d = e.data as { type?: string } | null;
+      const d = e.data as { type?: string; runId?: string } | null;
       if (d?.type === "assistant-iframe-done") {
         lastCompletionUrlRef.current = null;
         tryCompleteRef.current();
+        return;
+      }
+      if (d?.type === "assistant-run-process-complete" && e.origin === window.location.origin) {
+        const rid = String(d.runId ?? "");
+        const idx = indexRef.current;
+        const step = stepsRef.current[idx];
+        const stepRid = step?.href ? parseRunIdFromAssistantHref(step.href) : null;
+        if (rid && stepRid === rid) {
+          setRunProcessUnlocked((m) => ({ ...m, [idx]: true }));
+          setProcessCompleteModalOpen(true);
+        }
       }
     }
     window.addEventListener("message", onMsg);
@@ -241,6 +265,14 @@ export function WorkflowAssistantFrame({
 
   if (!current) return null;
   const iframeSrc = toEmbedHref(current.href);
+
+  const canUseErledigtWeiter = (() => {
+    if (!isRunAssistantStepHref(current.href)) return true;
+    return Boolean(current.completed || runProcessUnlocked[index]);
+  })();
+
+  const erledigtDisabled =
+    pendingSubmit || index >= steps.length - 1 || !canUseErledigtWeiter;
 
   return (
     <div className="flex h-[calc(100dvh-8rem)] flex-col gap-3 overflow-hidden sm:h-[calc(100vh-8.5rem)] sm:gap-5">
@@ -301,14 +333,44 @@ export function WorkflowAssistantFrame({
           <button
             type="button"
             onClick={() => goNext(true)}
-            disabled={pendingSubmit || index >= steps.length - 1}
+            disabled={erledigtDisabled}
             aria-busy={pendingSubmit}
-            className={`rounded-xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-700 disabled:opacity-100 ${pendingSubmit ? SUBMIT_BUTTON_PENDING_CLASS : ""}`}
+            title={
+              !canUseErledigtWeiter && isRunAssistantStepHref(current.href)
+                ? "Speichern Sie zuerst alle Schritte dieses KI-Prozesses (gültiges JSON)."
+                : undefined
+            }
+            className={`rounded-xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-45 ${pendingSubmit ? SUBMIT_BUTTON_PENDING_CLASS : ""}`}
           >
             Erledigt & weiter
           </button>
         </div>
       </div>
+
+      {processCompleteModalOpen ? (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/45 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="assistant-process-complete-title"
+        >
+          <div className="max-w-md rounded-2xl border border-[var(--card-border)] bg-[var(--card)] p-6 shadow-xl">
+            <h2 id="assistant-process-complete-title" className="text-base font-semibold text-[var(--foreground)]">
+              Prozess abgeschlossen
+            </h2>
+            <p className="mt-3 text-sm leading-relaxed text-[var(--muted)]">
+              Dieser Prozess ist vollständig abgeschlossen. Klicken Sie auf „Erledigt & weiter“, um fortzufahren.
+            </p>
+            <button
+              type="button"
+              onClick={() => setProcessCompleteModalOpen(false)}
+              className="mt-5 w-full rounded-xl bg-teal-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-700"
+            >
+              Verstanden
+            </button>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

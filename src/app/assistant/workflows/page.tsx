@@ -3,6 +3,7 @@ import { getOrCreateDemoCompany } from "@/lib/demo";
 import { WORKFLOW_NAMES, PLANNING_PHASES, WIZARD_WORKFLOW_ORDER } from "@/lib/planningFramework";
 import { WorkflowAssistantFrame } from "@/components/WorkflowAssistantFrame";
 import { workflowSteps } from "@/lib/workflowSteps";
+import { isRunProcessFullyComplete } from "@/lib/runProcessCompletion";
 
 type AssistantStep = {
   href: string;
@@ -62,12 +63,16 @@ export default async function WorkflowOnlyAssistantPage({
         }
       }
     }
+    const runStepsForComplete = [...latestByStepKey.entries()].map(([stepKey, v]) => ({
+      stepKey,
+      schemaValidationPassed: v.schemaValidationPassed,
+    }));
+    const allStepsDone = isRunProcessFullyComplete(configuredSteps, runStepsForComplete);
     const firstOpenStepIndex = configuredSteps.findIndex((cfg) => {
       const saved = latestByStepKey.get(cfg.stepKey);
       return !saved || !saved.schemaValidationPassed;
     });
     const hasOpenSteps = firstOpenStepIndex >= 0;
-    const allStepsDone = configuredSteps.length > 0 && !hasOpenSteps;
     const phaseId = phaseByWorkflow.get(workflowKey);
 
     return {

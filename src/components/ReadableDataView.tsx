@@ -48,7 +48,7 @@ const LABELS: Record<string, string> = {
   kpi_impact_range: "KPI-Auswirkung",
   assumptions: "Annahmen",
   risks: "Risiken",
-  mitigation: "Mitigation",
+  mitigation: "Gegenmaßnahmen",
   evidence: "Evidenz",
   key_points: "Kernpunkte",
   content: "Inhalt",
@@ -87,12 +87,40 @@ const LABELS: Record<string, string> = {
   prompt: "Prompt",
   parsed_output: "Ergebnis",
   errors: "Fehler",
+  /** Häufige englische Keys in LLM-JSON (Markt-Snapshot, Segmente, …) */
+  name: "Name",
+  description: "Beschreibung",
+  attractiveness: "Attraktivität",
+  rationale: "Begründung",
+  pricing_index: "Preisindex",
+  buyer_behavior: "Kaufverhalten",
+  behavior: "Verhalten",
+  triggers: "Auslöser",
+  supply_demand: "Angebot & Nachfrage",
+  supply_overview: "Angebotsüberblick",
+  demand_overview: "Nachfrageüberblick",
+  balance_assessment: "Einordnung Angebot/Nachfrage",
+  feasibility_assessment: "Machbarkeit",
+  is_makeable: "Umsetzbar",
+  recommendation: "Empfehlung",
+  key_blockers: "Haupt-Hindernisse",
+  preconditions: "Voraussetzungen",
+  business_research_data: "Unternehmensrecherche",
+  source_type: "Quellentyp",
+  key_findings: "Kernerkenntnisse",
+  relevance: "Relevanz",
+  segment_or_trait: "Segment / Merkmal",
+  value: "Wert",
+  confidence: "Konfidenz",
+  segment: "Segment",
 };
 
 const SKIP_KEYS = new Set(["updated_at", "cost_excel_uploaded", "cost_excel_error"]);
 
 function formatLabel(key: string): string {
-  return LABELS[key] ?? key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  const fromMap = LABELS[key] ?? LABELS[key.toLowerCase()];
+  if (fromMap) return fromMap;
+  return key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 function formatValue(val: unknown): React.ReactNode {
