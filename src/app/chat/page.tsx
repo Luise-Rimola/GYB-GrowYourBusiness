@@ -10,7 +10,8 @@ import { getTranslations } from "@/lib/i18n";
 async function createThread(formData: FormData) {
   "use server";
   const company = await getOrCreateDemoCompany();
-  const title = String(formData.get("title") || "New chat").trim() || "New chat";
+  const locale = await getServerLocale();
+  const title = String(formData.get("title") || (locale === "de" ? "Neuer KI-Berater Chat" : "New advisor chat")).trim() || (locale === "de" ? "Neuer KI-Berater Chat" : "New advisor chat");
   const thread = await prisma.chatThread.create({
     data: { companyId: company.id, title },
   });
@@ -19,7 +20,9 @@ async function createThread(formData: FormData) {
       threadId: thread.id,
       role: "assistant",
       content:
-        "Ich bin dein individueller KI-Unternehmensberater. Ich kann dich bei Strategie, KPIs, Entscheidungen, Dokumenten und nächsten Schritten unterstützen. Was kann ich für dich tun?",
+        locale === "de"
+          ? "Ich bin dein individueller KI-Unternehmensberater. Ich kann dich bei Strategie, KPIs, Entscheidungen, Dokumenten und nächsten Schritten unterstützen. Was kann ich für dich tun?"
+          : "I am your individual AI business advisor. I can help with strategy, KPIs, decisions, documents, and next steps. How can I help you?",
     },
   });
   redirect(`/chat/${thread.id}`);
@@ -140,7 +143,7 @@ export default async function ChatPage({
             type="submit"
             className="rounded-full bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-800"
           >
-            New Chat
+            {locale === "de" ? "Neuer Chat" : "New chat"}
           </button>
         </form>
 

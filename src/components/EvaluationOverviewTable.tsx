@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { getScenarioById, SCENARIO_CATEGORIES } from "@/lib/scenarios";
+import { getScenarioById, getScenarioCategories, localizeScenario } from "@/lib/scenarios";
 
 type ScenarioEval = {
   id: string;
@@ -51,6 +51,7 @@ type EvaluationOverviewTableProps = {
     deleteConfirmCancel: string;
     deleteConfirmOk: string;
   };
+  locale: "de" | "en";
   onDeleteScenario: (id: string) => Promise<void>;
   onDeleteUseCase: (id: string) => Promise<void>;
 };
@@ -59,9 +60,12 @@ export function EvaluationOverviewTable({
   scenarioEvals,
   useCaseEvals,
   t,
+  locale,
   onDeleteScenario,
   onDeleteUseCase,
 }: EvaluationOverviewTableProps) {
+  const isEn = locale === "en";
+  const categoryLabels = getScenarioCategories(locale);
   const [deleteTarget, setDeleteTarget] = useState<{ type: "scenario" | "usecase"; id: string } | null>(null);
   const [deleting, setDeleting] = useState(false);
   const oneWord = (value: string | null | undefined) => {
@@ -143,19 +147,19 @@ export function EvaluationOverviewTable({
               return (
                 <tr key={ev.id} className="border-b border-[var(--card-border)] hover:bg-[var(--background)]/50">
                   <td className="px-4 py-3 text-[var(--muted)]">
-                    {new Date(ev.createdAt).toLocaleDateString("de-DE", { dateStyle: "short" })}
+                    {new Date(ev.createdAt).toLocaleDateString(isEn ? "en-US" : "de-DE", { dateStyle: "short" })}
                   </td>
                   <td className="px-4 py-3">
                     <Link
                       href={`/evaluation/scenario/${ev.id}`}
                       className="inline-block rounded bg-teal-100 px-2 py-0.5 text-xs font-medium text-teal-800 transition hover:bg-teal-200 dark:bg-teal-900/50 dark:text-teal-200 dark:hover:bg-teal-800/50"
                     >
-                      {scenario ? SCENARIO_CATEGORIES[scenario.category] : `#${ev.scenarioId}`}
+                      {scenario ? categoryLabels[scenario.category] : `#${ev.scenarioId}`}
                     </Link>
                   </td>
                   <td className="max-w-xs px-4 py-3">
-                    <span className="line-clamp-2" title={scenario?.question ?? ""}>
-                      {scenario?.question ?? `#${ev.scenarioId}`}
+                    <span className="line-clamp-2" title={scenario ? localizeScenario(scenario, locale).question : ""}>
+                      {scenario ? localizeScenario(scenario, locale).question : `#${ev.scenarioId}`}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-[var(--muted)]">
@@ -197,7 +201,7 @@ export function EvaluationOverviewTable({
               return (
                 <tr key={ev.id} className="border-b border-[var(--card-border)] hover:bg-[var(--background)]/50">
                   <td className="px-4 py-3 text-[var(--muted)]">
-                    {new Date(ev.createdAt).toLocaleDateString("de-DE", { dateStyle: "short" })}
+                    {new Date(ev.createdAt).toLocaleDateString(isEn ? "en-US" : "de-DE", { dateStyle: "short" })}
                   </td>
                   <td className="px-4 py-3">
                     <Link

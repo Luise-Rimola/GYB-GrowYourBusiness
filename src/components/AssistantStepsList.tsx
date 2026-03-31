@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
+import { useEffect, useState } from "react";
 
 const ASSISTANT_DONE_HREFS_KEY = "gyb-assistant-done-hrefs-v1";
 
@@ -23,7 +23,12 @@ function readPersistedDoneHrefs(): Set<string> {
 }
 
 export function AssistantStepsList({ steps }: { steps: AssistantStep[] }) {
-  const persistedDone = useMemo(() => readPersistedDoneHrefs(), []);
+  const [persistedDone, setPersistedDone] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    setPersistedDone(readPersistedDoneHrefs());
+  }, []);
+
   const mergedSteps = steps.map((s) => ({
     ...s,
     completed: s.completed || persistedDone.has(s.href),

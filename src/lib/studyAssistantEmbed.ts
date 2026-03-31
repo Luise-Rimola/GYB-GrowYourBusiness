@@ -1,10 +1,10 @@
-import type { ScenarioCategory } from "@/lib/scenarios";
+import type { StudyCategoryKey } from "@/lib/studyCategoryContext";
 import { STUDY_CATEGORY_PHASE_ID, workflowDashboardHrefForCategory } from "@/lib/assistantSteps";
 import { VALID_STUDY_CATEGORIES } from "@/lib/studyCategoryContext";
 
 /** Dashboard (Pläne) nach FB2 im Assistenten — ohne Zwischenseite „Studie“. */
 export function dashboardUrlAfterFb2Assistant(category: string): string {
-  const raw = workflowDashboardHrefForCategory(category as ScenarioCategory);
+  const raw = workflowDashboardHrefForCategory(category as StudyCategoryKey);
   const [pathPart, hash] = raw.split("#", 2);
   const url = new URL(pathPart, "http://localhost");
   url.searchParams.set("embed", "1");
@@ -15,13 +15,13 @@ export function dashboardUrlAfterFb2Assistant(category: string): string {
 
 /** Dokumente-Phase nach FB3 im Assistenten. */
 export function artifactsUrlAfterFb3Assistant(category: string): string {
-  const phase = STUDY_CATEGORY_PHASE_ID[category as ScenarioCategory];
+  const phase = STUDY_CATEGORY_PHASE_ID[category as StudyCategoryKey];
   return `/artifacts?embed=1&assistantContinue=fb3#artifacts-phase-${phase}`;
 }
 
 /** Nächster Schritt nach FB4 (nächster Bereich oder Entscheidungen). */
 export function urlAfterFb4Assistant(category: string): string {
-  const idx = VALID_STUDY_CATEGORIES.indexOf(category as ScenarioCategory);
+  const idx = VALID_STUDY_CATEGORIES.indexOf(category as StudyCategoryKey);
   if (idx < 0 || idx >= VALID_STUDY_CATEGORIES.length - 1) {
     return `/decisions?embed=1&assistantContinue=fb4`;
   }

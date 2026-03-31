@@ -16,6 +16,50 @@ export default async function WorkflowOverviewPage() {
   const locale = await getServerLocale();
   const t = getTranslations(locale);
   const w = t.workflowOverview;
+  const isEn = locale === "en";
+  const phaseNamesEn: Record<string, string> = {
+    ideation: "Ideation / Concept Phase",
+    validation: "Validation Phase",
+    launch: "Founding / Launch Phase",
+    scaling: "Growth Phase",
+    tech_digital: "Technology & Digitalization",
+    maturity: "Maturity Phase",
+    renewal: "Renewal / Exit / Transformation",
+  };
+  const areaNamesEn: Record<string, string> = {
+    strategic: "Strategic planning",
+    operative: "Operational planning",
+    financial: "Financial planning",
+    hr: "HR planning",
+    risk: "Risk and scenario planning",
+  };
+  const areaDescEn: Record<string, string> = {
+    strategic: "Long-term company direction",
+    operative: "Concrete execution of the strategy",
+    financial: "Secures liquidity and growth",
+    hr: "Building and developing teams",
+    risk: "Preparation for uncertainty",
+  };
+  const areaExamplesEn: Record<string, string[]> = {
+    strategic: ["Market position", "Competitive advantages", "Innovation"],
+    operative: ["Annual planning", "Marketing plan", "Sales plan", "Budget planning"],
+    financial: ["Liquidity planning", "Budget planning", "Investment planning", "Break-even analysis"],
+    hr: ["Hiring plan", "Organizational structure", "Capability development"],
+    risk: ["Scenario analysis", "Sensitivity analysis", "Risk matrix"],
+  };
+  const workflowNamesEn: Record<string, string> = {
+    WF_NEXT_BEST_ACTIONS: "Next best actions",
+    WF_VALUE_PROPOSITION: "Value proposition & problem-solution fit",
+    WF_STRATEGIC_PLANNING: "Strategic planning",
+    WF_COMPETITOR_ANALYSIS: "Competitor analysis",
+    WF_STRATEGIC_OPTIONS: "Strategic options",
+    WF_DATA_COLLECTION_PLAN: "Data collection plan",
+    WF_OPERATIVE_PLAN: "Operational plan",
+    WF_BUSINESS_PLAN: "Business plan & finance",
+    WF_MENU_PRICING: "Menu & price calculation",
+    WF_REAL_ESTATE: "Location options",
+    WF_FINANCIAL_PLANNING: "Financial planning",
+  };
   const charts = getWorkflowOverviewCharts(locale);
 
   return (
@@ -27,7 +71,7 @@ export default async function WorkflowOverviewPage() {
             <div className="flex flex-wrap gap-2">
               {PLANNING_PHASES.map((p) => (
                 <span key={p.id} className="rounded-lg border border-[var(--card-border)] bg-[var(--card)] px-3 py-1.5 text-sm">
-                  {p.name}
+                  {isEn ? (phaseNamesEn[p.id] ?? p.name) : p.name}
                 </span>
               ))}
             </div>
@@ -37,7 +81,7 @@ export default async function WorkflowOverviewPage() {
             <div className="flex flex-wrap gap-2">
               {PLANNING_AREAS.map((a) => (
                 <span key={a.id} className="rounded-lg border border-teal-200 bg-teal-50/50 px-3 py-1.5 text-sm dark:border-teal-800 dark:bg-teal-950/20">
-                  {a.name}
+                  {isEn ? (areaNamesEn[a.id] ?? a.name) : a.name}
                 </span>
               ))}
             </div>
@@ -56,13 +100,13 @@ export default async function WorkflowOverviewPage() {
               .filter(Boolean) as { key: string; name: string; description: string }[];
             return (
               <div key={area.id} className="rounded-2xl border border-[var(--card-border)] bg-[var(--card)] p-5">
-                <h3 className="font-semibold text-[var(--foreground)]">{area.name}</h3>
-                <p className="mt-1 text-sm text-[var(--muted)]">{area.description}</p>
-                {area.horizon && <p className="mt-0.5 text-xs text-[var(--muted)]">Zeithorizont: {area.horizon}</p>}
-                {(area.instruments ?? area.examples)?.length ? (
+                <h3 className="font-semibold text-[var(--foreground)]">{isEn ? (areaNamesEn[area.id] ?? area.name) : area.name}</h3>
+                <p className="mt-1 text-sm text-[var(--muted)]">{isEn ? (areaDescEn[area.id] ?? area.description) : area.description}</p>
+                {area.horizon && <p className="mt-0.5 text-xs text-[var(--muted)]">{isEn ? "Horizon" : "Zeithorizont"}: {area.horizon}</p>}
+                {((isEn ? areaExamplesEn[area.id] : (area.instruments ?? area.examples)) ?? []).length ? (
                   <p className="mt-1 text-xs text-[var(--muted)]">
-                    {area.instruments ? "Instrumente" : "Beispiele"}: {(area.instruments ?? area.examples)!.slice(0, 4).join(", ")}
-                    {((area.instruments ?? area.examples)!.length > 4) ? " …" : ""}
+                    {(isEn ? (area.instruments ? "Instruments" : "Examples") : (area.instruments ? "Instrumente" : "Beispiele"))}: {(isEn ? areaExamplesEn[area.id] : (area.instruments ?? area.examples))!.slice(0, 4).join(", ")}
+                    {(((isEn ? areaExamplesEn[area.id] : (area.instruments ?? area.examples))!).length > 4) ? " …" : ""}
                   </p>
                 ) : null}
                 {areaWorkflows.length > 0 ? (
@@ -72,18 +116,18 @@ export default async function WorkflowOverviewPage() {
                         key={wf.key}
                         className="flex items-center justify-between rounded-lg border border-[var(--card-border)] bg-[var(--background)]/50 px-3 py-2"
                       >
-                        <span className="text-sm font-medium">{wf.name}</span>
+                        <span className="text-sm font-medium">{isEn ? (workflowNamesEn[wf.key] ?? wf.name) : wf.name}</span>
                         <Link
                           href="/dashboard"
                           className="rounded border px-2 py-1 text-xs transition hover:bg-teal-50 dark:hover:bg-teal-950/30"
                         >
-                          In Pläne
+                          {isEn ? "Open in plans" : "In Pläne"}
                         </Link>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="mt-3 text-xs text-[var(--muted)]">Noch keine Prozesse zugeordnet.</p>
+                  <p className="mt-3 text-xs text-[var(--muted)]">{isEn ? "No workflows assigned yet." : "Noch keine Prozesse zugeordnet."}</p>
                 )}
               </div>
             );

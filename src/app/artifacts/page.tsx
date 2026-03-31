@@ -118,6 +118,15 @@ export default async function ArtifactsPage({
       : "Noch nicht erstellt: entsteht nach Prozess 'Top Decisions'.",
     dateLocale: isEn ? "en-US" : "de-DE",
   } as const;
+  const phaseNamesEn: Record<string, string> = {
+    ideation: "Ideation / Concept Phase",
+    validation: "Validation Phase",
+    launch: "Founding / Launch Phase",
+    scaling: "Growth Phase",
+    tech_digital: "Technology & Digitalization",
+    maturity: "Maturity Phase",
+    renewal: "Renewal / Exit / Transformation",
+  };
   const company = await getOrCreateDemoCompany();
   const allArtifacts = await prisma.artifact.findMany({
     where: { companyId: company.id },
@@ -144,7 +153,7 @@ export default async function ArtifactsPage({
         .map((artifactType) => artifacts.find((a) => a.type === artifactType && a.run?.workflowKey === wfKey))
         .filter(Boolean) as typeof artifacts;
     });
-    return { id: phase.id, name: phase.name, artifacts: phaseArtifacts };
+    return { id: phase.id, name: isEn ? (phaseNamesEn[phase.id] ?? phase.name) : phase.name, artifacts: phaseArtifacts };
   });
   const phaseArtifactTypeSet = new Set(phaseSections.flatMap((section) => section.artifacts.map((a) => a.type)));
   const unassignedArtifacts = artifacts.filter((a) => !phaseArtifactTypeSet.has(a.type));
@@ -433,10 +442,6 @@ export default async function ArtifactsPage({
                   </Link>
                 </div>
               </div>
-              {artifacts.length === 0 ? (
-                <></>
-              ) : (
-                <>
               {phaseSections.map((section) => (
                 <div key={section.id}>
                   <h3 className="mb-3 text-base font-semibold text-[var(--foreground)]">{section.name}</h3>
@@ -462,8 +467,6 @@ export default async function ArtifactsPage({
                     ))}
                   </div>
                 </div>
-              )}
-                </>
               )}
             </>
           )}

@@ -8,11 +8,21 @@ type GuideCopy = {
   appGoalTitle: string;
   appGoalBody: string;
   structureTitle: string;
-  structureItems: readonly string[];
+  structureEntries: ReadonlyArray<{
+    title: string;
+    body: string;
+  }>;
   flowTitle: string;
   flowItems: readonly string[];
   tipsTitle: string;
   tipsItems: readonly string[];
+  methodologyTitle: string;
+  methodologyIntro: string;
+  methodologyQas: ReadonlyArray<{
+    question: string;
+    paragraphs: readonly string[];
+  }>;
+  methodologyClosing: string;
 };
 
 export function ManualTabs({
@@ -65,11 +75,14 @@ export function ManualTabs({
           </Section>
 
           <Section title={guide.structureTitle}>
-            <ul className="list-inside list-disc space-y-2 text-sm text-[var(--foreground)]">
-              {guide.structureItems.map((item) => (
-                <li key={item}>{item}</li>
+            <div className="space-y-4 text-sm leading-relaxed text-[var(--foreground)]">
+              {guide.structureEntries.map((entry) => (
+                <div key={entry.title} className="space-y-1">
+                  <p className="font-semibold">{entry.title}</p>
+                  <p>{entry.body}</p>
+                </div>
               ))}
-            </ul>
+            </div>
           </Section>
 
           <Section title={guide.flowTitle}>
@@ -86,6 +99,21 @@ export function ManualTabs({
                 <li key={item}>{item}</li>
               ))}
             </ul>
+          </Section>
+
+          <Section title={guide.methodologyTitle}>
+            <div className="space-y-5 text-sm leading-relaxed text-[var(--foreground)]">
+              <p>{guide.methodologyIntro}</p>
+              {guide.methodologyQas.map((qa) => (
+                <div key={qa.question} className="space-y-2">
+                  <p className="font-semibold">{qa.question}</p>
+                  {qa.paragraphs.map((paragraph) => (
+                    <p key={paragraph}>{paragraph}</p>
+                  ))}
+                </div>
+              ))}
+              <p>{guide.methodologyClosing}</p>
+            </div>
           </Section>
         </div>
       ) : (

@@ -125,21 +125,25 @@ export async function updateStudyParticipantById(
   const delegate = (prisma as any).studyParticipant;
   if (delegate?.update) {
     // Use Prisma delegate when available
-    return delegate.update({
-      where: { id: participantId },
-      data: {
-        ...(data.completedFb1 !== undefined ? { completedFb1: data.completedFb1 } : {}),
-        ...(data.completedFb2BeforeRuns !== undefined
-          ? { completedFb2BeforeRuns: data.completedFb2BeforeRuns }
-          : {}),
-        ...(data.completedFb3AfterRuns !== undefined
-          ? { completedFb3AfterRuns: data.completedFb3AfterRuns }
-          : {}),
-        ...(data.completedFb3 !== undefined ? { completedFb3: data.completedFb3 } : {}),
-        ...(data.completedFb5 !== undefined ? { completedFb5: data.completedFb5 } : {}),
-        ...(data.completedLlmSetup !== undefined ? { completedLlmSetup: data.completedLlmSetup } : {}),
-      },
-    });
+    try {
+      return await delegate.update({
+        where: { id: participantId },
+        data: {
+          ...(data.completedFb1 !== undefined ? { completedFb1: data.completedFb1 } : {}),
+          ...(data.completedFb2BeforeRuns !== undefined
+            ? { completedFb2BeforeRuns: data.completedFb2BeforeRuns }
+            : {}),
+          ...(data.completedFb3AfterRuns !== undefined
+            ? { completedFb3AfterRuns: data.completedFb3AfterRuns }
+            : {}),
+          ...(data.completedFb3 !== undefined ? { completedFb3: data.completedFb3 } : {}),
+          ...(data.completedFb5 !== undefined ? { completedFb5: data.completedFb5 } : {}),
+          ...(data.completedLlmSetup !== undefined ? { completedLlmSetup: data.completedLlmSetup } : {}),
+        },
+      });
+    } catch {
+      // Fall through to raw fallback when connector is temporarily unavailable.
+    }
   }
 
   // Raw fallback (Prisma client missing model delegate)
@@ -153,18 +157,22 @@ export async function getOrCreateStudyParticipant(
   const delegate = (prisma as any).studyParticipant;
 
   if (delegate?.findUnique && delegate?.create) {
-    const existing = await delegate.findUnique({
-      where: {
-        companyId_studyId: { companyId, studyId },
-      },
-    });
-    if (existing) return existing;
-    return delegate.create({
-      data: {
-        companyId,
-        studyId,
-      },
-    });
+    try {
+      const existing = await delegate.findUnique({
+        where: {
+          companyId_studyId: { companyId, studyId },
+        },
+      });
+      if (existing) return existing;
+      return await delegate.create({
+        data: {
+          companyId,
+          studyId,
+        },
+      });
+    } catch {
+      // Fall through to raw fallback when connector is temporarily unavailable.
+    }
   }
 
   // Raw fallback (Prisma client missing model delegate)

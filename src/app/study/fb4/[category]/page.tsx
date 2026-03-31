@@ -9,14 +9,13 @@ import { getOrCreateDemoCompany } from "@/lib/demo";
 import { getOrCreateStudyParticipant } from "@/lib/study";
 import { getServerLocale } from "@/lib/locale";
 import { getTranslations } from "@/lib/i18n";
-import { SCENARIO_CATEGORIES, type ScenarioCategory } from "@/lib/scenarios";
 import { Fragebogen4Form } from "@/components/Fragebogen4Form";
 import { WORKFLOW_NAMES } from "@/lib/planningFramework";
-import { getStudyCategoryContext, VALID_STUDY_CATEGORIES } from "@/lib/studyCategoryContext";
+import { getStudyCategoryContext, STUDY_CATEGORY_LABELS, VALID_STUDY_CATEGORIES, type StudyCategoryKey } from "@/lib/studyCategoryContext";
 import { AssistantSubmitBridge } from "@/components/AssistantSubmitBridge";
 import { urlAfterFb4Assistant } from "@/lib/studyAssistantEmbed";
 
-const VALID_CATEGORIES: ScenarioCategory[] = VALID_STUDY_CATEGORIES;
+const VALID_CATEGORIES: StudyCategoryKey[] = VALID_STUDY_CATEGORIES;
 
 function parseFb4FormData(formData: FormData) {
   const us = { US1: Number(formData.get("US1")), US2: Number(formData.get("US2")), US3: Number(formData.get("US3")) };
@@ -85,7 +84,7 @@ export default async function Fragebogen4CategoryPage({
   const { category } = await params;
   const sp = await searchParams;
   const isEmbed = sp.embed === "1";
-  if (!VALID_CATEGORIES.includes(category as ScenarioCategory)) notFound();
+  if (!VALID_CATEGORIES.includes(category as StudyCategoryKey)) notFound();
 
   const company = await getOrCreateDemoCompany();
   const participant = await getOrCreateStudyParticipant(company.id);
@@ -97,8 +96,8 @@ export default async function Fragebogen4CategoryPage({
   const initialValues = fb4ResponsesJsonToFormDefaults(savedJson);
   const locale = await getServerLocale();
   const t = getTranslations(locale);
-  const categoryLabel = SCENARIO_CATEGORIES[category as ScenarioCategory];
-  const context = getStudyCategoryContext(locale)[category as ScenarioCategory];
+  const categoryLabel = STUDY_CATEGORY_LABELS[category as StudyCategoryKey];
+  const context = getStudyCategoryContext(locale)[category as StudyCategoryKey];
   const workflowNames = context.workflowKeys.map((k) => WORKFLOW_NAMES[k] ?? k).join(", ");
 
   return (

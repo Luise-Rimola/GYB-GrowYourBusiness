@@ -24,6 +24,14 @@ export const SCENARIO_CATEGORIES: Record<ScenarioCategory, string> = {
   investition_strategie: "Investition & Strategie",
 };
 
+export const SCENARIO_CATEGORIES_EN: Record<ScenarioCategory, string> = {
+  markt_geschaeftsmodell: "Market & Business Model",
+  produktstrategie: "Product Strategy",
+  marketing: "Marketing",
+  wachstum_expansion: "Growth & Expansion",
+  investition_strategie: "Investment & Strategy",
+};
+
 export const SCENARIOS: Scenario[] = [
   // 1–20 Markt & Geschäftsmodell
   { id: 1, category: "markt_geschaeftsmodell", question: "Kann die Geschäftsidee profitabel sein?", kpis: ["erwarteter Umsatz", "Gewinnmarge", "Break-even-Monate", "Marktanteil", "ROI"] },
@@ -131,6 +139,113 @@ export const SCENARIOS: Scenario[] = [
   { id: 99, category: "investition_strategie", question: "Welche Risiken bedrohen Geschäftsmodell?", kpis: ["Risikoindex"] },
   { id: 100, category: "investition_strategie", question: "Welche Strategie maximiert nachhaltiges Wachstum?", kpis: ["Umsatzwachstum", "Gewinnmarge", "Marktanteil"] },
 ];
+
+const KPI_TERM_MAP_EN: Record<string, string> = {
+  "erwarteter Umsatz": "expected revenue",
+  Gewinnmarge: "profit margin",
+  "Break-even-Monate": "break-even months",
+  Marktanteil: "market share",
+  "Marktvolumen": "market volume",
+  Umsatzpotenzial: "revenue potential",
+  "erwarteter Umsatzanteil": "expected revenue share",
+  Marktpenetration: "market penetration",
+  "erwartete Nutzerakzeptanz": "expected user adoption",
+  Produktnutzungsrate: "product usage rate",
+  "Markteintrittskosten": "market entry costs",
+  Marktwachstum: "market growth",
+  Wettbewerbsdichte: "competitive density",
+  Nachfrageindex: "demand index",
+  Marktanteilspotenzial: "market share potential",
+  "durchschnittlicher Umsatz pro Kunde": "average revenue per customer",
+  "durchschnittlicher Verkaufspreis": "average selling price",
+  Skalierungskosten: "scaling costs",
+  "operative Marge": "operating margin",
+  Wettbewerb: "competition",
+  "Kundeninteresse": "customer interest",
+  "Feature-Nutzung": "feature usage",
+  Umsatzimpact: "revenue impact",
+  Kundenzufriedenheit: "customer satisfaction",
+  Entwicklungskosten: "development costs",
+  Entwicklungskostenersparnis: "development cost savings",
+  Produktkomplexität: "product complexity",
+  Produktfehlerquote: "product defect rate",
+  Kundenakquise: "customer acquisition",
+  Nutzerzufriedenheit: "user satisfaction",
+  Plattformtransaktionen: "platform transactions",
+  Umsatzsteigerung: "revenue increase",
+  Zahlungsbereitschaft: "willingness to pay",
+  Preiselastizität: "price elasticity",
+  Umsatzvolumen: "revenue volume",
+  Nutzerfeedback: "user feedback",
+  Testconversion: "test conversion",
+  Leadkosten: "cost per lead",
+  Markenbekanntheit: "brand awareness",
+  "Kampagnen-ROI": "campaign ROI",
+  Reichweite: "reach",
+  "Expansionskosten": "expansion costs",
+  Investitionsrisiko: "investment risk",
+  Partnerkosten: "partner costs",
+  Partnerumsatz: "partner revenue",
+  Risikoindex: "risk index",
+  "Umsatz pro Region": "revenue per region",
+  Produktivität: "productivity",
+  Kosteneinsparung: "cost savings",
+};
+
+function translateScenarioQuestionToEn(question: string): string {
+  const replacements: Array<[RegExp, string]> = [
+    [/Kann die Geschäftsidee profitabel sein\?/i, "Can the business idea be profitable?"],
+    [/Welches Kundensegment sollte primär adressiert werden\?/i, "Which customer segment should be addressed first?"],
+    [/Ist der Markt groß genug für ein skalierbares Unternehmen\?/i, "Is the market large enough for a scalable company?"],
+    [/Welches Problem sollte im MVP priorisiert werden\?/i, "Which problem should be prioritized in the MVP?"],
+    [/Welche Value Proposition differenziert am stärksten vom Wettbewerb\?/i, "Which value proposition differentiates most from competitors?"],
+    [/Soll das Unternehmen lokal oder international starten\?/i, "Should the company launch locally or internationally?"],
+    [/Welcher Markt bietet das beste Verhältnis aus Nachfrage und Wettbewerb\?/i, "Which market offers the best balance of demand and competition?"],
+    [/Soll das Unternehmen B2B oder B2C verfolgen\?/i, "Should the company focus on B2B or B2C?"],
+    [/Welches Marktsegment hat die höchste Zahlungsbereitschaft\?/i, "Which market segment has the highest willingness to pay?"],
+    [/Ist das Geschäftsmodell langfristig skalierbar\?/i, "Is the business model scalable in the long term?"],
+    [/Soll das Unternehmen eine Nischenstrategie verfolgen\?/i, "Should the company pursue a niche strategy?"],
+    [/Welche Kundengruppe hat den höchsten CLV\?/i, "Which customer group has the highest CLV?"],
+    [/Welches Marktsegment bietet das größte Wachstumspotenzial\?/i, "Which market segment offers the greatest growth potential?"],
+    [/Welche Wettbewerbsstrategie ist sinnvoll\?/i, "Which competitive strategy makes sense?"],
+    [/Welche Region bietet den besten Markteintritt\?/i, "Which region offers the best market entry?"],
+    [/Soll das Produkt auf Early Adopters ausgerichtet werden\?/i, "Should the product target early adopters?"],
+    [/Welche Features sollten im MVP enthalten sein\?/i, "Which features should be included in the MVP?"],
+  ];
+  for (const [rx, value] of replacements) {
+    if (rx.test(question)) return value;
+  }
+  // Generic fallback keeps meaning understandable if no exact pattern matched.
+  return question
+    .replace("Soll ", "Should ")
+    .replace("Welche ", "Which ")
+    .replace("Welcher ", "Which ")
+    .replace("Welches ", "Which ")
+    .replace("Wie ", "How ")
+    .replace("Ist ", "Is ")
+    .replace("Geschäftsmodell", "business model")
+    .replace("Markteintritt", "market entry")
+    .replace("Wachstum", "growth")
+    .replace("Strategie", "strategy")
+    .replace("Unternehmen", "company");
+}
+
+function translateKpiToEn(kpi: string): string {
+  return KPI_TERM_MAP_EN[kpi] ?? kpi;
+}
+
+export function getScenarioCategories(locale: "de" | "en"): Record<ScenarioCategory, string> {
+  return locale === "de" ? SCENARIO_CATEGORIES : SCENARIO_CATEGORIES_EN;
+}
+
+export function localizeScenario(s: Scenario, locale: "de" | "en"): Scenario {
+  if (locale === "de") return s;
+  return {
+    ...s,
+    question: translateScenarioQuestionToEn(s.question),
+    kpis: s.kpis.map(translateKpiToEn),
+  };
+}
 
 export function getScenarioById(id: number): Scenario | undefined {
   return SCENARIOS.find((s) => s.id === id);

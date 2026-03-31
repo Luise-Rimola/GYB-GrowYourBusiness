@@ -32,9 +32,10 @@ type Props = {
   companyId: string;
   stages: Stage[];
   labels: ChecklistClientLabels;
+  locale: "de" | "en";
 };
 
-export function ChecklistClient({ companyId, stages, labels }: Props) {
+export function ChecklistClient({ companyId, stages, labels, locale }: Props) {
   const router = useRouter();
   const [newStageName, setNewStageName] = useState("");
   const [newStepByStage, setNewStepByStage] = useState<Record<string, string>>({});
@@ -66,7 +67,7 @@ export function ChecklistClient({ companyId, stages, labels }: Props) {
     "Opening day plan": "Plan für den Launch-Tag",
   };
 
-  const toDe = (value: string) => DE_LABELS[value] ?? value;
+  const normalizeLabel = (value: string) => (locale === "de" ? DE_LABELS[value] ?? value : value);
 
   async function toggleStep(stepId: string, done: boolean) {
     await fetch("/api/checklist/step", {
@@ -150,7 +151,7 @@ export function ChecklistClient({ companyId, stages, labels }: Props) {
               className="rounded-2xl border border-teal-200 dark:border-teal-800 bg-[var(--card)] p-5"
             >
               <div className="mb-4 flex items-center justify-between">
-                <h3 className="font-semibold text-[var(--foreground)]">{toDe(stage.name)}</h3>
+                <h3 className="font-semibold text-[var(--foreground)]">{normalizeLabel(stage.name)}</h3>
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-[var(--muted)]">
                     {doneCount}/{stage.steps.length}
@@ -187,7 +188,7 @@ export function ChecklistClient({ companyId, stages, labels }: Props) {
                         step.done ? "text-[var(--muted)] line-through" : "text-[var(--foreground)]"
                       }`}
                     >
-                      {toDe(step.label)}
+                      {normalizeLabel(step.label)}
                     </span>
                   </li>
                 ))}

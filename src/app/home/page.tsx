@@ -6,10 +6,18 @@ import { Badge } from "@/components/Badge";
 import { getOrCreateDemoCompany } from "@/lib/demo";
 import { getServerLocale } from "@/lib/locale";
 import { getTranslations } from "@/lib/i18n";
-import { SCENARIO_CATEGORIES, type ScenarioCategory } from "@/lib/scenarios";
 import { getOrCreateStudyParticipant } from "@/lib/study";
 import { loadAssistantSteps } from "@/lib/assistantSteps";
 import { AssistantStepsList } from "@/components/AssistantStepsList";
+import { STUDY_CATEGORY_LABELS, type StudyCategoryKey } from "@/lib/studyCategoryContext";
+
+async function safeDb<T>(query: () => Promise<T>, fallback: T): Promise<T> {
+  try {
+    return await query();
+  } catch {
+    return fallback;
+  }
+}
 
 export default async function Home({
   searchParams,
@@ -20,20 +28,33 @@ export default async function Home({
   const locale = await getServerLocale();
   const t = getTranslations(locale);
   const company = await getOrCreateDemoCompany();
-  const [latestProfile, kpiValues, kpiSet, runs, decisions, participant] = await Promise.all([
-    prisma.companyProfile.findFirst({
-      where: { companyId: company.id },
-      orderBy: { version: "desc" },
-    }),
-    prisma.kpiValue.findMany({ where: { companyId: company.id } }),
-    prisma.companyKpiSet.findFirst({
-      where: { companyId: company.id },
-      orderBy: { version: "desc" },
-    }),
-    prisma.run.findMany({ where: { companyId: company.id } }),
-    prisma.decision.findMany({ where: { companyId: company.id } }),
-    getOrCreateStudyParticipant(company.id),
-  ]);
+  const latestProfile = await safeDb(
+    () =>
+      prisma.companyProfile.findFirst({
+        where: { companyId: company.id },
+        orderBy: { version: "desc" },
+      }),
+    null
+  );
+  const kpiValues = await safeDb(() => prisma.kpiValue.findMany({ where: { companyId: company.id } }), []);
+  const kpiSet = await safeDb(
+    () =>
+      prisma.companyKpiSet.findFirst({
+        where: { companyId: company.id },
+        orderBy: { version: "desc" },
+      }),
+    null
+  );
+  const runs = await safeDb(() => prisma.run.findMany({ where: { companyId: company.id } }), []);
+  const decisions = await safeDb(() => prisma.decision.findMany({ where: { companyId: company.id } }), []);
+  const participant = await safeDb(
+    () => getOrCreateStudyParticipant(company.id),
+    {
+      id: "",
+      completedFb1: false,
+      completedFb5: false,
+    } as { id: string; completedFb1: boolean; completedFb5?: boolean }
+  );
 
   const profileComplete = latestProfile
     ? Math.round(latestProfile.completenessScore * 100)
@@ -59,6 +80,7 @@ export default async function Home({
     participantCompletedFb1: participant.completedFb1,
     participantCompletedFb5: Boolean((participant as { completedFb5?: boolean }).completedFb5),
     profileCompletePercent: profileComplete,
+    locale,
     t: {
       common: { viewArtifacts: t.common.viewArtifacts },
       home: { companyProfile: t.home.companyProfile, stepLlm: t.home.stepLlm, step2: t.home.step2, step5: t.home.step5, step6: t.home.step6 },
@@ -108,7 +130,7 @@ export default async function Home({
           {t.study.fb2Saved}
           {params.category && (
             <span className="ml-1 text-[var(--muted)]">
-              ({SCENARIO_CATEGORIES[params.category as ScenarioCategory] ?? params.category})
+              ({STUDY_CATEGORY_LABELS[params.category as StudyCategoryKey] ?? params.category})
             </span>
           )}
         </div>
@@ -118,7 +140,7 @@ export default async function Home({
           {t.study.fb3Saved}
           {params.category && (
             <span className="ml-1 text-[var(--muted)]">
-              ({SCENARIO_CATEGORIES[params.category as ScenarioCategory] ?? params.category})
+              ({STUDY_CATEGORY_LABELS[params.category as StudyCategoryKey] ?? params.category})
             </span>
           )}
         </div>

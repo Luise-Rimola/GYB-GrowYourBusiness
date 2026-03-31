@@ -4,7 +4,7 @@ export const translations = {
   en: {
     nav: {
       homepage: "Homepage",
-      home: "Home",
+      home: "Start",
       plans: "Processes",
       data: "Data",
       businessProfile: "Business Profile & Intake",
@@ -892,7 +892,7 @@ export const translations = {
     },
     home: {
       title: "Grow Your Business",
-      badge: "AI-Powered Growth System",
+      badge: "KI-gestütztes Wachstumssystem",
       subtitle: "Nutzen Sie das System wie einen KI-Unternehmensberater und als Decision Support System für strategische Entscheidungen in Markteintritts- und Wachstumsphasen.",
       subtitleDetails:
         "Diese Studie untersucht, wie KI strategische Entscheidungen in Markteintritts- und Wachstumsphasen unterstützen kann. Das Tool arbeitet als Decision Support System (DSS): Es strukturiert Informationen, verknüpft KPIs und Quellen und liefert nachvollziehbare, evidenzbasierte Empfehlungen als Entscheidungsgrundlage.",
@@ -986,7 +986,7 @@ export const translations = {
       preferAi: "KI-Antwort bevorzugen",
       yourConfidenceInAi: "Ihre Konfidenz in die KI-Antwort (0–100 %)",
       evalIndicators: "Evaluierungs-Indikatoren",
-      evalUserConfidence: "User-Konfidenz (1–10)",
+      evalUserConfidence: "Nutzer-Konfidenz (1–10)",
       evalVerstaendlichkeit: "Verständlichkeit",
       evalVerstaendlichkeitQ: "Ist die Empfehlung klar und nachvollziehbar formuliert?",
       evalRelevanz: "Relevanz",
@@ -1208,11 +1208,11 @@ export const translations = {
     artifactEditor: {
       segmentKey: "Segment-Key",
       who: "Wer (Zielgruppe)",
-      jobsToBeDone: "Jobs To Be Done",
-      whatTheyBuy: "What They Buy",
-      decisionDrivers: "Decision Drivers",
-      channelFit: "Channel Fit",
-      priceSensitivity: "Price Sensitivity",
+      jobsToBeDone: "Aufgabenbedarfe (Jobs To Be Done)",
+      whatTheyBuy: "Was sie kaufen",
+      decisionDrivers: "Entscheidungstreiber",
+      channelFit: "Kanal-Passung",
+      priceSensitivity: "Preissensitivität",
       remove: "Entfernen",
       placeholderSegmentKey: "z. B. local_lunch_workers",
       placeholderWho: "Mitarbeitende in und um …",
@@ -1239,7 +1239,7 @@ export const translations = {
       threats: "Risiken",
       invalidJson: "Ungültiges JSON",
       formMode: "Formular",
-      rawJsonMode: "Raw JSON",
+      rawJsonMode: "Roh-JSON",
       save: "Speichern",
     },
     workflowOverview: {
@@ -1534,7 +1534,7 @@ export const translations = {
       editKpiSelection: "Auswahl bearbeiten",
       noKpiLibrary: "Keine KPIs in der Bibliothek. Bitte Seed ausführen: npx prisma db seed",
       estimatesSubheading: "Prognosen aus Analysen (Monat 1 → Monat 12)",
-      startupGuide: "Funding",
+      startupGuide: "Förderung",
       startupGuideDesc: "Finanzierungs- und Gründungsmodelle für Analyse und Planung.",
       kpiInput: "KPI-Input",
       kpiInputDesc: "KPI-Werte hinzufügen oder bearbeiten (manuell im MVP).",

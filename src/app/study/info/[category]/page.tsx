@@ -2,9 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getServerLocale } from "@/lib/locale";
 import { getTranslations } from "@/lib/i18n";
-import { SCENARIO_CATEGORIES, type ScenarioCategory } from "@/lib/scenarios";
 import { WORKFLOW_NAMES } from "@/lib/planningFramework";
-import { getStudyCategoryContext, VALID_STUDY_CATEGORIES } from "@/lib/studyCategoryContext";
+import { getStudyCategoryContext, STUDY_CATEGORY_LABELS, VALID_STUDY_CATEGORIES, type StudyCategoryKey } from "@/lib/studyCategoryContext";
 
 export default async function StudyCategoryInfoPage({
   params,
@@ -16,12 +15,12 @@ export default async function StudyCategoryInfoPage({
   const { category } = await params;
   const sp = await searchParams;
   const isEmbed = sp.embed === "1";
-  if (!VALID_STUDY_CATEGORIES.includes(category as ScenarioCategory)) notFound();
+  if (!VALID_STUDY_CATEGORIES.includes(category as StudyCategoryKey)) notFound();
 
   const locale = await getServerLocale();
   const t = getTranslations(locale);
-  const cat = category as ScenarioCategory;
-  const categoryLabel = SCENARIO_CATEGORIES[cat];
+  const cat = category as StudyCategoryKey;
+  const categoryLabel = STUDY_CATEGORY_LABELS[cat];
   const ctx = getStudyCategoryContext(locale)[cat];
   const workflowNames = ctx.workflowKeys.map((k) => WORKFLOW_NAMES[k] ?? k);
 

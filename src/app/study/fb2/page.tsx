@@ -11,10 +11,9 @@ import { getServerLocale } from "@/lib/locale";
 import { getTranslations } from "@/lib/i18n";
 import { Fragebogen2Form } from "@/components/Fragebogen2Form";
 import { WORKFLOW_NAMES } from "@/lib/planningFramework";
-import { type ScenarioCategory } from "@/lib/scenarios";
 import { AssistantSubmitBridge } from "@/components/AssistantSubmitBridge";
 import { dashboardUrlAfterFb2Assistant } from "@/lib/studyAssistantEmbed";
-import { getStudyCategoryContext } from "@/lib/studyCategoryContext";
+import { getStudyCategoryContext, type StudyCategoryKey } from "@/lib/studyCategoryContext";
 
 function parseFb2FormData(formData: FormData) {
   const dq = { DQ1: Number(formData.get("DQ1")), DQ2: Number(formData.get("DQ2")), DQ3: Number(formData.get("DQ3")), DQ4: Number(formData.get("DQ4")) };
@@ -71,7 +70,7 @@ export default async function Fragebogen2Page({
   const participant = await getOrCreateStudyParticipant(company.id);
   const locale = await getServerLocale();
   const t = getTranslations(locale);
-  const category = params.category as ScenarioCategory | undefined;
+  const category = params.category as StudyCategoryKey | undefined;
   const savedJson = category
     ? await getLatestQuestionnaireResponseJson({
         participantId: participant.id,
@@ -81,7 +80,7 @@ export default async function Fragebogen2Page({
     : null;
   const initialValues = fb2ResponsesJsonToFormDefaults(savedJson);
   const catCtx = getStudyCategoryContext(locale);
-  const context = category && catCtx[category as ScenarioCategory] ? catCtx[category as ScenarioCategory] : null;
+  const context = category && catCtx[category as StudyCategoryKey] ? catCtx[category as StudyCategoryKey] : null;
   const workflowList = context
     ? context.fb2WorkflowKeys.map((k) => WORKFLOW_NAMES[k] ?? k).join(", ")
     : t.study.fb2PickCategoryFirst;

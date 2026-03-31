@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { Section } from "@/components/Section";
 import {
   SCENARIOS,
-  SCENARIO_CATEGORIES,
+  getScenarioCategories,
+  localizeScenario,
   type Scenario,
   type ScenarioCategory,
 } from "@/lib/scenarios";
@@ -121,9 +122,11 @@ export function ScenarioEvaluationFlow({
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [promptText, setPromptText] = useState<string>("");
   const [manualResponse, setManualResponse] = useState("");
+  const isEn = locale === "en";
+  const categoryLabels = getScenarioCategories(isEn ? "en" : "de");
 
   const handleSelectScenario = (s: Scenario) => {
-    setSelectedScenario(s);
+    setSelectedScenario(localizeScenario(s, isEn ? "en" : "de"));
     setStep("user");
     setUserAnswer("");
     setUserConfidence(50);
@@ -176,7 +179,7 @@ export function ScenarioEvaluationFlow({
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Fehler");
+      if (!res.ok) throw new Error(data.error ?? (isEn ? "Error" : "Fehler"));
       setAiAnswer(data.answer);
       setAiConfidence(data.confidence);
       setAiSources(data.sources ?? []);
@@ -207,7 +210,7 @@ export function ScenarioEvaluationFlow({
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Fehler");
+      if (!res.ok) throw new Error(data.error ?? (isEn ? "Error" : "Fehler"));
       setPromptText(data.prompt ?? "");
     } catch (e) {
       setMessage({ type: "error", text: e instanceof Error ? e.message : t.error });
@@ -265,7 +268,9 @@ export function ScenarioEvaluationFlow({
     if (looksLikePrompt) {
       setMessage({
         type: "error",
-        text: "Das sieht aus wie der Prompt, nicht die KI-Antwort. Bitte die Antwort aus ChatGPT/Claude einfügen (Empfehlung + Konfidenz + Quellen), nicht den Prompt.",
+        text: isEn
+          ? "This looks like the prompt, not the AI answer. Please paste the answer from ChatGPT/Claude (recommendation + confidence + sources), not the prompt."
+          : "Das sieht aus wie der Prompt, nicht die KI-Antwort. Bitte die Antwort aus ChatGPT/Claude einfügen (Empfehlung + Konfidenz + Quellen), nicht den Prompt.",
       });
       return;
     }
@@ -302,26 +307,29 @@ export function ScenarioEvaluationFlow({
   if (step === "select") {
     const categoriesToShow = initialCategory
       ? [initialCategory]
-      : (Object.keys(SCENARIO_CATEGORIES) as ScenarioCategory[]);
+      : (Object.keys(categoryLabels) as ScenarioCategory[]);
     return (
       <Section title={t.scenarioSelectTitle} description={t.scenarioSelectDesc}>
         <div className="space-y-4">
           {categoriesToShow.map((cat) => (
             <div key={cat}>
               <h3 className="mb-2 text-sm font-semibold text-[var(--muted)]">
-                {SCENARIO_CATEGORIES[cat]}
+                {categoryLabels[cat]}
               </h3>
               <div className="flex flex-col gap-2">
-                {getScenariosByCategory(cat).map((s) => (
-                  <button
-                    key={s.id}
-                    type="button"
-                    onClick={() => handleSelectScenario(s)}
-                    className="w-full rounded-lg border border-[var(--card-border)] bg-[var(--background)] px-3 py-2.5 text-left text-sm leading-snug transition hover:border-teal-500 hover:bg-teal-50/50 dark:hover:bg-teal-950/30"
-                  >
-                    <span className="font-medium">{s.id}.</span> {s.question}
-                  </button>
-                ))}
+                {getScenariosByCategory(cat).map((s) => {
+                  const localized = localizeScenario(s, isEn ? "en" : "de");
+                  return (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => handleSelectScenario(s)}
+                      className="w-full rounded-lg border border-[var(--card-border)] bg-[var(--background)] px-3 py-2.5 text-left text-sm leading-snug transition hover:border-teal-500 hover:bg-teal-50/50 dark:hover:bg-teal-950/30"
+                    >
+                      <span className="font-medium">{s.id}.</span> {localized.question}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           ))}
@@ -367,7 +375,7 @@ export function ScenarioEvaluationFlow({
                 onChange={(e) => setUserAnswer(e.target.value)}
                 rows={4}
                 className="w-full rounded-xl border border-[var(--card-border)] bg-[var(--background)] p-3 text-sm placeholder:text-[var(--muted)]"
-                placeholder="Ihre Antwort..."
+                placeholder={isEn ? "Your answer..." : "Ihre Antwort..."}
               />
             </div>
             <div>
@@ -436,7 +444,7 @@ export function ScenarioEvaluationFlow({
                     disabled={loading}
                     className="rounded-lg border border-[var(--card-border)] px-2 py-1 text-xs font-medium hover:bg-[var(--background)] disabled:opacity-50"
                   >
-                    {promptText ? "Aktualisieren" : "Prompt laden"}
+                    {promptText ? (isEn ? "Refresh" : "Aktualisieren") : (isEn ? "Load prompt" : "Prompt laden")}
                   </button>
                 </div>
                 <textarea
@@ -444,7 +452,7 @@ export function ScenarioEvaluationFlow({
                   value={promptText}
                   rows={6}
                   className="w-full rounded-xl border border-[var(--card-border)] bg-slate-50 p-3 text-xs font-mono text-[var(--foreground)] dark:bg-slate-900/30 resize-none"
-                  placeholder="Klicken Sie auf 'Prompt laden', dann können Sie den Prompt kopieren."
+                  placeholder={isEn ? "Click 'Load prompt', then copy the prompt." : "Klicken Sie auf 'Prompt laden', dann können Sie den Prompt kopieren."}
                 />
                 {promptText && (
                   <button
@@ -452,7 +460,7 @@ export function ScenarioEvaluationFlow({
                     onClick={() => navigator.clipboard.writeText(promptText)}
                     className="mt-1 rounded-lg border border-teal-600 px-3 py-1.5 text-xs font-medium text-teal-700 transition hover:bg-teal-50 dark:border-teal-500 dark:text-teal-300 dark:hover:bg-teal-950/30"
                   >
-                    📋 In Zwischenablage kopieren
+                    {isEn ? "📋 Copy to clipboard" : "📋 In Zwischenablage kopieren"}
                   </button>
                 )}
               </div>
@@ -461,13 +469,17 @@ export function ScenarioEvaluationFlow({
                   {t.pasteResponse}
                 </label>
                 <p className="mb-1 text-xs text-amber-600 dark:text-amber-400">
-                  Nur die <strong>Antwort</strong> aus ChatGPT/Claude einfügen – nicht den Prompt.
+                  {isEn ? <>Paste only the <strong>answer</strong> from ChatGPT/Claude - not the prompt.</> : <>Nur die <strong>Antwort</strong> aus ChatGPT/Claude einfügen – nicht den Prompt.</>}
                 </p>
                 <textarea
                   value={manualResponse}
                   onChange={(e) => setManualResponse(e.target.value)}
                   rows={6}
-                  placeholder="Empfehlung der KI hier einfügen (inkl. Konfidenz: X% und Quellen als JSON am Ende)."
+                  placeholder={
+                    isEn
+                      ? "Paste the AI recommendation here (including confidence: X% and sources as JSON at the end)."
+                      : "Empfehlung der KI hier einfügen (inkl. Konfidenz: X% und Quellen als JSON am Ende)."
+                  }
                   className="w-full rounded-xl border border-[var(--card-border)] bg-[var(--background)] p-3 text-sm text-[var(--foreground)] placeholder:text-[var(--muted)] resize-none"
                 />
               </div>
@@ -490,18 +502,18 @@ export function ScenarioEvaluationFlow({
             <div className="grid gap-4 md:grid-cols-2">
               <div className="rounded-xl border border-[var(--card-border)] bg-[var(--background)] p-4">
                 <h4 className="mb-2 text-sm font-semibold text-[var(--foreground)]">
-                  {t.yourAnswer} (Konfidenz: {userConfidence} %)
+                  {t.yourAnswer} ({isEn ? "Confidence" : "Konfidenz"}: {userConfidence} %)
                 </h4>
                 <p className="whitespace-pre-wrap text-sm text-[var(--muted)]">{userAnswer}</p>
               </div>
               <div className="rounded-xl border border-[var(--card-border)] bg-[var(--background)] p-4">
                 <h4 className="mb-2 text-sm font-semibold text-[var(--foreground)]">
-                  {t.aiAnswer} (Konfidenz: {aiConfidence} %)
+                  {t.aiAnswer} ({isEn ? "Confidence" : "Konfidenz"}: {aiConfidence} %)
                 </h4>
                 <p className="whitespace-pre-wrap text-sm text-[var(--muted)]">{aiAnswer}</p>
                 {aiSources.length > 0 && (
                   <div className="mt-3 border-t border-[var(--card-border)] pt-3">
-                    <p className="mb-1 text-xs font-medium text-[var(--muted)]">Quellen:</p>
+                    <p className="mb-1 text-xs font-medium text-[var(--muted)]">{isEn ? "Sources:" : "Quellen:"}</p>
                     <ul className="list-inside list-disc text-xs text-[var(--muted)]">
                       {aiSources.map((s, i) => (
                         <li key={i}>{s.title}</li>
@@ -554,7 +566,7 @@ export function ScenarioEvaluationFlow({
             </div>
             <div className="rounded-lg border border-[var(--card-border)] bg-[var(--background)] p-4">
               <h4 className="mb-3 text-sm font-semibold text-[var(--foreground)]">
-                {t.evalIndicators ?? "Evaluierungs-Indikatoren"}
+                {t.evalIndicators ?? (isEn ? "Evaluation indicators" : "Evaluierungs-Indikatoren")}
               </h4>
               <div className="grid gap-4 sm:grid-cols-2">
                 {[

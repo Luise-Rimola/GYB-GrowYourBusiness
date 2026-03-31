@@ -10,6 +10,10 @@ const MAX_429_RETRIES = 2;
 type RunAllButtonProps = {
   selectedWorkflowKeys: string[];
   allWorkflowKeys: string[];
+  labels?: {
+    runProcess: string;
+    running: string;
+  };
 };
 
 type StepItem = {
@@ -30,7 +34,7 @@ type RetryState = {
   retryCount: number;
 };
 
-export function RunAllButton({ selectedWorkflowKeys, allWorkflowKeys }: RunAllButtonProps) {
+export function RunAllButton({ selectedWorkflowKeys, allWorkflowKeys, labels }: RunAllButtonProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState<StepItem[]>([]);
@@ -210,7 +214,7 @@ export function RunAllButton({ selectedWorkflowKeys, allWorkflowKeys }: RunAllBu
         disabled={loading}
         className="rounded-xl border border-teal-600 px-4 py-2.5 text-sm font-semibold text-teal-700 transition hover:bg-teal-50 dark:border-teal-500 dark:text-teal-300 dark:hover:bg-teal-950/50 disabled:opacity-50"
       >
-        {loading ? "Läuft…" : "Ausführen des KI-Prozesses"}
+        {loading ? (labels?.running ?? "Läuft…") : (labels?.runProcess ?? "Ausführen des KI-Prozesses")}
       </button>
       {showPopup && !loading && (
         <div className="absolute left-0 top-full z-50 mt-1 min-w-[200px] rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-2 shadow-lg">

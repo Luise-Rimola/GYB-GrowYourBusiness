@@ -250,8 +250,12 @@ function normalizeCategory(category: string | null | undefined): string {
     markt_geschaeftsmodell: "mgb",
     produktstrategie: "prod",
     marketing: "mkt",
+    launch_marketing_investition: "launch",
     wachstum_expansion: "growth",
     investition_strategie: "invest",
+    technologie_digitalisierung: "tech",
+    reifephase: "maturity",
+    erneuerung_exit: "renewal",
   };
   return map[category] ?? category.replace(/[^a-zA-Z0-9]+/g, "_").toLowerCase();
 }

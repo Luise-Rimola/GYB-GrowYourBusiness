@@ -95,7 +95,7 @@ export default async function ChecklistPage() {
       </header>
 
       <Section title={c.preLaunchSteps} description={c.preLaunchStepsDesc}>
-        <ChecklistClient companyId={company.id} stages={stages} labels={labels} />
+        <ChecklistClient companyId={company.id} stages={stages} labels={labels} locale={locale} />
       </Section>
     </div>
   );

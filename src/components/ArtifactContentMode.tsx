@@ -24,6 +24,7 @@ export function ArtifactContentMode({
   generatedAtIso,
   pdfFilenameBase,
   artifactId,
+  locale = "de",
 }: {
   data: Record<string, unknown>;
   reportSlot: ReactNode;
@@ -33,6 +34,7 @@ export function ArtifactContentMode({
   /** Kurzname ohne .pdf (z. B. Artefakt-Titel) */
   pdfFilenameBase: string;
   artifactId: string;
+  locale?: "de" | "en";
 }) {
   const [mode, setMode] = useState<"report" | "data">(defaultMode);
   const [pdfBusy, setPdfBusy] = useState(false);
@@ -41,11 +43,13 @@ export function ArtifactContentMode({
   const generatedLabel = (() => {
     try {
       const d = new Date(generatedAtIso);
-      return d.toLocaleDateString("de-DE", { day: "numeric", month: "long", year: "numeric" });
+      return d.toLocaleDateString(locale === "de" ? "de-DE" : "en-US", { day: "numeric", month: "long", year: "numeric" });
     } catch {
       return generatedAtIso;
     }
   })();
+
+  const isDe = locale === "de";
 
   async function downloadPdf() {
     const el = captureRef.current;
@@ -72,7 +76,11 @@ export function ArtifactContentMode({
         .save();
     } catch (e) {
       console.error(e);
-      window.alert("PDF konnte nicht erzeugt werden. Bitte erneut versuchen oder einen anderen Browser nutzen.");
+      window.alert(
+        isDe
+          ? "PDF konnte nicht erzeugt werden. Bitte erneut versuchen oder einen anderen Browser nutzen."
+          : "Could not generate PDF. Please try again or use a different browser."
+      );
     } finally {
       setPdfBusy(false);
     }
@@ -91,7 +99,7 @@ export function ArtifactContentMode({
                 : "text-[var(--muted)] hover:bg-slate-100 dark:hover:bg-slate-800"
             }`}
           >
-            Bericht
+            {isDe ? "Bericht" : "Report"}
           </button>
           <button
             type="button"
@@ -102,7 +110,7 @@ export function ArtifactContentMode({
                 : "text-[var(--muted)] hover:bg-slate-100 dark:hover:bg-slate-800"
             }`}
           >
-            Datenfelder
+            {isDe ? "Datenfelder" : "Data fields"}
           </button>
         </div>
         {mode === "report" ? (
@@ -112,7 +120,7 @@ export function ArtifactContentMode({
             disabled={pdfBusy}
             className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-700 disabled:opacity-60"
           >
-            {pdfBusy ? "PDF wird erstellt…" : "PDF herunterladen"}
+            {pdfBusy ? (isDe ? "PDF wird erstellt..." : "Generating PDF...") : (isDe ? "PDF herunterladen" : "Download PDF")}
           </button>
         ) : null}
       </div>
@@ -122,7 +130,7 @@ export function ArtifactContentMode({
           <header className="border-b border-slate-200 pb-4">
             <p className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-teal-800">{REPORT_HEADER_LINE}</p>
             <h2 className="mt-1 text-xl font-bold tracking-tight text-slate-900">{documentTitle}</h2>
-            <p className="mt-1 text-xs text-slate-500">Erstellt: {generatedLabel}</p>
+            <p className="mt-1 text-xs text-slate-500">{isDe ? "Erstellt" : "Generated"}: {generatedLabel}</p>
           </header>
           <div className="report-paper-body pt-6">{reportSlot}</div>
         </div>

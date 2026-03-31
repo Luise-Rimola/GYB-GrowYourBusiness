@@ -14,6 +14,7 @@ import { ArtifactContentMode } from "@/components/ArtifactContentMode";
 import { getEarlyWarningDetails, getEarlyWarningPrimaryRiskText, hasEarlyWarningSignal } from "@/lib/earlyWarning";
 import { EarlyWarningPopover } from "@/components/EarlyWarningPopover";
 import { getArtifactDocumentIntroDe } from "@/lib/artifactDocumentIntroDe";
+import { getServerLocale } from "@/lib/locale";
 
 export default async function ArtifactDetailPage({
   params,
@@ -21,6 +22,8 @@ export default async function ArtifactDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const locale = await getServerLocale();
+  const isDe = locale === "de";
   const artifact = await prisma.artifact.findUnique({
     where: { id },
   });
@@ -45,7 +48,10 @@ export default async function ArtifactDetailPage({
     const plan = content as { questions_simple?: string[]; mapping_to_kpi_keys?: string[]; default_estimates_if_unknown?: string[] };
     const existingAnswers = (answersStep?.parsedOutputJson as { answers?: string[] } | null)?.answers ?? [];
     kpiAnswersSection = (
-      <Section title="Your answers" description="Edit and save to update KPI data.">
+      <Section
+        title={isDe ? "Ihre Antworten" : "Your answers"}
+        description={isDe ? "Bearbeiten und speichern, um KPI-Daten zu aktualisieren." : "Edit and save to update KPI data."}
+      >
         <KpiQuestionsForm
           plan={{
             questions_simple: plan.questions_simple ?? [],
@@ -81,13 +87,13 @@ export default async function ArtifactDetailPage({
               href={`/artifacts/${artifact.id}/evaluate`}
               className="rounded-xl bg-teal-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-teal-700"
             >
-              Dokument evaluieren
+              {isDe ? "Dokument evaluieren" : "Evaluate document"}
             </Link>
           </div>
         }
       >
         <div className="mb-4 rounded-xl border border-teal-200/90 bg-teal-50/60 p-4 text-sm text-slate-800 dark:border-teal-800/50 dark:bg-teal-950/25 dark:text-slate-100">
-          <p className="leading-relaxed">{getArtifactDocumentIntroDe(artifact.type)}</p>
+          <p className="leading-relaxed">{isDe ? getArtifactDocumentIntroDe(artifact.type) : "This document summarizes the generated artifact in a structured, decision-ready format."}</p>
         </div>
         {(() => {
           const si = content.strategy_indicators as Record<string, { value?: number | string }> | undefined;
@@ -107,11 +113,11 @@ export default async function ArtifactDetailPage({
           if (high.length === 0) return null;
           return (
             <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50/80 p-4 text-sm text-rose-900 dark:border-rose-800/60 dark:bg-rose-950/30 dark:text-rose-100">
-              <p className="font-semibold">Risikofaktor hoch</p>
+              <p className="font-semibold">{isDe ? "Risikofaktor hoch" : "High risk factor"}</p>
               <ul className="mt-1 list-disc pl-5">
                 {high.map((h) => (
                   <li key={h.key}>
-                    {h.label}: {h.value} (Schwelle {h.threshold})
+                    {h.label}: {h.value} ({isDe ? "Schwelle" : "threshold"} {h.threshold})
                   </li>
                 ))}
               </ul>
@@ -133,28 +139,31 @@ export default async function ArtifactDetailPage({
                 <div
                   className="max-w-none text-sm leading-relaxed text-slate-800 [&_h1]:mb-2 [&_h1]:text-lg [&_h1]:font-semibold [&_h2]:mb-2 [&_h2]:text-base [&_h2]:font-semibold [&_p]:mb-2 [&_ul]:mb-2 [&_ul]:list-disc [&_ul]:pl-5"
                   dangerouslySetInnerHTML={{
-                    __html: artifact.exportHtml ?? "<p><em>Kein Inhalt</em></p>",
+                    __html: artifact.exportHtml ?? (isDe ? "<p><em>Kein Inhalt</em></p>" : "<p><em>No content</em></p>"),
                   }}
                 />
               )}
               {((content?.sources_used as string[]) ?? []).length > 0 ? (
                 <section className="mt-10 border-t border-slate-200 pt-6">
-                  <h3 className="mb-3 text-lg font-semibold text-slate-900">Quellen</h3>
+                  <h3 className="mb-3 text-lg font-semibold text-slate-900">{isDe ? "Quellen" : "Sources"}</h3>
                   <SourcesFooter sources={(content.sources_used as string[]) ?? []} showTitle={false} />
                 </section>
               ) : null}
             </>
           }
+          locale={locale}
         />
       </Section>
 
       {kpiAnswersSection}
 
-      <Section title="Advanced" description="Rohdaten (JSON) – nur Anzeige.">
+      <Section title={isDe ? "Erweitert" : "Advanced"} description={isDe ? "Rohdaten (JSON) - nur Anzeige." : "Raw data (JSON) - read only."}>
         <details className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-4">
-          <summary className="cursor-pointer text-sm font-semibold text-[var(--foreground)]">Dokument bearbeiten</summary>
+          <summary className="cursor-pointer text-sm font-semibold text-[var(--foreground)]">{isDe ? "Dokument bearbeiten" : "Edit document"}</summary>
           <p className="mt-2 text-xs text-[var(--muted)]">
-            Formular für strukturierte Bearbeitung oder Raw JSON. Nach dem Speichern abhängige Workflows ggf. neu starten (siehe Daten-Seite).
+            {isDe
+              ? "Formular für strukturierte Bearbeitung oder Raw JSON. Nach dem Speichern abhängige Workflows ggf. neu starten (siehe Daten-Seite)."
+              : "Use the form for structured editing or raw JSON. After saving, restart dependent workflows if needed (see Data page)."}
           </p>
           <div className="mt-4">
             <ArtifactEditor
@@ -166,10 +175,10 @@ export default async function ArtifactDetailPage({
             />
           </div>
           <p className="mt-4 text-xs text-[var(--muted)]">
-            <Link href="/data" className="text-teal-600 hover:text-teal-700 dark:text-teal-400">Daten-Seite</Link> – dort alle Dokumente bearbeiten und Workflows neu starten.
+            <Link href="/data" className="text-teal-600 hover:text-teal-700 dark:text-teal-400">{isDe ? "Daten-Seite" : "Data page"}</Link> {isDe ? "- dort alle Dokumente bearbeiten und Workflows neu starten." : "- edit all documents and restart workflows."}
           </p>
         </details>
-        <AdvancedJson data={artifact.contentJson} title="Advanced" summary="Rohdaten (JSON)" />
+        <AdvancedJson data={artifact.contentJson} title={isDe ? "Erweitert" : "Advanced"} summary={isDe ? "Rohdaten (JSON)" : "Raw data (JSON)"} />
       </Section>
     </div>
   );

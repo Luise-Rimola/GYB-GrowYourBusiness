@@ -14,12 +14,12 @@ import { getPlanningPhaseReleasedMap } from "@/lib/planningPhaseRelease";
 import { PhaseArtifactsReleaseBlock } from "@/components/PhaseArtifactsReleaseBlock";
 import { PhaseRunButtonForm } from "@/components/PhaseRunButtonForm";
 
-function getWorkflowArtifactLabel(workflowKey: string, artifactType: string) {
+function getWorkflowArtifactLabel(workflowKey: string, artifactType: string, locale: "de" | "en") {
   if (workflowKey === "WF_IDEA_USP_VALIDATION" && artifactType === "value_proposition") {
-    return "Idee- & USP-Validierung";
+    return locale === "de" ? "Idee- & USP-Validierung" : "Idea & USP validation";
   }
   if (workflowKey === "WF_LEGAL_FOUNDATION" && artifactType === "startup_guide") {
-    return "Rechtliche Vorgaben & Unternehmensform";
+    return locale === "de" ? "Rechtliche Vorgaben & Unternehmensform" : "Legal requirements & legal form";
   }
   return ARTIFACT_LABELS[artifactType] ?? artifactType;
 }
@@ -33,6 +33,111 @@ export default async function DashboardPage({
   const assistantPhaseId = String(params.assistant_phase ?? "").trim();
   const locale = await getServerLocale();
   const t = getTranslations(locale);
+  const isDe = locale === "de";
+  const phaseNamesEn: Record<string, string> = {
+    ideation: "Ideation / Concept Phase",
+    validation: "Validation Phase",
+    launch: "Founding / Launch Phase",
+    scaling: "Growth Phase",
+    tech_digital: "Technology & Digitalization",
+    maturity: "Maturity Phase",
+    renewal: "Renewal / Exit / Transformation",
+  };
+  const phaseGoalsEn: Record<string, string> = {
+    ideation: "Validate whether a business idea is fundamentally viable.",
+    validation: "Prove that customers would actually buy.",
+    launch: "Officially launch the company and generate first revenues.",
+    scaling: "Increase revenue and gain market share.",
+    tech_digital: "Identify suitable technology tools and automation options.",
+    maturity: "Maximize profitability and efficiency.",
+    renewal: "Reposition, transform, or prepare strategic exit options.",
+  };
+  const phaseInstrumentsEn: Record<string, string[]> = {
+    ideation: ["Problem-solution fit", "Market analysis", "Trend analysis", "Competitor analysis", "SWOT analysis", "Target-group analysis", "Value proposition design"],
+    validation: ["Problem-solution fit", "USP check", "Feasibility check", "Patent research", "Legal form & legal setup", "MVP", "Customer interviews", "Landing page tests", "Pilot customers", "Prototypes"],
+    launch: ["Business plan", "Financial planning", "Legal form", "Pricing strategy", "Go-to-market strategy", "Marketing strategy", "Sales channels"],
+    scaling: ["Business model scaling", "Automation", "Team building", "Marketing scale-up", "Sales systems"],
+    tech_digital: ["POS system", "Document archiving", "Accounting", "RPA", "Physical automation", "Own app"],
+    maturity: ["Process optimization", "Cost management", "Portfolio management", "Brand strategy", "Internationalization"],
+    renewal: ["New business models", "New markets", "M&A", "IPO", "Succession planning"],
+  };
+  const workflowNamesEn: Record<string, string> = {
+    WF_BASELINE: "Baseline analysis",
+    WF_MARKET: "Market snapshot",
+    WF_RESEARCH: "Market & best-practice analysis",
+    WF_VALUE_PROPOSITION: "Value proposition",
+    WF_COMPETITOR_ANALYSIS: "Competitor analysis",
+    WF_SWOT: "SWOT analysis",
+    WF_TREND_ANALYSIS: "Trend analysis",
+    WF_CUSTOMER_VALIDATION: "Customer validation",
+    WF_BUSINESS_PLAN: "Business plan",
+    WF_GO_TO_MARKET: "Go-to-market & pricing",
+    WF_LEGAL_FOUNDATION: "Legal setup & legal form",
+    WF_MARKETING_STRATEGY: "Marketing strategy",
+    WF_FINANCIAL_PLANNING: "Financial planning",
+    WF_DIAGNOSTIC: "Root-cause analysis",
+    WF_NEXT_BEST_ACTIONS: "Top decisions",
+    WF_SCALING_STRATEGY: "Scaling strategy",
+    WF_PROCESS_OPTIMIZATION: "Process optimization",
+    WF_PORTFOLIO_MANAGEMENT: "Portfolio management",
+    WF_STRATEGIC_OPTIONS: "Strategic options",
+    WF_KPI_ESTIMATION: "KPI estimation",
+    WF_DATA_COLLECTION_PLAN: "Data collection plan",
+    WF_SCENARIO_ANALYSIS: "Scenario & risk analysis",
+    WF_OPERATIVE_PLAN: "Operational plan",
+    WF_STRATEGIC_PLANNING: "Strategic planning",
+    WF_TECH_DIGITALIZATION: "Technology & digitalization",
+    WF_AUTOMATION_ROI: "Computer automation & ROI",
+    WF_PHYSICAL_AUTOMATION: "Physical automation",
+    WF_APP_DEVELOPMENT: "App development",
+    WF_STARTUP_CONSULTING: "Startup consulting",
+    WF_BUSINESS_FORM: "Company profile",
+    WF_MENU_CARD: "Offer catalog",
+    WF_SUPPLIER_LIST: "Supplier list",
+    WF_MENU_COST: "Cost structure",
+    WF_MENU_PRICING: "Pricing calculation",
+    WF_REAL_ESTATE: "Location options",
+  };
+  const workflowStepLabelsEn: Record<string, string[]> = {
+    WF_BUSINESS_FORM: ["Company profile form"],
+    WF_BASELINE: ["Business model", "KPI set", "KPI plan", "KPI inputs", "KPI gap scan", "Industry analysis"],
+    WF_MARKET: ["Market snapshot"],
+    WF_RESEARCH: ["Market research", "Best practices", "Why companies fail"],
+    WF_MENU_CARD: ["Offer catalog (intro + complete)"],
+    WF_SUPPLIER_LIST: ["Supplier list"],
+    WF_MENU_COST: ["Cost of goods"],
+    WF_MENU_PRICING: ["Offer", "Suppliers", "Cost of goods", "Price calculation"],
+    WF_REAL_ESTATE: ["Location options"],
+    WF_DIAGNOSTIC: ["Root-cause trees"],
+    WF_NEXT_BEST_ACTIONS: ["Decision logic"],
+    WF_BUSINESS_PLAN: ["Executive summary", "Market analysis", "Marketing strategy", "Financial scenarios", "Risk analysis"],
+    WF_KPI_ESTIMATION: ["KPI estimation"],
+    WF_DATA_COLLECTION_PLAN: ["Data collection plan"],
+    WF_STARTUP_CONSULTING: ["Funding"],
+    WF_CUSTOMER_VALIDATION: ["MVP", "Customer interviews", "Landing page tests", "Pilot customers", "Prototypes"],
+    WF_STRATEGIC_OPTIONS: ["New business models", "New markets", "M&A", "IPO", "Succession planning"],
+    WF_VALUE_PROPOSITION: ["Value proposition & problem-solution fit"],
+    WF_GO_TO_MARKET: ["Go-to-market & pricing"],
+    WF_MARKETING_STRATEGY: ["Marketing strategy"],
+    WF_SCALING_STRATEGY: ["Scalability", "Automation", "Marketing scale-up", "Sales systems"],
+    WF_PROCESS_OPTIMIZATION: ["Process optimization", "Cost management", "Brand strategy", "Internationalization"],
+    WF_PORTFOLIO_MANAGEMENT: ["Optimize product portfolio", "Expand market segments", "Strategic partnerships"],
+    WF_SCENARIO_ANALYSIS: ["Scenario & risk analysis"],
+    WF_OPERATIVE_PLAN: ["Operational plan"],
+    WF_COMPETITOR_ANALYSIS: ["Competitor analysis"],
+    WF_SWOT: ["SWOT analysis"],
+    WF_FINANCIAL_PLANNING: ["Work processes (planning -> end customer)", "Personnel plan & personnel costs", "Liquidity plan", "Profitability plan", "Capital requirements", "Break-even"],
+    WF_IDEA_USP_VALIDATION: ["Idea and USP check"],
+    WF_FEASIBILITY_VALIDATION: ["Feasibility & prerequisites"],
+    WF_PATENT_CHECK: ["Patentability & source review"],
+    WF_LEGAL_FOUNDATION: ["Legal framework & legal form"],
+    WF_STRATEGIC_PLANNING: ["Strategic planning"],
+    WF_TREND_ANALYSIS: ["Trend analysis"],
+    WF_TECH_DIGITALIZATION: ["POS system", "Document archiving", "Accounting", "CRM", "Additional tools"],
+    WF_AUTOMATION_ROI: ["Automatable processes", "Cost & ROI"],
+    WF_PHYSICAL_AUTOMATION: ["Dough machine", "Thermomix", "Conveyor systems", "Cost & ROI"],
+    WF_APP_DEVELOPMENT: ["Ideas", "Project plan", "Requirements", "Tech spec", "MVP guide", "Page spec", "DB schema"],
+  };
   const company = await getOrCreateDemoCompany();
   let [
     artifacts,
@@ -248,12 +353,14 @@ export default async function DashboardPage({
 
       {params.run_error === "llm_missing" && (
         <div className="rounded-xl border border-rose-300 bg-rose-50 p-4 text-sm text-rose-800 dark:border-rose-800 dark:bg-rose-950/30 dark:text-rose-200">
-          Bitte hinterlege eine LLM API in den Einstellungen oder führe die Schritte manuell durch.
+          {isDe
+            ? "Bitte hinterlege eine LLM API in den Einstellungen oder führe die Schritte manuell durch."
+            : "Please configure an LLM API in Settings or execute the steps manually."}
         </div>
       )}
       {params.run_success === "1" && (
         <div className="rounded-xl border border-emerald-300 bg-emerald-50 p-4 text-sm text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-200">
-          Run wurde erfolgreich durchgeführt.
+          {isDe ? "Run wurde erfolgreich durchgeführt." : "Run completed successfully."}
         </div>
       )}
 
@@ -261,8 +368,8 @@ export default async function DashboardPage({
       <Section title="">
         <div className="mb-4">
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-sm font-medium text-[var(--muted)]">Gesamtfortschritt</span>
-            <span className="text-sm font-semibold text-[var(--foreground)]">{completedWorkflowCount}/{workflowsInOrder.length} Prozesse ({progressPercent}%)</span>
+            <span className="text-sm font-medium text-[var(--muted)]">{isDe ? "Gesamtfortschritt" : "Overall progress"}</span>
+            <span className="text-sm font-semibold text-[var(--foreground)]">{completedWorkflowCount}/{workflowsInOrder.length} {isDe ? "Prozesse" : "workflows"} ({progressPercent}%)</span>
           </div>
           <div className="h-2.5 w-full rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
             <div
@@ -279,6 +386,10 @@ export default async function DashboardPage({
             artifactsHref="/artifacts"
             artifactsLabel={t.common.viewArtifacts}
             showArtifactsButton={false}
+            labels={{
+              runProcess: isDe ? "Ausführen des KI-Prozesses" : "Run AI process",
+              running: isDe ? "Läuft..." : "Running...",
+            }}
           />
         </div>
       </Section>
@@ -287,16 +398,16 @@ export default async function DashboardPage({
       <div>
         {!assistantPhaseId && (
           <div className="rounded-2xl border border-[var(--card-border)] bg-[var(--card)]/50 p-6">
-            <h3 className="text-lg font-semibold text-[var(--foreground)]">Unternehmensprofil anlegen</h3>
+            <h3 className="text-lg font-semibold text-[var(--foreground)]">{isDe ? "Unternehmensprofil anlegen" : "Create company profile"}</h3>
             <p className="mt-1 text-sm text-[var(--muted)]">
-                  Formularschritt vor den KI-Prozessen.
+                  {isDe ? "Formularschritt vor den KI-Prozessen." : "Form step before the AI workflows."}
             </p>
             <div className="mt-4 rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-4">
               <div className="flex items-center justify-between gap-4">
                 <div className="min-w-0 flex-1">
-                  <p className="font-medium text-[var(--foreground)]">Unternehmensprofil anlegen</p>
+                  <p className="font-medium text-[var(--foreground)]">{isDe ? "Unternehmensprofil anlegen" : "Create company profile"}</p>
                   <p className="text-xs text-[var(--muted)]">
-                    {hasProfile ? "Profil vollständig" : "Profil noch unvollständig"}
+                    {hasProfile ? (isDe ? "Profil vollständig" : "Profile complete") : (isDe ? "Profil noch unvollständig" : "Profile incomplete")}
                   </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
@@ -304,7 +415,7 @@ export default async function DashboardPage({
                     href="/profile"
                     className="rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-teal-700"
                   >
-                    {hasProfile ? "Profil ansehen" : "Profil ausfüllen"}
+                    {hasProfile ? (isDe ? "Profil ansehen" : "View profile") : (isDe ? "Profil ausfüllen" : "Complete profile")}
                   </Link>
                 </div>
               </div>
@@ -338,21 +449,21 @@ export default async function DashboardPage({
               <div id={`phase-${phase.id}`} key={phase.id} className={`scroll-mt-24 rounded-2xl border p-6 ${phaseCardShell}`}>
                 <div className="mb-4">
                   <div className="flex items-start justify-between gap-3">
-                    <h3 className="text-lg font-semibold text-[var(--foreground)]">{phase.name}</h3>
+                    <h3 className="text-lg font-semibold text-[var(--foreground)]">{isDe ? phase.name : (phaseNamesEn[phase.id] ?? phase.name)}</h3>
                     {phaseWorkflows.length > 0 && (
                       <PhaseRunButtonForm
                         formId={phaseFormId}
                         phaseId={phase.id}
-                        buttonLabel="Ausführen"
-                        workflows={phaseWorkflows.map((wf) => ({ key: wf.key, name: wf.name }))}
+                        buttonLabel={isDe ? "Ausführen" : "Run"}
+                        workflows={phaseWorkflows.map((wf) => ({ key: wf.key, name: isDe ? wf.name : (workflowNamesEn[wf.key] ?? wf.name) }))}
                       />
                     )}
                   </div>
-                  <p className="mt-1 text-sm text-[var(--muted)]">{phase.goal}</p>
-                  {phase.instruments && phase.instruments.length > 0 && (
+                  <p className="mt-1 text-sm text-[var(--muted)]">{isDe ? phase.goal : (phaseGoalsEn[phase.id] ?? phase.goal)}</p>
+                  {((isDe ? phase.instruments : phaseInstrumentsEn[phase.id])?.length ?? 0) > 0 && (
                     <p className="mt-2 text-xs text-[var(--muted)]">
-                      Instrumente: {phase.instruments.slice(0, 5).join(", ")}
-                      {phase.instruments.length > 5 ? " …" : ""}
+                      {isDe ? "Instrumente" : "Instruments"}: {(isDe ? phase.instruments! : phaseInstrumentsEn[phase.id]!).slice(0, 5).join(", ")}
+                      {(isDe ? phase.instruments! : phaseInstrumentsEn[phase.id]!).length > 5 ? " …" : ""}
                     </p>
                   )}
                 </div>
@@ -361,7 +472,7 @@ export default async function DashboardPage({
                     <summary className="cursor-pointer list-none text-sm font-medium text-[var(--foreground)]">
                       <span className="inline-flex items-center gap-2">
                         <span aria-hidden>⚙️</span>
-                        Prozesse anzeigen
+                        {isDe ? "Prozesse anzeigen" : "Show workflows"}
                       </span>
                     </summary>
                     <div className="mt-3 space-y-3">
@@ -373,7 +484,7 @@ export default async function DashboardPage({
                             data-phase-toggle={phase.id}
                             className="h-4 w-4 rounded border-[var(--card-border)] text-teal-600 focus:ring-teal-500"
                           />
-                          Alle an/aus
+                          {isDe ? "Alle an/aus" : "Toggle all"}
                         </label>
                       </div>
                       {phaseWorkflows.map((wf) => {
@@ -392,6 +503,9 @@ export default async function DashboardPage({
                       const isCompleteUnvalidated = isComplete && completeRun && !completeRunValidated;
                       const hasUnverifiedResponse = runsByWorkflow[wf.key]?.some(runHasUnverifiedResponse);
                       const showUnvalidated = isCompleteUnvalidated || hasUnverifiedResponse;
+                      const stepLabels = isDe
+                        ? (WORKFLOW_STEP_LABELS[wf.key] ?? [])
+                        : (workflowStepLabelsEn[wf.key] ?? WORKFLOW_STEP_LABELS[wf.key] ?? []);
                       return (
                         <div
                           key={wf.key}
@@ -417,54 +531,54 @@ export default async function DashboardPage({
                                   data-phase-workflow={phase.id}
                                   className="h-4 w-4 rounded border-[var(--card-border)] text-teal-600 focus:ring-teal-500"
                                 />
-                                <p className="font-medium text-[var(--foreground)]">{wf.name}</p>
+                                <p className="font-medium text-[var(--foreground)]">{isDe ? wf.name : (workflowNamesEn[wf.key] ?? wf.name)}</p>
                               </div>
-                              {(WORKFLOW_STEP_LABELS[wf.key]?.length ?? 0) > 1 && (
+                              {stepLabels.length > 1 && (
                                 <p className="mt-1 text-xs text-[var(--muted)]/80">
-                                  Unterworkflows: {WORKFLOW_STEP_LABELS[wf.key]!.join(" → ")}
+                                  {isDe ? "Unterworkflows" : "Sub-workflows"}: {stepLabels.join(" -> ")}
                                 </p>
                               )}
                               {showUnvalidated && (
                                 <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
-                                  Prüfung ausstehend – Schritte im Run verifizieren
+                                  {isDe ? "Prüfung ausstehend – Schritte im Run verifizieren" : "Review pending - verify steps in run"}
                                 </p>
                               )}
                               {locked && (
                                 <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
                                   {wf.key === "WF_BUSINESS_PLAN"
-                                    ? "Grundlagenanalyse, Warum Unternehmen scheitern, Lieferantenliste und Standortoptionen erforderlich"
+                                    ? (isDe ? "Grundlagenanalyse, Warum Unternehmen scheitern, Lieferantenliste und Standortoptionen erforderlich" : "Baseline, failure analysis, supplier list, and location options required")
                                     : wf.key === "WF_KPI_ESTIMATION"
-                                      ? "Grundlagenanalyse, Marktüberblick, Marktanalyse und Businessplan erforderlich"
+                                      ? (isDe ? "Grundlagenanalyse, Marktüberblick, Marktanalyse und Businessplan erforderlich" : "Baseline, market snapshot, market research, and business plan required")
                                       : ["WF_RESEARCH", "WF_SUPPLIER_LIST", "WF_REAL_ESTATE", "WF_CUSTOMER_VALIDATION", "WF_VALUE_PROPOSITION", "WF_GO_TO_MARKET", "WF_SWOT", "WF_COMPETITOR_ANALYSIS", "WF_STRATEGIC_PLANNING", "WF_TREND_ANALYSIS"].includes(wf.key)
-                                        ? "Grundlagenanalyse und Marktüberblick erforderlich"
+                                        ? (isDe ? "Grundlagenanalyse und Marktüberblick erforderlich" : "Baseline and market snapshot required")
                                         : wf.key === "WF_NEXT_BEST_ACTIONS"
-                                          ? "Grundlagenanalyse, KPI-Set und Marktanalyse erforderlich"
-                                          : "Grundlagenanalyse erforderlich"}
+                                          ? (isDe ? "Grundlagenanalyse, KPI-Set und Marktanalyse erforderlich" : "Baseline, KPI set, and market research required")
+                                          : (isDe ? "Grundlagenanalyse erforderlich" : "Baseline required")}
                                 </p>
                               )}
                             </div>
                             <div className="flex shrink-0 items-center gap-2">
                               {wf.key === "WF_BUSINESS_FORM" && isComplete ? (
                                 <Link href="/profile" className="rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-teal-700">
-                                  Profil ansehen
+                                  {isDe ? "Profil ansehen" : "View profile"}
                                 </Link>
                               ) : hasInProgress ? (
                                 <form action={createRunWorkflowAction}>
                                   <input type="hidden" name="workflow_key" value={wf.key} />
                                   <button type="submit" disabled={locked} className="rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-teal-700 disabled:opacity-50">
-                                    Fortsetzen
+                                    {isDe ? "Fortsetzen" : "Continue"}
                                   </button>
                                 </form>
                               ) : hasComplete && completeRun ? (
                                 <>
                                   <Link href={`/runs/${completeRun.id}`} className="rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-teal-700">
-                                    Lauf ansehen
+                                    {isDe ? "Lauf ansehen" : "View run"}
                                   </Link>
                                   <form action={createRunWorkflowAction} className="inline">
                                     <input type="hidden" name="workflow_key" value={wf.key} />
                                     <input type="hidden" name="force_new" value="1" />
                                     <button type="submit" disabled={locked} className="rounded-lg border px-3 py-1.5 text-xs font-medium hover:bg-teal-50 dark:hover:bg-teal-950/30">
-                                      Erneut
+                                      {isDe ? "Erneut" : "Rerun"}
                                     </button>
                                   </form>
                                 </>
@@ -472,7 +586,7 @@ export default async function DashboardPage({
                                 <form action={createRunWorkflowAction}>
                                   <input type="hidden" name="workflow_key" value={wf.key} />
                                   <button type="submit" disabled={locked} className="rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-teal-700 disabled:opacity-50">
-                                    Starten
+                                    {isDe ? "Starten" : "Start"}
                                   </button>
                                 </form>
                               )}
@@ -487,20 +601,20 @@ export default async function DashboardPage({
                                     href={type === "decision_pack" ? "/decisions" : `/artifacts/${artifact.id}`}
                                     className="rounded-lg border border-teal-200 bg-teal-50/50 px-3 py-1.5 text-xs font-medium text-teal-800 transition hover:bg-teal-100 dark:border-teal-800 dark:bg-teal-950/30 dark:text-teal-200 dark:hover:bg-teal-900/50"
                                   >
-                                    {getWorkflowArtifactLabel(wf.key, type)} →
+                                    {getWorkflowArtifactLabel(wf.key, type, locale)} →
                                   </Link>
                                 ) : (
                                   <span
                                     key={type}
                                     className="rounded-lg border border-dashed border-zinc-200 bg-zinc-50/50 px-3 py-1.5 text-xs font-medium text-zinc-500 dark:border-zinc-700 dark:bg-zinc-900/30 dark:text-zinc-400"
                                   >
-                                    {getWorkflowArtifactLabel(wf.key, type)} (fehlt)
+                                    {getWorkflowArtifactLabel(wf.key, type, locale)} {isDe ? "(fehlt)" : "(missing)"}
                                   </span>
                                 )
                               )}
                               {wf.key === "WF_NEXT_BEST_ACTIONS" && decisions.length > 0 && (
                                 <Link href="/decisions" className="rounded-lg border border-teal-200 bg-teal-50/50 px-3 py-1.5 text-xs font-medium text-teal-800 transition hover:bg-teal-100 dark:border-teal-800 dark:bg-teal-950/30 dark:text-teal-200 dark:hover:bg-teal-900/50">
-                                  Top Decisions →
+                                  {isDe ? "Top-Entscheidungen" : "Top decisions"} →
                                 </Link>
                               )}
                             </div>
@@ -511,12 +625,12 @@ export default async function DashboardPage({
                     </div>
                   </details>
                 ) : (
-                  <p className="text-sm text-[var(--muted)]">Noch keine Prozesse für diese Phase.</p>
+                  <p className="text-sm text-[var(--muted)]">{isDe ? "Noch keine Prozesse für diese Phase." : "No workflows in this phase yet."}</p>
                 )}
                 {(phaseArtifacts.length > 0 || decisionPackInPhase) && (
                   <PhaseArtifactsReleaseBlock
                     phaseId={phase.id}
-                    phaseName={phase.name}
+                    phaseName={isDe ? phase.name : (phaseNamesEn[phase.id] ?? phase.name)}
                     released={phaseReleased}
                     labels={{
                       sectionTitle: t.dashboard.phaseArtifactsSection,
@@ -538,12 +652,12 @@ export default async function DashboardPage({
                           href={`/artifacts/${artifact.id}`}
                           className="rounded-lg border border-teal-200/70 bg-teal-100/50 px-3 py-2 text-sm font-medium text-teal-900/80 grayscale-[0.2] transition hover:border-teal-300 hover:bg-teal-100/70 dark:border-teal-800/70 dark:bg-teal-950/35 dark:text-teal-100/80 dark:hover:border-teal-700 dark:hover:bg-teal-950/45"
                         >
-                          {artifact.title || ARTIFACT_LABELS[type] || type}
+                          {artifact.title || getWorkflowArtifactLabel("", type, locale)}
                         </Link>
                       ))}
                       {decisionPackInPhase && (
                         <Link href="/decisions" className="rounded-lg border border-[var(--card-border)] bg-[var(--card)] px-3 py-2 text-sm font-medium transition hover:border-teal-300 hover:shadow dark:hover:border-teal-700">
-                          Top Decisions
+                          {isDe ? "Top-Entscheidungen" : "Top decisions"}
                         </Link>
                       )}
                     </>

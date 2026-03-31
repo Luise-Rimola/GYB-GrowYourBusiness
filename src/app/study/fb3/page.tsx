@@ -11,17 +11,9 @@ import { getServerLocale } from "@/lib/locale";
 import { getTranslations } from "@/lib/i18n";
 import { Fragebogen3Form } from "@/components/Fragebogen3Form";
 import { WORKFLOW_NAMES } from "@/lib/planningFramework";
-import { type ScenarioCategory } from "@/lib/scenarios";
 import { AssistantSubmitBridge } from "@/components/AssistantSubmitBridge";
 import { artifactsUrlAfterFb3Assistant } from "@/lib/studyAssistantEmbed";
-
-const CATEGORY_CONTEXT: Record<ScenarioCategory, { phase: string; workflowKeys: string[] }> = {
-  markt_geschaeftsmodell: { phase: "Ideations- / Konzeptphase", workflowKeys: ["WF_VALUE_PROPOSITION", "WF_COMPETITOR_ANALYSIS", "WF_SWOT", "WF_TREND_ANALYSIS"] },
-  produktstrategie: { phase: "Validierungsphase", workflowKeys: ["WF_IDEA_USP_VALIDATION", "WF_FEASIBILITY_VALIDATION", "WF_PATENT_CHECK", "WF_LEGAL_FOUNDATION", "WF_CUSTOMER_VALIDATION"] },
-  marketing: { phase: "Gründungs- / Launchphase", workflowKeys: ["WF_GO_TO_MARKET", "WF_MARKETING_STRATEGY"] },
-  wachstum_expansion: { phase: "Wachstumsphase", workflowKeys: ["WF_SCALING_STRATEGY", "WF_NEXT_BEST_ACTIONS"] },
-  investition_strategie: { phase: "Launch / Finanzierung", workflowKeys: ["WF_STARTUP_CONSULTING", "WF_FINANCIAL_PLANNING"] },
-};
+import { getStudyCategoryContext, type StudyCategoryKey } from "@/lib/studyCategoryContext";
 
 function parseFb3FormData(formData: FormData) {
   const dq = { DQ1: Number(formData.get("DQ1")), DQ2: Number(formData.get("DQ2")), DQ3: Number(formData.get("DQ3")), DQ4: Number(formData.get("DQ4")) };
@@ -77,7 +69,7 @@ export default async function Fragebogen3Page({
   const participant = await getOrCreateStudyParticipant(company.id);
   const locale = await getServerLocale();
   const t = getTranslations(locale);
-  const category = params.category as ScenarioCategory | undefined;
+  const category = params.category as StudyCategoryKey | undefined;
   const savedJson = category
     ? await getLatestQuestionnaireResponseJson({
         participantId: participant.id,
@@ -86,7 +78,8 @@ export default async function Fragebogen3Page({
       })
     : null;
   const initialValues = fb3ResponsesJsonToFormDefaults(savedJson);
-  const context = category && CATEGORY_CONTEXT[category] ? CATEGORY_CONTEXT[category] : null;
+  const categoryContext = getStudyCategoryContext(locale);
+  const context = category && categoryContext[category] ? categoryContext[category] : null;
   const workflowList = context
     ? context.workflowKeys.map((k) => WORKFLOW_NAMES[k] ?? k).join(", ")
     : `${WORKFLOW_NAMES.WF_VALUE_PROPOSITION}, ${WORKFLOW_NAMES.WF_CUSTOMER_VALIDATION}, ${WORKFLOW_NAMES.WF_GO_TO_MARKET}`;

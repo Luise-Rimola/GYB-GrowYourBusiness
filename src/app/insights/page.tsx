@@ -30,6 +30,22 @@ export default async function InsightsPage() {
   ]);
 
   const indicatorValueByKey = latestIndicatorValues as Record<string, number>;
+  const isEn = locale === "en";
+  const indicatorNameEn: Record<string, string> = {
+    competitive_intensity_index: "Competitive intensity",
+    differentiation_score: "Differentiation",
+    evidence_confidence_score: "Evidence confidence",
+    execution_feasibility_score: "Execution feasibility",
+    gtm_readiness_score: "Go-to-market readiness",
+    market_attractiveness_score: "Market attractiveness",
+    opportunity_score: "Opportunity score",
+    pricing_power_index: "Pricing power",
+    risk_exposure_score: "Risk exposure",
+    strategic_fit_score: "Strategic fit",
+    strength_score: "Strength score",
+    threat_score: "Threat score",
+    weakness_score: "Weakness score",
+  };
 
   const fromKpiSet = (kpiSet?.selectedKpisJson as string[] | null) ?? [];
   const fromRun = (latestKpiSetStep?.parsedOutputJson as { selected_kpis?: string[] } | null)?.selected_kpis ?? [];
@@ -86,7 +102,7 @@ export default async function InsightsPage() {
         ) : (
           <div className="space-y-6">
             <div>
-              <h3 className="mb-2 text-sm font-semibold text-[var(--foreground)]">1) Alle verfügbaren KPIs</h3>
+              <h3 className="mb-2 text-sm font-semibold text-[var(--foreground)]">{isEn ? "1) All available KPIs" : "1) Alle verfügbaren KPIs"}</h3>
               <InsightsKpiExpandAll
                 openAllLabel={t.insights.openAllKpis}
                 closeAllLabel={t.insights.closeAllKpis}
@@ -126,9 +142,9 @@ export default async function InsightsPage() {
             </div>
 
             <div>
-              <h3 className="mb-2 text-sm font-semibold text-[var(--foreground)]">2) Von der KI ausgewählt</h3>
+              <h3 className="mb-2 text-sm font-semibold text-[var(--foreground)]">{isEn ? "2) Selected by AI" : "2) Von der KI ausgewählt"}</h3>
               {selectedLibrary.length === 0 ? (
-                <p className="text-sm text-zinc-500 dark:text-zinc-400">Noch keine KI-Auswahl vorhanden.</p>
+                <p className="text-sm text-zinc-500 dark:text-zinc-400">{isEn ? "No AI selection available yet." : "Noch keine KI-Auswahl vorhanden."}</p>
               ) : (
                 <KpiLibraryCards
                   library={selectedLibrary}
@@ -152,9 +168,9 @@ export default async function InsightsPage() {
             </div>
 
             <div>
-              <h3 className="mb-2 text-sm font-semibold text-[var(--foreground)]">3) KPIs mit KI-berechnetem Wert</h3>
+              <h3 className="mb-2 text-sm font-semibold text-[var(--foreground)]">{isEn ? "3) KPIs with AI-calculated value" : "3) KPIs mit KI-berechnetem Wert"}</h3>
               {estimatedLibrary.length === 0 ? (
-                <p className="text-sm text-zinc-500 dark:text-zinc-400">Noch keine KI-Berechnungen vorhanden.</p>
+                <p className="text-sm text-zinc-500 dark:text-zinc-400">{isEn ? "No AI calculations available yet." : "Noch keine KI-Berechnungen vorhanden."}</p>
               ) : (
                 <KpiLibraryCards
                   library={estimatedLibrary}
@@ -186,14 +202,14 @@ export default async function InsightsPage() {
                         <th className="px-3 py-2 text-left font-semibold text-[var(--foreground)]">Name</th>
                         <th className="px-3 py-2 text-left font-semibold text-[var(--foreground)]">Framework</th>
                         <th className="px-3 py-2 text-left font-semibold text-[var(--foreground)]">Scale</th>
-                        <th className="px-3 py-2 text-left font-semibold text-[var(--foreground)]">Letzter Wert</th>
+                        <th className="px-3 py-2 text-left font-semibold text-[var(--foreground)]">{isEn ? "Latest value" : "Letzter Wert"}</th>
                       </tr>
                     </thead>
                     <tbody>
                       {strategyIndicators.map((it) => (
                         <tr key={it.id} className="border-b border-[var(--card-border)]/60">
                           <td className="px-3 py-2 text-[var(--muted)]">{it.indicatorKey}</td>
-                          <td className="px-3 py-2 text-[var(--foreground)]">{it.nameSimple}</td>
+                          <td className="px-3 py-2 text-[var(--foreground)]">{isEn ? (indicatorNameEn[it.indicatorKey] ?? it.nameSimple) : it.nameSimple}</td>
                           <td className="px-3 py-2 text-[var(--muted)]">{it.frameworkOrigin}</td>
                           <td className="px-3 py-2 text-[var(--muted)]">{it.scale}</td>
                           <td className="px-3 py-2 text-[var(--foreground)]">

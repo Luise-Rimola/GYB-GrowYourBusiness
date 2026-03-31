@@ -12,6 +12,10 @@ type RunAllQuickActionsProps = {
   artifactsHref: string;
   artifactsLabel: string;
   showArtifactsButton?: boolean;
+  labels?: {
+    runProcess: string;
+    running: string;
+  };
 };
 
 export function RunAllQuickActions({
@@ -21,6 +25,7 @@ export function RunAllQuickActions({
   artifactsHref,
   artifactsLabel,
   showArtifactsButton = true,
+  labels,
 }: RunAllQuickActionsProps) {
   const normalizedOptionalWorkflowKeys = optionalWorkflowKeys.filter((k) => k !== WF_APP_DEVELOPMENT);
 
@@ -32,7 +37,7 @@ export function RunAllQuickActions({
 
   return (
     <div className="flex flex-nowrap items-center gap-4">
-      <RunAllButton selectedWorkflowKeys={effectiveKeys} allWorkflowKeys={allKeys} />
+      <RunAllButton selectedWorkflowKeys={effectiveKeys} allWorkflowKeys={allKeys} labels={labels} />
 
       {showArtifactsButton && (
         <Link

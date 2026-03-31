@@ -344,6 +344,7 @@ export default async function EvaluationPage({
             <EvaluationOverviewTable
               scenarioEvals={scenarioEvals}
               useCaseEvals={useCaseEvals}
+              locale={isEn ? "en" : "de"}
               t={{
                 overviewDate: t.evaluation.overviewDate,
                 overviewScenario: t.evaluation.overviewScenario,

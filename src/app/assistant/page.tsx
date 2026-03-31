@@ -23,6 +23,7 @@ export default async function AssistantPage() {
     participantCompletedFb1: participant.completedFb1,
     participantCompletedFb5: Boolean((participant as { completedFb5?: boolean }).completedFb5),
     profileCompletePercent: profileComplete,
+    locale,
     t: {
       common: { viewArtifacts: t.common.viewArtifacts },
       home: { companyProfile: t.home.companyProfile, stepLlm: t.home.stepLlm, step2: t.home.step2, step5: t.home.step5, step6: t.home.step6 },

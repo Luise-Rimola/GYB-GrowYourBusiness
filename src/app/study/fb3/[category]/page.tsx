@@ -9,20 +9,13 @@ import { getOrCreateDemoCompany } from "@/lib/demo";
 import { getOrCreateStudyParticipant } from "@/lib/study";
 import { getServerLocale } from "@/lib/locale";
 import { getTranslations } from "@/lib/i18n";
-import { SCENARIO_CATEGORIES, type ScenarioCategory } from "@/lib/scenarios";
 import { Fragebogen3Form } from "@/components/Fragebogen3Form";
 import { WORKFLOW_NAMES } from "@/lib/planningFramework";
 import { AssistantSubmitBridge } from "@/components/AssistantSubmitBridge";
 import { artifactsUrlAfterFb3Assistant } from "@/lib/studyAssistantEmbed";
-import { getStudyCategoryContext } from "@/lib/studyCategoryContext";
+import { getStudyCategoryContext, STUDY_CATEGORY_LABELS, VALID_STUDY_CATEGORIES, type StudyCategoryKey } from "@/lib/studyCategoryContext";
 
-const VALID_CATEGORIES: ScenarioCategory[] = [
-  "markt_geschaeftsmodell",
-  "produktstrategie",
-  "marketing",
-  "wachstum_expansion",
-  "investition_strategie",
-];
+const VALID_CATEGORIES: StudyCategoryKey[] = VALID_STUDY_CATEGORIES;
 
 function parseFb3FormData(formData: FormData) {
   const dq = { DQ1: Number(formData.get("DQ1")), DQ2: Number(formData.get("DQ2")), DQ3: Number(formData.get("DQ3")), DQ4: Number(formData.get("DQ4")) };
@@ -65,7 +58,7 @@ export default async function Fragebogen3CategoryPage({
   const { category } = await params;
   const sp = await searchParams;
   const isEmbed = sp.embed === "1";
-  if (!VALID_CATEGORIES.includes(category as ScenarioCategory)) notFound();
+  if (!VALID_CATEGORIES.includes(category as StudyCategoryKey)) notFound();
 
   const company = await getOrCreateDemoCompany();
   const participant = await getOrCreateStudyParticipant(company.id);
@@ -77,8 +70,8 @@ export default async function Fragebogen3CategoryPage({
   const initialValues = fb3ResponsesJsonToFormDefaults(savedJson);
   const locale = await getServerLocale();
   const t = getTranslations(locale);
-  const categoryLabel = SCENARIO_CATEGORIES[category as ScenarioCategory];
-  const context = getStudyCategoryContext(locale)[category as ScenarioCategory];
+  const categoryLabel = STUDY_CATEGORY_LABELS[category as StudyCategoryKey];
+  const context = getStudyCategoryContext(locale)[category as StudyCategoryKey];
   const workflowNames = context.workflowKeys.map((k) => WORKFLOW_NAMES[k] ?? k).join(", ");
 
   return (

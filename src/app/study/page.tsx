@@ -6,7 +6,7 @@ import { getServerLocale } from "@/lib/locale";
 import { getTranslations } from "@/lib/i18n";
 import { Section } from "@/components/Section";
 import StudyStartTabs from "@/components/StudyStartTabs";
-import { SCENARIO_CATEGORIES, type ScenarioCategory } from "@/lib/scenarios";
+import { getStudyCategoryLabels, VALID_STUDY_CATEGORIES, type StudyCategoryKey } from "@/lib/studyCategoryContext";
 import { workflowDashboardHrefForCategory } from "@/lib/assistantSteps";
 import {
   CF_ITEMS,
@@ -21,13 +21,7 @@ import {
   US_ITEMS,
 } from "@/lib/fragebogenScales";
 
-const STUDY_FLOW_CATEGORIES: ScenarioCategory[] = [
-  "markt_geschaeftsmodell",
-  "produktstrategie",
-  "marketing",
-  "wachstum_expansion",
-  "investition_strategie",
-];
+const STUDY_FLOW_CATEGORIES: StudyCategoryKey[] = VALID_STUDY_CATEGORIES;
 
 /** FB2 & FB3: nur gemeinsame Kernskalen (DQ, EV, TR, CF, CL) — Vergleich/US/TAM/COMP stehen in FB4. */
 const FB2_FB3_TABLE_COLUMNS = [
@@ -78,12 +72,6 @@ const OPEN_TEXT_COMPARE_SPECS = [
   ...(["O1", "O2", "O3"] as const).map((key) => ({ fb: "fb4" as const, key })),
   ...(["I1", "I2", "I3", "I4", "I5"] as const).map((key) => ({ fb: "fb4" as const, key })),
 ] as const;
-
-/** Phasenzeilen für Tabellen (immer verfügbar, nicht nur innerhalb von StudyPage). */
-const PHASE_CATEGORY_MAP = STUDY_FLOW_CATEGORIES.map((category) => ({
-  phase: SCENARIO_CATEGORIES[category],
-  category,
-}));
 
 function flattenQuestionnaireValues(input: unknown): Record<string, string> {
   const out: Record<string, string> = {};
@@ -150,11 +138,25 @@ export default async function StudyPage({
   const locale = await getServerLocale();
   const t = getTranslations(locale);
   const isEn = locale === "en";
+  const categoryLabels = getStudyCategoryLabels(locale);
+  const phaseCategoryMap = STUDY_FLOW_CATEGORIES.map((category) => ({
+    phase: categoryLabels[category],
+    category,
+  }));
   const researchQuestions = [
-    "Welche technischen und konzeptionellen Anforderungen müssen erfüllt sein, um ein KI-gestütztes Business-Intelligence-System für Unternehmen zu entwickeln?",
-    "Welche Faktoren und Indikatoren lassen sich für eine KI-gestützte Analyse systematisch identifizieren, um Frühwarnsignale für strategische Fehlentscheidungen in Unternehmen zu erkennen?",
-    "Inwiefern verbessert ein KI-gestützter, regel- und datenbasierter LLM-Workflow die wahrgenommene Qualität strategischer Entscheidungen in der Markteintritts- und Wachstumsphase (z. B. Entscheidungsqualität, Transparenz/Nachvollziehbarkeit, Planungssicherheit, Geschwindigkeit) im Vergleich zu einem Vorgehen ohne KI-Unterstützung?",
-    "Inwiefern sind Unternehmen bereit, KI-gestützte Systeme zur strategischen Entscheidungsunterstützung einzusetzen, und welche wahrgenommenen Risiken und Hemmnisse beeinflussen die Nutzung?",
+    ...(isEn
+      ? ([
+          "Which technical and conceptual requirements must be met to develop an AI-supported business intelligence system for companies?",
+          "Which factors and indicators can be systematically identified for AI-supported analysis to detect early warning signals of strategic misjudgments in companies?",
+          "To what extent does an AI-supported, rule- and data-based LLM workflow improve the perceived quality of strategic decisions in market-entry and growth phases (e.g., decision quality, transparency/traceability, planning confidence, speed) compared to an approach without AI support?",
+          "To what extent are companies willing to use AI-supported systems for strategic decision support, and which perceived risks and barriers influence usage?",
+        ] as const)
+      : ([
+          "Welche technischen und konzeptionellen Anforderungen müssen erfüllt sein, um ein KI-gestütztes Business-Intelligence-System für Unternehmen zu entwickeln?",
+          "Welche Faktoren und Indikatoren lassen sich für eine KI-gestützte Analyse systematisch identifizieren, um Frühwarnsignale für strategische Fehlentscheidungen in Unternehmen zu erkennen?",
+          "Inwiefern verbessert ein KI-gestützter, regel- und datenbasierter LLM-Workflow die wahrgenommene Qualität strategischer Entscheidungen in der Markteintritts- und Wachstumsphase (z. B. Entscheidungsqualität, Transparenz/Nachvollziehbarkeit, Planungssicherheit, Geschwindigkeit) im Vergleich zu einem Vorgehen ohne KI-Unterstützung?",
+          "Inwiefern sind Unternehmen bereit, KI-gestützte Systeme zur strategischen Entscheidungsunterstützung einzusetzen, und welche wahrgenommenen Risiken und Hemmnisse beeinflussen die Nutzung?",
+        ] as const)),
   ] as const;
 
   const [questionnaireRows, runs, artifactCount] = await Promise.all([
@@ -208,7 +210,7 @@ export default async function StudyPage({
       ],
     },
     ...STUDY_FLOW_CATEGORIES.map((cat) => ({
-      title: SCENARIO_CATEGORIES[cat],
+      title: categoryLabels[cat],
       infoHref: `/study/info/${cat}`,
       items: [
         {
@@ -287,7 +289,7 @@ export default async function StudyPage({
             </tr>
           </thead>
           <tbody>
-            {PHASE_CATEGORY_MAP.flatMap(({ phase, category }) => {
+            {phaseCategoryMap.flatMap(({ phase, category }) => {
               const rows = [
                 { type: "fb2" as const, actorLabel: t.study.studyTableActorUser },
                 { type: "fb3" as const, actorLabel: t.study.studyTableActorTool },
@@ -336,7 +338,7 @@ export default async function StudyPage({
             </tr>
           </thead>
           <tbody>
-            {PHASE_CATEGORY_MAP.flatMap(({ phase, category }) => {
+            {phaseCategoryMap.flatMap(({ phase, category }) => {
               const rows = [
                 { type: "fb2" as const, actorLabel: t.study.studyTableActorUser },
                 { type: "fb3" as const, actorLabel: t.study.studyTableActorTool },
@@ -392,7 +394,7 @@ export default async function StudyPage({
             </tr>
           </thead>
           <tbody>
-            {PHASE_CATEGORY_MAP.map(({ phase, category }) => {
+            {phaseCategoryMap.map(({ phase, category }) => {
               const row = questionnaireRows.find((r) => r.questionnaireType === "fb4" && r.category === category);
               const flat = row ? flattenQuestionnaireValues(row.responsesJson) : {};
               return (
@@ -480,7 +482,7 @@ export default async function StudyPage({
             </tr>
           </thead>
           <tbody>
-            {PHASE_CATEGORY_MAP.map(({ phase, category }) => {
+            {phaseCategoryMap.map(({ phase, category }) => {
               const r2 = questionnaireRows.find((r) => r.questionnaireType === "fb2" && r.category === category);
               const r3 = questionnaireRows.find((r) => r.questionnaireType === "fb3" && r.category === category);
               const r4 = questionnaireRows.find((r) => r.questionnaireType === "fb4" && r.category === category);
@@ -523,11 +525,13 @@ export default async function StudyPage({
           {t.nav.study}
         </h1>
         <p className="mt-2 text-[var(--muted)]">
-          Dieser Bereich dokumentiert den Studienablauf, die Fragebogenantworten sowie den Vergleich zwischen Entscheidungen mit und ohne KI-Unterstützung.
+          {isEn
+            ? "This section documents the study flow, questionnaire responses, and the comparison of decisions with and without AI support."
+            : "Dieser Bereich dokumentiert den Studienablauf, die Fragebogenantworten sowie den Vergleich zwischen Entscheidungen mit und ohne KI-Unterstützung."}
         </p>
         <details className="mt-3 rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-4">
           <summary className="cursor-pointer text-sm font-semibold text-[var(--foreground)]">
-            Forschungsfragen anzeigen
+            {isEn ? "Show research questions" : "Forschungsfragen anzeigen"}
           </summary>
           <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm text-[var(--muted)]">
             {researchQuestions.map((q) => (
@@ -559,7 +563,7 @@ export default async function StudyPage({
             <span className="ml-1 text-[var(--muted)]">
               {" "}
               ({t.study.studyFb4SavedCategorySuffix}{" "}
-              {SCENARIO_CATEGORIES[params.category as ScenarioCategory] ?? params.category})
+              {categoryLabels[params.category as StudyCategoryKey] ?? params.category})
             </span>
           )}
         </div>
