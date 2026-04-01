@@ -40,7 +40,7 @@ export async function loadAssistantSteps(params: {
   locale: Locale;
   t: {
     common: { viewArtifacts: string };
-    home: { companyProfile: string; stepLlm: string; step2: string; step5: string; step6: string };
+    home: { handbookStep: string; companyProfile: string; stepLlm: string; step2: string; step5: string; step6: string };
     study: {
       fb1Title: string;
       studyInfoStep: string;
@@ -202,6 +202,7 @@ export async function loadAssistantSteps(params: {
   });
 
   return [
+    { href: "/manual", label: t.home.handbookStep, completed: false },
     { href: "/study/fb1", label: t.study.fb1Title, completed: participantCompletedFb1 },
     { href: "/profile", label: t.home.companyProfile, completed: profileCompletePercent >= 50 },
     { href: "/settings#llm-api", label: t.home.stepLlm, completed: hasLlmConfigured },

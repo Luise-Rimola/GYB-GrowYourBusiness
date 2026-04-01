@@ -755,6 +755,7 @@ model LearningEvent {
 model UseCaseEvaluation {
   id                  String   @id @default(cuid())
   companyId           String
+  createdBy           String?
   useCaseDescription  String
   userDecisionApproach String
   runId              String?
@@ -769,6 +770,7 @@ model UseCaseEvaluation {
 model ScenarioEvaluation {
   id                   String   @id @default(cuid())
   companyId            String
+  createdBy            String?
   scenarioId           Int
   userAnswer           String
   userConfidence       Int      // 0-100 %
@@ -811,6 +813,7 @@ model StudyParticipant {
 model QuestionnaireResponse {
   id                String   @id @default(cuid())
   participantId     String
+  createdBy         String?
   questionnaireType String   // "fb1" | "fb2" | "fb3" | "fb4" | "fb5"
   category          String?  // Für FB2/FB3 pro Kategorie: markt_geschaeftsmodell, produktstrategie, marketing, wachstum_expansion, investition_strategie
   responsesJson     Json

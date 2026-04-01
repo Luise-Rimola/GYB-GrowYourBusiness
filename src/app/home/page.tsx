@@ -83,7 +83,14 @@ export default async function Home({
     locale,
     t: {
       common: { viewArtifacts: t.common.viewArtifacts },
-      home: { companyProfile: t.home.companyProfile, stepLlm: t.home.stepLlm, step2: t.home.step2, step5: t.home.step5, step6: t.home.step6 },
+      home: {
+        handbookStep: t.home.handbookStep,
+        companyProfile: t.home.companyProfile,
+        stepLlm: t.home.stepLlm,
+        step2: t.home.step2,
+        step5: t.home.step5,
+        step6: t.home.step6,
+      },
       study: {
         fb1Title: t.study.fb1Title,
         studyInfoStep: t.study.studyInfoStep,
@@ -179,6 +186,16 @@ export default async function Home({
         title={t.common.nextSteps}
         description={t.home.guidedPath}
       >
+        <div className="mb-4 rounded-xl border border-teal-200 bg-teal-50/60 p-4 dark:border-teal-900/60 dark:bg-teal-950/25">
+          <p className="text-sm font-semibold text-[var(--foreground)]">{t.home.studyInfoTitle}</p>
+          <p className="mt-1 text-sm text-[var(--muted)]">{t.home.studyInfoBody}</p>
+          <Link
+            href="/manual"
+            className="mt-3 inline-flex items-center rounded-lg border border-teal-300 px-3 py-1.5 text-xs font-semibold text-teal-700 transition hover:bg-teal-100/70 dark:border-teal-700 dark:text-teal-300 dark:hover:bg-teal-900/40"
+          >
+            {t.home.openGuide}
+          </Link>
+        </div>
         <AssistantStepsList steps={nextSteps} />
       </Section>
 

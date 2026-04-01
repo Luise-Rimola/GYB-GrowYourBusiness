@@ -1,18 +1,23 @@
 import { Prisma } from "@prisma/client";
 import { randomUUID } from "crypto";
 import { prisma } from "@/lib/prisma";
+import { getSessionFromCookies } from "@/lib/session";
 
 export async function createQuestionnaireResponse(params: {
   participantId: string;
   questionnaireType: string;
   category: string | null;
   responsesJson: Record<string, unknown>;
+  createdBy?: string;
 }) {
+  const session = await getSessionFromCookies().catch(() => null);
+  const createdByUser = params.createdBy ?? session?.sub ?? null;
   const delegate = (prisma as any).questionnaireResponse;
   if (delegate?.create) {
     return delegate.create({
       data: {
         participantId: params.participantId,
+        createdBy: createdByUser,
         questionnaireType: params.questionnaireType,
         category: params.category,
         responsesJson: params.responsesJson,
@@ -23,8 +28,8 @@ export async function createQuestionnaireResponse(params: {
   const id = randomUUID();
   const contentStr = JSON.stringify(params.responsesJson ?? {});
   await prisma.$executeRaw(
-    Prisma.sql`INSERT INTO "QuestionnaireResponse" ("id","participantId","questionnaireType","category","responsesJson","createdAt")
-               VALUES (${id}, ${params.participantId}, ${params.questionnaireType}, ${params.category}, ${contentStr}, CURRENT_TIMESTAMP)`
+    Prisma.sql`INSERT INTO "QuestionnaireResponse" ("id","participantId","createdBy","questionnaireType","category","responsesJson","createdAt")
+               VALUES (${id}, ${params.participantId}, ${createdByUser}, ${params.questionnaireType}, ${params.category}, ${contentStr}, CURRENT_TIMESTAMP)`
   );
   return { id };
 }

@@ -26,7 +26,14 @@ export default async function AssistantPage() {
     locale,
     t: {
       common: { viewArtifacts: t.common.viewArtifacts },
-      home: { companyProfile: t.home.companyProfile, stepLlm: t.home.stepLlm, step2: t.home.step2, step5: t.home.step5, step6: t.home.step6 },
+      home: {
+        handbookStep: t.home.handbookStep,
+        companyProfile: t.home.companyProfile,
+        stepLlm: t.home.stepLlm,
+        step2: t.home.step2,
+        step5: t.home.step5,
+        step6: t.home.step6,
+      },
       study: {
         fb1Title: t.study.fb1Title,
         studyInfoStep: t.study.studyInfoStep,

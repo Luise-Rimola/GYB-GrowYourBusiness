@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { randomUUID } from "crypto";
 import { validateStrictJson } from "@/lib/validators";
 import { normalizeStrategyIndicatorMap, saveStrategyIndicatorValues } from "@/lib/strategyIndicatorValues";
+import { getSessionFromCookies } from "@/lib/session";
 
 /** Ensure data is JSON-serializable for Prisma Json fields (strips undefined, etc.) */
 function toPrismaJson(obj: unknown): object {
@@ -222,13 +223,16 @@ import {
 const FINANCIAL_SUB_STEPS = ["financial_liquidity", "financial_profitability", "financial_capital", "financial_break_even", "financial_monthly_h1", "financial_monthly_h2"] as const;
 
 export const WorkflowService = {
-  async createRun(companyId: string, workflowKey: string, inputSnapshot: unknown) {
+  async createRun(companyId: string, workflowKey: string, inputSnapshot: unknown, createdBy?: string) {
+    const session = await getSessionFromCookies().catch(() => null);
+    const createdByUser = createdBy ?? session?.sub ?? null;
     return prisma.run.create({
       data: {
         companyId,
         workflowKey,
         status: "draft",
         inputSnapshotJson: inputSnapshot as object,
+        createdBy: createdByUser,
       },
     });
   },

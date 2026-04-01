@@ -8,9 +8,12 @@ import { getTranslations } from "@/lib/i18n";
 import { ScenarioEvaluationFlow } from "@/components/ScenarioEvaluationFlow";
 import { EvaluationOverviewTable } from "@/components/EvaluationOverviewTable";
 import { getScenarioById } from "@/lib/scenarios";
+import { getSessionFromCookies } from "@/lib/session";
+import { EvaluationMailExportButton } from "@/components/EvaluationMailExportButton";
 
 async function saveUseCase(formData: FormData) {
   "use server";
+  const session = await getSessionFromCookies();
   const useCaseDescription = String(formData.get("useCaseDescription") || "").trim();
   const userDecisionApproach = String(formData.get("userDecisionApproach") || "").trim();
   if (!useCaseDescription || !userDecisionApproach) return;
@@ -18,6 +21,7 @@ async function saveUseCase(formData: FormData) {
   await prisma.useCaseEvaluation.create({
     data: {
       companyId: company.id,
+      createdBy: session?.sub ?? null,
       useCaseDescription,
       userDecisionApproach,
     },
@@ -70,10 +74,12 @@ async function saveScenarioStep1(
   userConfidence: number // 0-100
 ): Promise<string> {
   "use server";
+  const session = await getSessionFromCookies();
   const company = await getOrCreateDemoCompany();
   const ev = await prisma.scenarioEvaluation.create({
     data: {
       companyId: company.id,
+      createdBy: session?.sub ?? null,
       scenarioId,
       userAnswer,
       userConfidence,
@@ -286,6 +292,11 @@ export default async function EvaluationPage({
           >
             {ui.exportExcel}
           </a>
+          <EvaluationMailExportButton
+            locale={isEn ? "en" : "de"}
+            scenarioCount={scenarioEvals.length}
+            useCaseCount={useCaseEvals.length}
+          />
         </div>
       </header>
 

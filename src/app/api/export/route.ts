@@ -34,6 +34,7 @@ export async function GET(req: NextRequest) {
 
   const scope = parseScope(req.nextUrl.searchParams.get("scope"));
   const format = parseFormat(req.nextUrl.searchParams.get("format"));
+  const anonymize = req.nextUrl.searchParams.get("anon") === "1";
   const langParam = req.nextUrl.searchParams.get("lang");
   const locale: Locale =
     langParam === "en" || langParam === "de"
@@ -54,7 +55,7 @@ export async function GET(req: NextRequest) {
       ? await buildStudyTables(companyId)
       : scope === "artifacts"
         ? await buildArtifactTables(companyId)
-        : await buildEvaluationTables(companyId);
+        : await buildEvaluationTables(companyId, anonymize);
 
   if (format === "pdf") {
     const pdf =
@@ -323,7 +324,7 @@ async function buildArtifactTables(companyId: string): Promise<Table[]> {
   return [evalTable, artifactsTable];
 }
 
-async function buildEvaluationTables(companyId: string): Promise<Table[]> {
+async function buildEvaluationTables(companyId: string, anonymize = false): Promise<Table[]> {
   const [useCases, scenarios] = await Promise.all([
     prisma.useCaseEvaluation.findMany({
       where: { companyId },
@@ -349,12 +350,12 @@ async function buildEvaluationTables(companyId: string): Promise<Table[]> {
       "questionnaire_notes",
       "created_at",
     ],
-    rows: useCases.map((u) => {
+    rows: useCases.map((u, idx) => {
       const q = readObj(u.questionnaireJson);
       return [
-        u.id,
-        u.useCaseDescription,
-        u.userDecisionApproach,
+        anonymize ? `use_case_${idx + 1}` : u.id,
+        anonymize ? "" : u.useCaseDescription,
+        anonymize ? "" : u.userDecisionApproach,
         readNumString(q.helpful),
         readNumString(q.fit),
         readString(q.userOneWord),
@@ -387,14 +388,14 @@ async function buildEvaluationTables(companyId: string): Promise<Table[]> {
       "evaluation_quellenqualitaet",
       "created_at",
     ],
-    rows: scenarios.map((s) => {
+    rows: scenarios.map((s, idx) => {
       const ev = readObj(s.userEvaluationJson);
       return [
-        s.id,
+        anonymize ? `scenario_eval_${idx + 1}` : s.id,
         String(s.scenarioId),
-        s.userAnswer,
+        anonymize ? "" : s.userAnswer,
         String(s.userConfidence),
-        s.aiAnswer ?? "",
+        anonymize ? "" : (s.aiAnswer ?? ""),
         s.aiConfidence == null ? "" : String(s.aiConfidence),
         s.userPrefers ?? "",
         s.userConfidenceInAi == null ? "" : String(s.userConfidenceInAi),

@@ -75,6 +75,11 @@ export const translations = {
         "This study examines how AI can support strategic decisions in market-entry and growth phases. The tool acts as a decision support system (DSS): it structures information, links KPIs and sources, and provides transparent, evidence-based recommendations you can review before deciding.",
       companyProfile: "Company Profile",
       startAssistant: "Start Assistant",
+      handbookStep: "User Guide (overview of app and study)",
+      studyInfoTitle: "Overview of app and study",
+      studyInfoBody:
+        "Before starting the questionnaires and workflows, read the guide once. It explains purpose, sequence, and how study evaluation works (without tool vs. with tool).",
+      openGuide: "Open guide",
       stepLlm: "Enter your LLM API settings in Settings",
       kpiCoverage: "KPI Coverage",
       activeRuns: "Active Runs",
@@ -898,6 +903,11 @@ export const translations = {
         "Diese Studie untersucht, wie KI strategische Entscheidungen in Markteintritts- und Wachstumsphasen unterstützen kann. Das Tool arbeitet als Decision Support System (DSS): Es strukturiert Informationen, verknüpft KPIs und Quellen und liefert nachvollziehbare, evidenzbasierte Empfehlungen als Entscheidungsgrundlage.",
       companyProfile: "Geschäftsprofil",
       startAssistant: "Assistent starten",
+      handbookStep: "Handbuch (Überblick zu App und Studie)",
+      studyInfoTitle: "Überblick über App und Studie",
+      studyInfoBody:
+        "Bevor Sie mit Fragebögen und Prozessen starten, lesen Sie einmal das Handbuch. Dort finden Sie Zweck, Ablauf und wie die Studien-Evaluation (ohne Tool vs. mit Tool) aufgebaut ist.",
+      openGuide: "Zum Handbuch",
       stepLlm: "LLM-API in Einstellungen hinterlegen",
       kpiCoverage: "KPI-Abdeckung",
       activeRuns: "Aktive Läufe",
