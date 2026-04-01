@@ -11,20 +11,31 @@ const mainNavItems = [
   { href: "/home", key: "home" as const },
   { href: "/dashboard", key: "plans" as const },
   { href: "/artifacts", key: "artifacts" as const },
+  { href: "/manual", key: "userGuide" as const },
+  { href: "/workflow-overview", key: "processDiagram" as const },
   { href: "/study", key: "study" as const },
   { href: "/evaluation", key: "useCaseEvaluation" as const },
   { href: "/chat", key: "advisorChat" as const },
 ];
+const appNavHrefs = new Set(["/", "/home", "/dashboard", "/artifacts"]);
+const studyNavHrefs = new Set(["/manual", "/workflow-overview", "/study", "/evaluation", "/chat"]);
 
 const settingsNavItems = [
   { href: "/profile", key: "businessProfile" as const },
   { href: "/knowledge", key: "knowledgeBase" as const },
-  { href: "/manual", key: "userGuide" as const },
   { href: "/insights", key: "insights" as const },
   { href: "/runs", key: "runsAudit" as const },
-  { href: "/workflow-overview", key: "processDiagram" as const },
   { href: "/settings", key: "settingsPage" as const },
 ];
+const phaseLinks = [
+  { id: "ideation", de: "Ideen- & Konzeptphase", en: "Ideation / Concept Phase" },
+  { id: "validation", de: "Validierungsphase", en: "Validation Phase" },
+  { id: "launch", de: "Gründungs- & Launch-Phase", en: "Founding / Launch Phase" },
+  { id: "scaling", de: "Wachstumsphase", en: "Growth Phase" },
+  { id: "tech_digital", de: "Technologie & Digitalisierung", en: "Technology & Digitalization" },
+  { id: "maturity", de: "Reifephase", en: "Maturity Phase" },
+  { id: "renewal", de: "Erneuerung / Exit / Transformation", en: "Renewal / Exit / Transformation" },
+] as const;
 
 function pathMatchesNav(pathname: string, href: string): boolean {
   if (href === "/home") {
@@ -43,6 +54,9 @@ export default function Nav({ userEmail }: { userEmail?: string | null }) {
   const isEmbed = searchParams.get("embed") === "1";
   const [isInIframe, setIsInIframe] = useState(false);
   const [open, setOpen] = useState(false);
+  const [processesExpanded, setProcessesExpanded] = useState(false);
+  const [studyExpanded, setStudyExpanded] = useState(false);
+  const [settingsExpanded, setSettingsExpanded] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const settingsRef = useRef<HTMLDivElement>(null);
   const { locale, setLocale } = useLanguage();
@@ -137,6 +151,35 @@ export default function Nav({ userEmail }: { userEmail?: string | null }) {
         </div>
         )}
 
+        {isAuthed && (
+          <div className="hidden items-center gap-2 md:flex">
+            <div className="inline-flex rounded-xl border border-[var(--card-border)] bg-[var(--background)]/70 p-1">
+              <Link
+                href="/dashboard/mosaic"
+                prefetch={false}
+                className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
+                  pathname.startsWith("/dashboard/mosaic")
+                    ? "bg-teal-600 text-white"
+                    : "text-[var(--muted)] hover:bg-teal-50 hover:text-teal-700 dark:hover:bg-teal-950/40 dark:hover:text-teal-300"
+                }`}
+              >
+                Dashboard
+              </Link>
+              <Link
+                href="/home"
+                prefetch={false}
+                className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
+                  !pathname.startsWith("/dashboard/mosaic")
+                    ? "bg-teal-600 text-white"
+                    : "text-[var(--muted)] hover:bg-teal-50 hover:text-teal-700 dark:hover:bg-teal-950/40 dark:hover:text-teal-300"
+                }`}
+              >
+                Studie
+              </Link>
+            </div>
+          </div>
+        )}
+
       </div>
 
     </nav>
@@ -160,8 +203,8 @@ export default function Nav({ userEmail }: { userEmail?: string | null }) {
               ✕
             </button>
           </div>
-          <div className="mb-3 flex flex-col gap-2 border-b border-[var(--card-border)] pb-3">
-            {!isAuthed && (
+          {!isAuthed && (
+            <div className="mb-3 flex flex-col gap-2 border-b border-[var(--card-border)] pb-3">
               <Link
                 href="/login"
                 prefetch={false}
@@ -170,10 +213,121 @@ export default function Nav({ userEmail }: { userEmail?: string | null }) {
               >
                 {t.auth.submitLogin}
               </Link>
-            )}
-          </div>
-          <div className="flex flex-col gap-1">
-            {mainNavItems.map((item) => {
+            </div>
+          )}
+          <div className="flex flex-col gap-2">
+            {isAuthed ? (
+              <>
+                <div className="mt-1 pb-2">
+                  <p className="mb-1 flex items-center gap-2 px-3 text-xs font-semibold text-[var(--muted)]">
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l9-9 9 9M5 10v10h14V10" />
+                    </svg>
+                    App
+                  </p>
+                  <div className="mt-1 border-b border-[var(--card-border)]" />
+                </div>
+                {mainNavItems.filter((item) => appNavHrefs.has(item.href)).map((item) => {
+                  const active = pathMatchesNav(pathname, item.href);
+                  if (item.href === "/dashboard") {
+                    return (
+                      <div key={item.href} className="space-y-2">
+                        <div className="flex w-full items-center gap-2">
+                          <Link
+                            href={item.href}
+                            prefetch={false}
+                            onClick={() => setOpen(false)}
+                            aria-current={active ? "page" : undefined}
+                            className={
+                              active
+                                ? "block w-full rounded-lg border border-teal-400 bg-teal-50 px-3 py-2.5 text-sm font-medium text-teal-800 shadow-sm transition dark:border-teal-600 dark:bg-teal-950/50 dark:text-teal-200"
+                                : "block w-full rounded-lg border border-transparent px-3 py-2.5 text-sm font-medium text-[var(--foreground)] transition hover:border-teal-100 hover:bg-teal-50 dark:hover:border-teal-900/50 dark:hover:bg-teal-950/50"
+                            }
+                          >
+                            {t.nav[item.key]}
+                          </Link>
+                          <button
+                            type="button"
+                            onClick={() => setProcessesExpanded((v) => !v)}
+                            className="shrink-0 rounded-lg border border-[var(--card-border)] px-2 py-2 text-[var(--muted)] transition hover:bg-[var(--background)] hover:text-[var(--foreground)]"
+                          >
+                            {processesExpanded ? "▾" : "▸"}
+                          </button>
+                        </div>
+                        {processesExpanded ? (
+                          <div className="space-y-1 rounded-lg border border-[var(--card-border)]/70 bg-[var(--background)]/40 p-3">
+                            {phaseLinks.map((phase) => (
+                              <Link
+                                key={phase.id}
+                                href={`/dashboard?assistant_phase=${phase.id}#phase-${phase.id}`}
+                                prefetch={false}
+                                onClick={() => setOpen(false)}
+                                className="block w-full rounded-md px-2 py-2 text-sm text-[var(--muted)] transition hover:bg-teal-50 hover:text-teal-700 dark:hover:bg-teal-950/40 dark:hover:text-teal-300"
+                              >
+                                {locale === "de" ? phase.de : phase.en}
+                              </Link>
+                            ))}
+                          </div>
+                        ) : null}
+                      </div>
+                    );
+                  }
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      prefetch={false}
+                      onClick={() => setOpen(false)}
+                      aria-current={active ? "page" : undefined}
+                      className={
+                        active
+                          ? "block w-full rounded-lg border border-teal-400 bg-teal-50 px-3 py-2.5 text-sm font-medium text-teal-800 shadow-sm transition dark:border-teal-600 dark:bg-teal-950/50 dark:text-teal-200"
+                          : "block w-full rounded-lg border border-transparent px-3 py-2.5 text-sm font-medium text-[var(--foreground)] transition hover:border-teal-100 hover:bg-teal-50 dark:hover:border-teal-900/50 dark:hover:bg-teal-950/50"
+                      }
+                    >
+                      {t.nav[item.key]}
+                    </Link>
+                  );
+                })}
+                <div className="mt-3 pb-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setStudyExpanded((v) => !v)}
+                    className="mb-1 flex w-full items-center justify-between px-3 text-left text-xs font-semibold text-[var(--muted)]"
+                  >
+                    <span className="flex items-center gap-2">
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6M5 21h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                      </svg>
+                      Studie
+                    </span>
+                    <span>{studyExpanded ? "▾" : "▸"}</span>
+                  </button>
+                  <div className="mt-1 border-b border-[var(--card-border)]" />
+                </div>
+                {studyExpanded ? <div className="mt-1 space-y-2">
+                  {mainNavItems.filter((item) => studyNavHrefs.has(item.href)).map((item) => {
+                    const active = pathMatchesNav(pathname, item.href);
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        prefetch={false}
+                        onClick={() => setOpen(false)}
+                        aria-current={active ? "page" : undefined}
+                        className={
+                          active
+                            ? "block w-full rounded-lg border border-teal-400 bg-teal-50 px-3 py-2.5 text-sm font-medium text-teal-800 shadow-sm transition dark:border-teal-600 dark:bg-teal-950/50 dark:text-teal-200"
+                            : "block w-full rounded-lg border border-transparent px-3 py-2.5 text-sm font-medium text-[var(--foreground)] transition hover:border-teal-100 hover:bg-teal-50 dark:hover:border-teal-900/50 dark:hover:bg-teal-950/50"
+                        }
+                      >
+                        {t.nav[item.key]}
+                      </Link>
+                    );
+                  })}
+                </div> : null}
+              </>
+            ) : mainNavItems.map((item) => {
               const active = isAuthed && pathMatchesNav(pathname, item.href);
               return (
                 <Link
@@ -182,28 +336,30 @@ export default function Nav({ userEmail }: { userEmail?: string | null }) {
                   prefetch={false}
                   onClick={() => setOpen(false)}
                   aria-current={active ? "page" : undefined}
-                  className={
-                    isAuthed
-                      ? active
-                        ? "rounded-lg border border-teal-400 bg-teal-50 px-3 py-2.5 text-sm font-medium text-teal-800 shadow-sm transition dark:border-teal-600 dark:bg-teal-950/50 dark:text-teal-200"
-                        : "rounded-lg border border-transparent px-3 py-2.5 text-sm font-medium text-[var(--foreground)] transition hover:border-teal-100 hover:bg-teal-50 dark:hover:border-teal-900/50 dark:hover:bg-teal-950/50"
-                      : "rounded-lg px-3 py-2.5 text-sm font-medium text-gray-400 transition hover:bg-gray-100 hover:text-gray-500 dark:text-gray-500 dark:hover:bg-gray-900/40 dark:hover:text-gray-400"
-                  }
+                  className="rounded-lg px-3 py-2.5 text-sm font-medium text-gray-400 transition hover:bg-gray-100 hover:text-gray-500 dark:text-gray-500 dark:hover:bg-gray-900/40 dark:hover:text-gray-400"
                 >
                   {t.nav[item.key]}
                 </Link>
               );
             })}
             {isAuthed && (
-              <div className="mt-3 border-t-2 border-zinc-300/80 pt-3 dark:border-zinc-700/80">
-                <p className="mb-2 flex items-center gap-2 px-3 text-xs font-semibold text-[var(--muted)]">
-                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                  {t.nav.settings}
-                </p>
-                {settingsNavItems.map((item) => {
+              <div className="mt-3 pt-3">
+                <button
+                  type="button"
+                  onClick={() => setSettingsExpanded((v) => !v)}
+                  className="mb-2 flex w-full items-center justify-between px-3 text-left text-xs font-semibold text-[var(--muted)]"
+                >
+                  <span className="flex items-center gap-2">
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    {t.nav.settings}
+                  </span>
+                  <span>{settingsExpanded ? "▾" : "▸"}</span>
+                </button>
+                <div className="mb-2 border-b border-zinc-300/80 dark:border-zinc-700/80" />
+                {settingsExpanded ? settingsNavItems.map((item) => {
                   const active = pathMatchesNav(pathname, item.href);
                   return (
                     <Link
@@ -221,16 +377,16 @@ export default function Nav({ userEmail }: { userEmail?: string | null }) {
                       {t.nav[item.key]}
                     </Link>
                   );
-                })}
-                <form action="/api/auth/logout" method="post" className="mt-1">
+                }) : null}
+                {settingsExpanded ? <form action="/api/auth/logout" method="post" className="mt-1">
                   <button
                     type="submit"
                     className="block w-full rounded-lg px-3 py-2.5 text-left text-sm font-medium text-rose-600 transition hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/30"
                   >
                     {t.auth.logout}
                   </button>
-                </form>
-                <div className="mt-2 border-t border-[var(--card-border)] px-3 pt-3">
+                </form> : null}
+                {settingsExpanded ? <div className="mt-2 border-t border-[var(--card-border)] px-3 pt-3">
                   <label className="mb-1 block text-xs text-[var(--muted)]">{t.nav.language}</label>
                   <select
                     value={locale}
@@ -240,7 +396,7 @@ export default function Nav({ userEmail }: { userEmail?: string | null }) {
                     <option value="en">English</option>
                     <option value="de">Deutsch</option>
                   </select>
-                </div>
+                </div> : null}
               </div>
             )}
           </div>

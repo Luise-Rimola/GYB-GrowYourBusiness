@@ -10,6 +10,7 @@ import { getOrCreateStudyParticipant } from "@/lib/study";
 import { loadAssistantSteps } from "@/lib/assistantSteps";
 import { AssistantStepsList } from "@/components/AssistantStepsList";
 import { STUDY_CATEGORY_LABELS, type StudyCategoryKey } from "@/lib/studyCategoryContext";
+import { HomeExportPackageButton } from "@/components/HomeExportPackageButton";
 
 async function safeDb<T>(query: () => Promise<T>, fallback: T): Promise<T> {
   try {
@@ -22,7 +23,7 @@ async function safeDb<T>(query: () => Promise<T>, fallback: T): Promise<T> {
 export default async function Home({
   searchParams,
 }: {
-  searchParams: Promise<{ saved?: string; category?: string }>;
+  searchParams: Promise<{ saved?: string; category?: string; openExport?: string }>;
 }) {
   const params = await searchParams;
   const locale = await getServerLocale();
@@ -81,6 +82,7 @@ export default async function Home({
     participantCompletedFb5: Boolean((participant as { completedFb5?: boolean }).completedFb5),
     profileCompletePercent: profileComplete,
     locale,
+    includeHandbookStep: false,
     t: {
       common: { viewArtifacts: t.common.viewArtifacts },
       home: {
@@ -90,6 +92,7 @@ export default async function Home({
         step2: t.home.step2,
         step5: t.home.step5,
         step6: t.home.step6,
+        step7Mail: t.home.step7Mail,
       },
       study: {
         fb1Title: t.study.fb1Title,
@@ -124,6 +127,7 @@ export default async function Home({
           >
             {t.home.startAssistant}
           </Link>
+          <HomeExportPackageButton locale={locale} autoOpen={params.openExport === "1"} showButton={false} />
         </div>
       </header>
 

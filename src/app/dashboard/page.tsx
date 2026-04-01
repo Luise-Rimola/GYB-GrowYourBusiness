@@ -13,6 +13,7 @@ import { WorkflowService } from "@/services/workflows";
 import { getPlanningPhaseReleasedMap } from "@/lib/planningPhaseRelease";
 import { PhaseArtifactsReleaseBlock } from "@/components/PhaseArtifactsReleaseBlock";
 import { PhaseRunButtonForm } from "@/components/PhaseRunButtonForm";
+import { getStudyCategoryContext, type StudyCategoryKey } from "@/lib/studyCategoryContext";
 
 function getWorkflowArtifactLabel(workflowKey: string, artifactType: string, locale: "de" | "en") {
   if (workflowKey === "WF_IDEA_USP_VALIDATION" && artifactType === "value_proposition") {
@@ -27,10 +28,12 @@ function getWorkflowArtifactLabel(workflowKey: string, artifactType: string, loc
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ assistant_phase?: string; run_error?: string; run_success?: string }>;
+  searchParams: Promise<{ assistant_phase?: string; run_error?: string; run_success?: string; view?: string; phase?: string }>;
 }) {
   const params = await searchParams;
   const assistantPhaseId = String(params.assistant_phase ?? "").trim();
+  const selectedOverviewPhaseId = String(params.phase ?? "").trim();
+  const activeView = assistantPhaseId ? "execution" : (params.view === "execution" ? "execution" : "overview");
   const locale = await getServerLocale();
   const t = getTranslations(locale);
   const isDe = locale === "de";
@@ -339,32 +342,264 @@ export default async function DashboardPage({
   }
   const completedWorkflowCount = workflowsInOrder.filter(isWorkflowComplete).length;
   const progressPercent = workflowsInOrder.length ? Math.round((completedWorkflowCount / workflowsInOrder.length) * 100) : 0;
+  const phaseSummaries = PLANNING_PHASES.map((phase) => {
+    const keys = phase.workflowKeys.filter((k) => k !== "WF_BUSINESS_FORM");
+    const completed = keys.filter((k) => isWorkflowComplete(k)).length;
+    const total = Math.max(1, keys.length);
+    const artifactTypes = [...new Set(phase.workflowKeys.flatMap((k) => WORKFLOW_TO_ARTIFACTS[k] ?? []))];
+    const docs = artifactTypes.filter((type) => artifacts.some((a) => a.type === type)).length;
+    return {
+      phase,
+      completed,
+      total,
+      percent: Math.round((completed / total) * 100),
+      docs,
+      done: isPhasePlanningComplete(phase),
+    };
+  });
+  const selectedOverviewSummary =
+    phaseSummaries.find((p) => p.phase.id === selectedOverviewPhaseId) ?? phaseSummaries[0];
+  const phaseToStudyCategory: Record<string, StudyCategoryKey> = {
+    ideation: "markt_geschaeftsmodell",
+    validation: "produktstrategie",
+    launch: "launch_marketing_investition",
+    scaling: "wachstum_expansion",
+    tech_digital: "technologie_digitalisierung",
+    maturity: "reifephase",
+    renewal: "erneuerung_exit",
+  };
+  const studyCtxByCategory = getStudyCategoryContext(locale);
+  const selectedStudyCtx = selectedOverviewSummary
+    ? studyCtxByCategory[phaseToStudyCategory[selectedOverviewSummary.phase.id] ?? "markt_geschaeftsmodell"]
+    : null;
 
   return (
     <div className="space-y-8">
-      <header>
-        <h1 className="text-3xl font-bold tracking-tight text-[var(--foreground)]">
-          {`${t.dashboard.title} in ${t.dashboard.planningPhases}`}
-        </h1>
-        <p className="mt-2 text-[var(--muted)]">
-          {`${t.dashboard.subtitle} ${t.dashboard.planningPhasesDesc}`}
-        </p>
-      </header>
+      {!assistantPhaseId && (
+        <div className="grid w-full grid-cols-2 rounded-xl border border-[var(--card-border)] bg-[var(--card)]/80 p-1 shadow-sm">
+          <Link
+            href="/dashboard?view=overview"
+            prefetch={false}
+            className={`rounded-lg px-4 py-2 text-center text-sm font-semibold transition ${
+              activeView === "overview"
+                ? "border border-[var(--card-border)] bg-[var(--background)] text-teal-700 shadow-sm dark:text-teal-300"
+                : "text-[var(--muted)] hover:bg-[var(--background)] hover:text-[var(--foreground)]"
+            }`}
+          >
+            {isDe ? "Übersicht" : "Overview"}
+          </Link>
+          <Link
+            href="/dashboard?view=execution"
+            prefetch={false}
+            className={`rounded-lg px-4 py-2 text-center text-sm font-semibold transition ${
+              activeView === "execution"
+                ? "border border-[var(--card-border)] bg-[var(--background)] text-teal-700 shadow-sm dark:text-teal-300"
+                : "text-[var(--muted)] hover:bg-[var(--background)] hover:text-[var(--foreground)]"
+            }`}
+          >
+            {isDe ? "Ausführung" : "Execution"}
+          </Link>
+        </div>
+      )}
 
-      {params.run_error === "llm_missing" && (
+      {activeView === "execution" && (
+        <header>
+          <h1 className="text-3xl font-bold tracking-tight text-[var(--foreground)]">
+            {`${t.dashboard.title} in ${t.dashboard.planningPhases}`}
+          </h1>
+          <p className="mt-2 text-[var(--muted)]">
+            {`${t.dashboard.subtitle} ${t.dashboard.planningPhasesDesc}`}
+          </p>
+        </header>
+      )}
+
+      {activeView === "execution" && params.run_error === "llm_missing" && (
         <div className="rounded-xl border border-rose-300 bg-rose-50 p-4 text-sm text-rose-800 dark:border-rose-800 dark:bg-rose-950/30 dark:text-rose-200">
           {isDe
             ? "Bitte hinterlege eine LLM API in den Einstellungen oder führe die Schritte manuell durch."
             : "Please configure an LLM API in Settings or execute the steps manually."}
         </div>
       )}
-      {params.run_success === "1" && (
+      {activeView === "execution" && params.run_success === "1" && (
         <div className="rounded-xl border border-emerald-300 bg-emerald-50 p-4 text-sm text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-200">
           {isDe ? "Run wurde erfolgreich durchgeführt." : "Run completed successfully."}
         </div>
       )}
 
-      {!assistantPhaseId && (
+      {activeView === "overview" && (
+        <Section
+          title=""
+        >
+          <div className="rounded-2xl border border-[var(--card-border)] bg-[var(--card)] p-5 shadow-sm">
+          <div className="grid gap-4 md:grid-cols-3">
+            <Link href="/dashboard?view=execution" prefetch={false} className="rounded-xl border border-cyan-200 bg-cyan-50/80 p-4 transition hover:-translate-y-0.5 hover:border-cyan-300 hover:shadow-sm dark:border-cyan-900/60 dark:bg-cyan-950/20 dark:hover:border-cyan-700">
+              <p className="text-xs font-medium text-[var(--muted)]">{isDe ? "Gesamtfortschritt" : "Overall progress"}</p>
+              <p className="mt-1 text-2xl font-semibold text-[var(--foreground)]">{progressPercent}%</p>
+              <p className="text-xs text-[var(--muted)]">
+                {completedWorkflowCount}/{workflowsInOrder.length} {isDe ? "Prozesse abgeschlossen" : "workflows complete"}
+              </p>
+            </Link>
+            <Link href="/dashboard?view=execution" prefetch={false} className="rounded-xl border border-violet-200 bg-violet-50/80 p-4 transition hover:-translate-y-0.5 hover:border-violet-300 hover:shadow-sm dark:border-violet-900/60 dark:bg-violet-950/20 dark:hover:border-violet-700">
+              <p className="text-xs font-medium text-[var(--muted)]">{isDe ? "Phasen abgeschlossen" : "Phases complete"}</p>
+              <p className="mt-1 text-2xl font-semibold text-[var(--foreground)]">
+                {phaseSummaries.filter((p) => p.done).length}/{phaseSummaries.length}
+              </p>
+            </Link>
+            <Link href="/artifacts" prefetch={false} className="rounded-xl border border-amber-200 bg-amber-50/80 p-4 transition hover:-translate-y-0.5 hover:border-amber-300 hover:shadow-sm dark:border-amber-900/60 dark:bg-amber-950/20 dark:hover:border-amber-700">
+              <p className="text-xs font-medium text-[var(--muted)]">{isDe ? "Dokumente gesamt" : "Total documents"}</p>
+              <p className="mt-1 text-2xl font-semibold text-[var(--foreground)]">{artifacts.length}</p>
+            </Link>
+          </div>
+          <div className="mt-4 h-2.5 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
+            <div className="h-full rounded-full bg-teal-600 transition-all duration-300" style={{ width: `${progressPercent}%` }} />
+          </div>
+          <div className="mt-5 overflow-x-auto border-b border-[var(--card-border)] pb-3" data-overview-phase-scroller>
+            <div className="flex min-w-max flex-nowrap gap-2">
+            {phaseSummaries.map((summary) => {
+              const { phase, completed, total } = summary;
+              const active = selectedOverviewSummary?.phase.id === phase.id;
+              return (
+                <Link
+                  key={phase.id}
+                  href={`/dashboard?view=overview&phase=${phase.id}`}
+                  prefetch={false}
+                  data-overview-phase-chip={active ? "active" : "0"}
+                  className={`min-w-[250px] rounded-xl px-4 py-3 text-left shadow-sm transition ${
+                    active
+                      ? "border border-teal-300 bg-teal-50 text-teal-800 dark:border-teal-700 dark:bg-teal-950/40 dark:text-teal-200"
+                      : "border border-[var(--card-border)] bg-[var(--card)] text-[var(--muted)] hover:bg-teal-50 hover:text-teal-700 dark:hover:bg-teal-950/40 dark:hover:text-teal-300"
+                  }`}
+                >
+                  <p className="text-sm font-semibold">{isDe ? phase.name : (phaseNamesEn[phase.id] ?? phase.name)}</p>
+                  <p className={`mt-1 text-xs ${active ? "text-teal-700 dark:text-teal-300" : "text-[var(--muted)]"}`}>
+                    {completed} {isDe ? "von" : "of"} {total} {isDe ? "Prozessen abgeschlossen" : "processes completed"}
+                  </p>
+                  <div className={`mt-2 h-1.5 overflow-hidden rounded-full ${active ? "bg-teal-100 dark:bg-teal-900/40" : "bg-slate-200 dark:bg-slate-700"}`}>
+                    <div className="h-full rounded-full bg-teal-600" style={{ width: `${Math.round((completed / Math.max(1, total)) * 100)}%` }} />
+                  </div>
+                </Link>
+              );
+            })}
+            </div>
+          </div>
+
+          {selectedOverviewSummary && (
+            <div className="mt-5 space-y-4">
+              <div className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-5 shadow-sm">
+                <div className="rounded-lg border border-[var(--card-border)] bg-[var(--background)]/30 p-4">
+                  <h4 className="text-base font-semibold text-[var(--foreground)]">
+                    {isDe ? selectedOverviewSummary.phase.name : (phaseNamesEn[selectedOverviewSummary.phase.id] ?? selectedOverviewSummary.phase.name)}
+                  </h4>
+                  <p className="mt-1 text-sm text-[var(--muted)]">
+                    {isDe ? selectedOverviewSummary.phase.goal : (phaseGoalsEn[selectedOverviewSummary.phase.id] ?? selectedOverviewSummary.phase.goal)}
+                  </p>
+                  <p className="mt-3 text-xs text-[var(--muted)]">
+                    {selectedStudyCtx?.description ?? ""}
+                  </p>
+                  <div className="mt-3 grid gap-4 md:grid-cols-2">
+                    <div>
+                      <p className="text-xs font-semibold text-[var(--foreground)]">{isDe ? t.study.studyInfoWhatDone : "What is analyzed here?"}</p>
+                      <ul className="mt-1 list-disc space-y-1 pl-5 text-xs text-[var(--muted)]">
+                        {(selectedStudyCtx?.workflowKeys ?? []).map((wk) => (
+                          <li key={wk}>{isDe ? (WORKFLOW_BY_KEY[wk]?.name ?? wk) : (workflowNamesEn[wk] ?? WORKFLOW_BY_KEY[wk]?.name ?? wk)}</li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-[var(--foreground)]">{isDe ? t.study.studyInfoWhatImportant : "What is important?"}</p>
+                      <ul className="mt-1 list-disc space-y-1 pl-5 text-xs text-[var(--muted)]">
+                        {(selectedStudyCtx?.important ?? []).map((it) => (
+                          <li key={it}>{it}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="grid gap-4 lg:grid-cols-[1.35fr_1fr]">
+                <div className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-4 shadow-sm">
+                  <p className="mb-2 text-xs font-semibold text-[var(--foreground)]">{isDe ? "Workflows" : "Workflows"}</p>
+                  <div className="space-y-3">
+                    {selectedOverviewSummary.phase.workflowKeys
+                      .filter((k) => k !== "WF_BUSINESS_FORM")
+                      .map((key, idx) => {
+                        const locked = isLocked[key];
+                        const hasComplete = runsByWorkflow[key]?.some((r) => r.status === "complete" || r.status === "approved");
+                        const hasInProgress = runsByWorkflow[key]?.some((r) => ["draft", "running", "incomplete"].includes(r.status));
+                        const completeRun = runsByWorkflow[key]?.find((r) => r.status === "complete" || r.status === "approved");
+                        const statusLabel = locked ? (isDe ? "Gesperrt" : "Locked") : hasInProgress ? (isDe ? "In Bearbeitung" : "In progress") : hasComplete ? (isDe ? "Abgeschlossen" : "Complete") : (isDe ? "Offen" : "Open");
+                        const statusClass = locked ? "bg-zinc-100 text-zinc-600 dark:bg-zinc-800/60 dark:text-zinc-300" : hasInProgress ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300" : hasComplete ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300" : "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300";
+                        return (
+                          <div key={key} className="rounded-xl border border-[var(--card-border)] bg-[var(--background)]/30 p-3">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="min-w-0">
+                                <p className="text-[11px] text-[var(--muted)]">{isDe ? "Schritt" : "Step"} {idx + 1}</p>
+                                <p className="text-sm font-medium text-[var(--foreground)]">{isDe ? (WORKFLOW_BY_KEY[key]?.name ?? key) : (workflowNamesEn[key] ?? WORKFLOW_BY_KEY[key]?.name ?? key)}</p>
+                              </div>
+                              <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${statusClass}`}>{statusLabel}</span>
+                            </div>
+                            <div className="mt-2">
+                              {hasInProgress ? (
+                                <form action={createRunWorkflowAction}><input type="hidden" name="workflow_key" value={key} /><button type="submit" className="rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-teal-700">{isDe ? "Fortsetzen" : "Continue"}</button></form>
+                              ) : hasComplete && completeRun ? (
+                                <Link href={`/runs/${completeRun.id}`} className="rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-teal-700">{isDe ? "Lauf ansehen" : "View run"}</Link>
+                              ) : (
+                                <form action={createRunWorkflowAction}><input type="hidden" name="workflow_key" value={key} /><button type="submit" disabled={locked} className="rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-teal-700 disabled:opacity-50">{isDe ? "Starten" : "Start"}</button></form>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
+                </div>
+                <div className="space-y-4">
+                <div className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-4 shadow-sm">
+                  <p className="text-xs font-medium text-[var(--muted)]">{isDe ? "Abschluss (Phase)" : "Completion (phase)"}</p>
+                  <div className="mt-3 flex items-center gap-4">
+                    <div
+                      className="grid h-24 w-24 place-items-center rounded-full"
+                      style={{
+                        background: `conic-gradient(rgb(13 148 136) ${selectedOverviewSummary.percent * 3.6}deg, rgb(226 232 240) 0deg)`,
+                      }}
+                    >
+                      <div className="grid h-16 w-16 place-items-center rounded-full bg-[var(--card)] text-sm font-semibold text-[var(--foreground)]">
+                        {selectedOverviewSummary.percent}%
+                      </div>
+                    </div>
+                    <div className="text-xs text-[var(--muted)]">
+                      <div>{selectedOverviewSummary.completed}/{selectedOverviewSummary.total} {isDe ? "abgeschlossene Workflows" : "completed workflows"}</div>
+                      <div>{selectedOverviewSummary.docs} {isDe ? "Dokumente" : "documents"}</div>
+                    </div>
+                  </div>
+                </div>
+                <div className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-4 shadow-sm">
+                  <p className="mb-2 text-xs font-medium text-[var(--muted)]">{isDe ? "Dokumente" : "Documents"}</p>
+                  <div className="flex flex-wrap gap-2">
+                    {[...new Set(selectedOverviewSummary.phase.workflowKeys.flatMap((k) => WORKFLOW_TO_ARTIFACTS[k] ?? []))]
+                      .map((type) => artifacts.find((a) => a.type === type))
+                      .filter(Boolean)
+                      .slice(0, 6)
+                      .map((artifact) => (
+                        <Link key={artifact!.id} href={`/artifacts/${artifact!.id}`} className="rounded-lg border border-teal-200 bg-teal-50/50 px-2.5 py-1.5 text-xs font-medium text-teal-800 hover:bg-teal-100 dark:border-teal-800 dark:bg-teal-950/30 dark:text-teal-200">
+                          {artifact!.title}
+                        </Link>
+                      ))}
+                    {[...new Set(selectedOverviewSummary.phase.workflowKeys.flatMap((k) => WORKFLOW_TO_ARTIFACTS[k] ?? []))]
+                      .map((type) => artifacts.find((a) => a.type === type))
+                      .filter(Boolean).length === 0 && (
+                      <p className="text-xs text-[var(--muted)]">{isDe ? "Noch keine Dokumente in dieser Phase." : "No documents in this phase yet."}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+            </div>
+          )}
+          </div>
+        </Section>
+      )}
+
+      {activeView === "execution" && !assistantPhaseId && (
       <Section title="">
         <div className="mb-4">
           <div className="flex items-center justify-between mb-1.5">
@@ -395,6 +630,7 @@ export default async function DashboardPage({
       </Section>
       )}
 
+      {activeView === "execution" && (
       <div>
         {!assistantPhaseId && (
           <div className="rounded-2xl border border-[var(--card-border)] bg-[var(--card)]/50 p-6">
@@ -668,8 +904,9 @@ export default async function DashboardPage({
           })}
         </div>
       </div>
+      )}
 
-      {!assistantPhaseId && (
+      {activeView === "execution" && !assistantPhaseId && (
       <Script id="phase-workflow-checkbox-toggle" strategy="afterInteractive">{`
         (function () {
           function openPhaseFromHash() {
@@ -723,6 +960,24 @@ export default async function DashboardPage({
             openPhaseFromHash();
           }
           window.addEventListener("hashchange", openPhaseFromHash);
+        })();
+      `}</Script>
+      )}
+
+      {activeView === "overview" && (
+      <Script id="overview-phase-chip-scroll" strategy="afterInteractive">{`
+        (function () {
+          function alignOverviewPhaseChip() {
+            var scroller = document.querySelector("[data-overview-phase-scroller]");
+            var activeChip = document.querySelector('[data-overview-phase-chip="active"]');
+            if (!scroller || !activeChip) return;
+            activeChip.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+          }
+          if (document.readyState === "loading") {
+            document.addEventListener("DOMContentLoaded", alignOverviewPhaseChip);
+          } else {
+            alignOverviewPhaseChip();
+          }
         })();
       `}</Script>
       )}

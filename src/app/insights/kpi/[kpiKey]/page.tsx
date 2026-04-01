@@ -130,8 +130,7 @@ export default async function KpiDetailPage({
       </div>
 
       <div className="rounded-2xl border border-teal-200/80 bg-teal-50/60 p-4 dark:border-teal-900/50 dark:bg-teal-950/25">
-        <p className="text-sm font-medium text-teal-900 dark:text-teal-200">{t.insights.kpiDetailJsonInfobox}</p>
-        <p className="mt-2 text-xs leading-relaxed text-[var(--muted)]">{t.insights.kpiDetailKpiMeaning}</p>
+        <p className="text-xs leading-relaxed text-[var(--muted)]">{t.insights.kpiDetailKpiMeaning}</p>
       </div>
 
       <div className="rounded-2xl border border-[var(--card-border)] bg-[var(--card)] p-6">

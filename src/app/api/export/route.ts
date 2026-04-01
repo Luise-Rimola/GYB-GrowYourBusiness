@@ -5,6 +5,7 @@ import { getCompanyForApi } from "@/lib/companyContext";
 import { getServerLocale } from "@/lib/locale";
 import type { Locale } from "@/lib/i18n";
 import { getArtifactEvaluationsByCompany } from "@/lib/artifactEvaluations";
+import { getFeatureEvaluations } from "@/lib/featureEvaluations";
 import {
   CF_ITEMS,
   CL_ITEMS,
@@ -19,7 +20,7 @@ import {
 } from "@/lib/fragebogenScales";
 import { SCENARIOS, SCENARIO_CATEGORIES } from "@/lib/scenarios";
 
-type ExportScope = "study" | "artifacts" | "evaluation";
+type ExportScope = "study" | "artifacts" | "evaluation" | "usecase" | "advisor";
 type ExportFormat = "spss" | "pdf" | "excel";
 
 type Table = {
@@ -55,7 +56,11 @@ export async function GET(req: NextRequest) {
       ? await buildStudyTables(companyId)
       : scope === "artifacts"
         ? await buildArtifactTables(companyId)
-        : await buildEvaluationTables(companyId, anonymize);
+        : scope === "usecase"
+          ? await buildUseCaseTables(companyId, anonymize)
+          : scope === "advisor"
+            ? await buildAdvisorTables(companyId, anonymize)
+            : await buildEvaluationTables(companyId, anonymize);
 
   if (format === "pdf") {
     const pdf =
@@ -63,13 +68,19 @@ export async function GET(req: NextRequest) {
         ? await buildStudyCompanyReportPdf(tables, locale)
         : scope === "artifacts"
           ? await buildArtifactsCompanyReportPdf(tables, locale)
-          : await buildEvaluationCompanyReportPdf(tables, locale);
+          : scope === "advisor"
+            ? await buildAdvisorCompanyReportPdf(tables, locale)
+            : await buildEvaluationCompanyReportPdf(tables, locale);
     const filename =
       scope === "study"
         ? "study-company-report.pdf"
         : scope === "artifacts"
           ? "artifacts-company-report.pdf"
-          : "usecase-company-report.pdf";
+          : scope === "usecase"
+            ? "usecase-company-report.pdf"
+            : scope === "advisor"
+              ? "advisor-company-report.pdf"
+              : "evaluation-company-report.pdf";
     return new NextResponse(Buffer.from(pdf), {
       headers: {
         "Content-Type": "application/pdf",
@@ -98,7 +109,7 @@ export async function GET(req: NextRequest) {
 }
 
 function parseScope(v: string | null): ExportScope | null {
-  if (v === "study" || v === "artifacts" || v === "evaluation") return v;
+  if (v === "study" || v === "artifacts" || v === "evaluation" || v === "usecase" || v === "advisor") return v;
   return null;
 }
 
@@ -413,6 +424,82 @@ async function buildEvaluationTables(companyId: string, anonymize = false): Prom
   };
 
   return [useCaseTable, scenarioTable];
+}
+
+async function buildUseCaseTables(companyId: string, anonymize = false): Promise<Table[]> {
+  const useCases = await prisma.useCaseEvaluation.findMany({
+    where: { companyId },
+    orderBy: { createdAt: "desc" },
+  });
+  const useCaseTable: Table = {
+    title: "Use Case Evaluations",
+    headers: [
+      "id",
+      "use_case_description",
+      "user_decision_approach",
+      "questionnaire_helpful",
+      "questionnaire_fit",
+      "questionnaire_user_one_word",
+      "questionnaire_ai_one_word",
+      "questionnaire_user_confidence_in_ai",
+      "questionnaire_notes",
+      "created_at",
+    ],
+    rows: useCases.map((u, idx) => {
+      const q = readObj(u.questionnaireJson);
+      return [
+        anonymize ? `use_case_${idx + 1}` : u.id,
+        anonymize ? "" : u.useCaseDescription,
+        anonymize ? "" : u.userDecisionApproach,
+        readNumString(q.helpful),
+        readNumString(q.fit),
+        readString(q.userOneWord),
+        readString(q.aiOneWord),
+        readNumString(q.userConfidenceInAi),
+        readString(q.notes),
+        toIso(u.createdAt),
+      ];
+    }),
+  };
+  return [useCaseTable];
+}
+
+async function buildAdvisorTables(companyId: string, anonymize = false): Promise<Table[]> {
+  const rows = await getFeatureEvaluations(companyId, "chat");
+  const table: Table = {
+    title: "Advisor Evaluations",
+    headers: [
+      "id",
+      "kind",
+      "answer_quality",
+      "source_quality",
+      "realism",
+      "clarity",
+      "structure",
+      "hallucination_present",
+      "hallucination_notes",
+      "strengths",
+      "weaknesses",
+      "improvement_suggestions",
+      "created_at",
+    ],
+    rows: rows.map((r, idx) => [
+      anonymize ? `advisor_eval_${idx + 1}` : r.id,
+      r.kind,
+      String(r.answerQuality),
+      String(r.sourceQuality),
+      String(r.realism),
+      String(r.clarity),
+      String(r.structure),
+      boolStr(Boolean(r.hallucinationPresent)),
+      anonymize ? "" : (r.hallucinationNotes ?? ""),
+      anonymize ? "" : (r.strengths ?? ""),
+      anonymize ? "" : (r.weaknesses ?? ""),
+      anonymize ? "" : (r.improvementSuggestions ?? ""),
+      toIso(r.createdAt),
+    ]),
+  };
+  return [table];
 }
 
 function tableToCsv(table: Table): string {
@@ -989,6 +1076,79 @@ async function buildEvaluationCompanyReportPdf(tables: Table[], locale: Locale):
   }
 
   footer();
+  return doc.save();
+}
+
+async function buildAdvisorCompanyReportPdf(tables: Table[], locale: Locale): Promise<Uint8Array> {
+  const doc = await PDFDocument.create();
+  const font = await doc.embedFont(StandardFonts.Helvetica);
+  const fontBold = await doc.embedFont(StandardFonts.HelveticaBold);
+  const pageWidth = 842;
+  const pageHeight = 595;
+  const margin = 30;
+  const contentWidth = pageWidth - margin * 2;
+  const lineHeight = 13;
+  const small = 9;
+  const isEn = locale === "en";
+  const table = tables[0];
+
+  let page = doc.addPage([pageWidth, pageHeight]);
+  let y = pageHeight - margin;
+
+  const need = (h: number) => {
+    if (y - h < margin + 16) {
+      page = doc.addPage([pageWidth, pageHeight]);
+      y = pageHeight - margin;
+    }
+  };
+  const write = (text: string, bold = false) => {
+    need(lineHeight + 2);
+    page.drawText(text, { x: margin, y, size: small, font: bold ? fontBold : font, color: rgb(0.1, 0.12, 0.14) });
+    y -= lineHeight;
+  };
+  const wrapWrite = (text: string, indent = 0) => {
+    const maxW = contentWidth - indent;
+    for (const line of wrapText(text, maxW, small, font)) {
+      need(lineHeight + 2);
+      page.drawText(line, { x: margin + indent, y, size: small, font, color: rgb(0.16, 0.18, 0.2) });
+      y -= lineHeight;
+    }
+  };
+
+  page.drawRectangle({
+    x: margin,
+    y: y - 46,
+    width: contentWidth,
+    height: 46,
+    color: rgb(0.93, 0.98, 0.97),
+    borderWidth: 1,
+    borderColor: rgb(0.73, 0.91, 0.86),
+  });
+  page.drawText(isEn ? "Advisor Chat Evaluation" : "Berater-Chat Evaluation", {
+    x: margin + 12,
+    y: y - 18,
+    size: 15,
+    font: fontBold,
+    color: rgb(0.0, 0.45, 0.39),
+  });
+  y -= 60;
+
+  if (!table) return doc.save();
+  for (const row of table.rows) {
+    const [, , q, s, r, c, st, h, hn, str, weak, imp, created] = row;
+    write(`${isEn ? "Date" : "Datum"}: ${created}`, true);
+    wrapWrite(`${isEn ? "Answer quality" : "Antwortqualitaet"}: ${q}/5`, 10);
+    wrapWrite(`${isEn ? "Source quality" : "Quellenqualitaet"}: ${s}/5`, 10);
+    wrapWrite(`${isEn ? "Realism" : "Realismus"}: ${r}/5`, 10);
+    wrapWrite(`${isEn ? "Clarity" : "Verstaendlichkeit"}: ${c}/5`, 10);
+    wrapWrite(`${isEn ? "Structure" : "Struktur"}: ${st}/5`, 10);
+    wrapWrite(`${isEn ? "Hallucination present" : "Halluzination vorhanden"}: ${h === "1" ? (isEn ? "Yes" : "Ja") : (isEn ? "No" : "Nein")}`, 10);
+    if (hn) wrapWrite(`${isEn ? "Notes" : "Notizen"}: ${hn}`, 10);
+    if (str) wrapWrite(`${isEn ? "Strengths" : "Staerken"}: ${str}`, 10);
+    if (weak) wrapWrite(`${isEn ? "Weaknesses" : "Schwaechen"}: ${weak}`, 10);
+    if (imp) wrapWrite(`${isEn ? "Suggestions" : "Vorschlaege"}: ${imp}`, 10);
+    y -= 6;
+  }
   return doc.save();
 }
 

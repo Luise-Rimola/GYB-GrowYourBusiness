@@ -38,9 +38,18 @@ export async function loadAssistantSteps(params: {
   participantCompletedFb5?: boolean;
   profileCompletePercent: number;
   locale: Locale;
+  includeHandbookStep?: boolean;
   t: {
     common: { viewArtifacts: string };
-    home: { handbookStep: string; companyProfile: string; stepLlm: string; step2: string; step5: string; step6: string };
+    home: {
+      handbookStep: string;
+      companyProfile: string;
+      stepLlm: string;
+      step2: string;
+      step5: string;
+      step6: string;
+      step7Mail: string;
+    };
     study: {
       fb1Title: string;
       studyInfoStep: string;
@@ -59,6 +68,7 @@ export async function loadAssistantSteps(params: {
     participantCompletedFb5,
     profileCompletePercent,
     locale,
+    includeHandbookStep = true,
     t,
   } = params;
   // Use sequential access to avoid DB pool spikes on Supabase session poolers.
@@ -202,7 +212,7 @@ export async function loadAssistantSteps(params: {
   });
 
   return [
-    { href: "/manual", label: t.home.handbookStep, completed: false },
+    ...(includeHandbookStep ? [{ href: "/manual", label: t.home.handbookStep, completed: false }] : []),
     { href: "/study/fb1", label: t.study.fb1Title, completed: participantCompletedFb1 },
     { href: "/profile", label: t.home.companyProfile, completed: profileCompletePercent >= 50 },
     { href: "/settings#llm-api", label: t.home.stepLlm, completed: hasLlmConfigured },
@@ -211,6 +221,7 @@ export async function loadAssistantSteps(params: {
     { href: "/decisions", label: t.home.step5, completed: hasDecisions },
     { href: "/evaluation", label: t.home.step6, completed: hasEvaluation },
     { href: "/study/fb5", label: t.study.fb5Title, completed: fb5Done },
+    { href: "/home?openExport=1", label: t.home.step7Mail, completed: false },
   ];
 }
 

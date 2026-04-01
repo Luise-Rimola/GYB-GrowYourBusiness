@@ -33,6 +33,7 @@ export default async function AssistantPage() {
         step2: t.home.step2,
         step5: t.home.step5,
         step6: t.home.step6,
+        step7Mail: t.home.step7Mail,
       },
       study: {
         fb1Title: t.study.fb1Title,

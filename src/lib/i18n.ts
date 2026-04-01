@@ -21,7 +21,7 @@ export const translations = {
       useCaseEvaluation: "Use Case Evaluation",
       study: "Study",
       settings: "Settings",
-      settingsPage: "Settings",
+      settingsPage: "LLM-API",
       language: "Language",
     },
     auth: {
@@ -102,6 +102,7 @@ export const translations = {
       step4: "View and confirm artifacts",
       step5: "Use the decision board as assistance",
       step6: "Use Case Evaluation: formulate use cases, describe your decision approach, run the scenario, fill out feedback questionnaire",
+      step7Mail: "Send evaluation package now and complete study",
     },
     evaluation: {
       title: "Use Case Evaluation",
@@ -641,7 +642,7 @@ export const translations = {
       evaluateEmpty: "No evaluations saved yet.",
     },
     settings: {
-      title: "Settings",
+      title: "LLM-API",
       description: "Configure profile and LLM API.",
       accountSection: "Account",
       accountSignedInAs: "Signed in as",
@@ -725,7 +726,7 @@ export const translations = {
       openAllKpis: "Open all",
       closeAllKpis: "Close all",
       kpiDetailJsonInfobox:
-        "paste → 3) copy JSON output (with kpi_estimates) →",
+        "Tip: Copy only the JSON result (with `kpi_estimates`) into the input field.",
       kpiDetailKpiMeaning:
         "KPIs (Key Performance Indicators) are a handful of numbers that tell you whether things are on track — for example revenue per customer or how long sales take. They make progress visible and comparable.",
       integratedLoading: "Analyzing…",
@@ -849,7 +850,7 @@ export const translations = {
       useCaseEvaluation: "Use-Case",
       study: "Fragebögen",
       settings: "Einstellungen",
-      settingsPage: "Einstellungen",
+      settingsPage: "LLM-API",
       language: "Sprache",
     },
     auth: {
@@ -930,6 +931,7 @@ export const translations = {
       step4: "Dokumente sehen und bestätigen",
       step5: "Entscheidungsboard als Hilfestellung verwenden",
       step6: "Use-Case-Evaluierung: Use Cases formulieren, Entscheidungsansatz beschreiben, Szenario durchspielen, Feedback-Fragebogen ausfüllen",
+      step7Mail: "Evaluationspaket jetzt absenden und Studie abschließen",
     },
     evaluation: {
       title: "Use-Case-Evaluierung",
@@ -1473,7 +1475,7 @@ export const translations = {
       evaluateEmpty: "Noch keine Evaluation gespeichert.",
     },
     settings: {
-      title: "Einstellungen",
+      title: "LLM-API",
       description: "Profil und LLM-API konfigurieren.",
       accountSection: "Konto",
       accountSignedInAs: "Angemeldet als",
@@ -1557,7 +1559,7 @@ export const translations = {
       openAllKpis: "Alle öffnen",
       closeAllKpis: "Alle schließen",
       kpiDetailJsonInfobox:
-        "fügen → 3) JSON-Ausgabe kopieren (mit kpi_estimates) →",
+        "Hinweis: Kopieren Sie nur die JSON-Ausgabe (mit `kpi_estimates`) in das Eingabefeld.",
       kpiDetailKpiMeaning:
         "KPIs (Key Performance Indicators) sind Kennzahlen, die zeigen, ob Ihr Geschäft auf Kurs ist — z. B. Umsatz pro Kunde oder Dauer des Verkaufs. Sie machen Fortschritt sichtbar und vergleichbar.",
       integratedLoading: "Analyse läuft…",

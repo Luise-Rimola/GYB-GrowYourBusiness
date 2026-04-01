@@ -9,7 +9,6 @@ import { ScenarioEvaluationFlow } from "@/components/ScenarioEvaluationFlow";
 import { EvaluationOverviewTable } from "@/components/EvaluationOverviewTable";
 import { getScenarioById } from "@/lib/scenarios";
 import { getSessionFromCookies } from "@/lib/session";
-import { EvaluationMailExportButton } from "@/components/EvaluationMailExportButton";
 
 async function saveUseCase(formData: FormData) {
   "use server";
@@ -292,11 +291,6 @@ export default async function EvaluationPage({
           >
             {ui.exportExcel}
           </a>
-          <EvaluationMailExportButton
-            locale={isEn ? "en" : "de"}
-            scenarioCount={scenarioEvals.length}
-            useCaseCount={useCaseEvals.length}
-          />
         </div>
       </header>
 
