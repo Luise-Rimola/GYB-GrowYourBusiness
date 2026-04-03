@@ -4,24 +4,62 @@ import { KPI_INPUT_FIELDS, buildKpiLibraryRows } from "./data/kpiLibrary";
 import { STRATEGY_INDICATORS, INDICATOR_MAPPING_RULES } from "./data/strategyIndicators";
 
 /**
- * Seed nutzt optional DIRECT_URL (direkte Postgres-Verbindung, z. B. Supabase Port 5432),
- * damit der Supabase Session-Pooler nicht mit "MaxClientsInSessionMode" blockiert.
- * In .env: DIRECT_URL=postgresql://...db.xxx.supabase.co:5432/... (aus Dashboard → Connection string → Direct)
+ * `DATABASE_URL` bleibt die Quelle; für Supabase Session-Pooler (Port 5432) würde der Seed oft
+ * `MaxClientsInSessionMode` triggern. Derselbe Pooler-Host auf Port 6543 (Transaction mode) + `pgbouncer=true`
+ * ist dafür gedacht und teilt sich nicht die Session-Slots.
  */
+function seedDatabaseUrl(): string {
+  const pool = process.env.DATABASE_URL?.trim();
+  if (!pool) throw new Error("DATABASE_URL fehlt");
+
+  try {
+    const u = new URL(pool);
+    const isSupabasePooler = u.hostname.endsWith(".pooler.supabase.com");
+    const port = u.port || "5432";
+    if (isSupabasePooler && port === "5432") {
+      u.port = "6543";
+      if (!u.searchParams.has("pgbouncer")) u.searchParams.set("pgbouncer", "true");
+      if (!u.searchParams.has("connection_limit")) u.searchParams.set("connection_limit", "1");
+      console.warn(
+        "[seed] Supabase Session-Pool (5432) → Transaction-Pool (6543) für diesen Lauf, damit der Seed nicht an MaxClientsInSessionMode scheitert."
+      );
+      return u.toString();
+    }
+    if (isSupabasePooler && port === "6543" && !u.searchParams.has("pgbouncer")) {
+      u.searchParams.set("pgbouncer", "true");
+      if (!u.searchParams.has("connection_limit")) u.searchParams.set("connection_limit", "1");
+      return u.toString();
+    }
+  } catch {
+    // URL-Parsing optional; unten Fallback
+  }
+
+  const sep = pool.includes("?") ? "&" : "?";
+  if (pool.includes("connection_limit=")) return pool;
+  return `${pool}${sep}connection_limit=1`;
+}
+
 const prisma = new PrismaClient({
   datasources: {
     db: {
-      url: process.env.DIRECT_URL?.trim() || process.env.DATABASE_URL,
+      url: seedDatabaseUrl(),
     },
   },
 });
 
 async function main() {
   // Legacy-Nutzer (ohne Verifizierungs-Flow): als bestätigt markieren — neue Registrierungen haben immer einen Code-Hash
-  await prisma.user.updateMany({
-    where: { emailVerified: false, emailVerificationCodeHash: null },
-    data: { emailVerified: true },
-  });
+  try {
+    await prisma.user.updateMany({
+      where: { emailVerified: false, emailVerificationCodeHash: null },
+      data: { emailVerified: true },
+    });
+  } catch (e) {
+    console.warn(
+      "[seed] Legacy-User-Update übersprungen (DB/Pool).",
+      e instanceof Error ? e.message : e
+    );
+  }
 
   for (const f of KPI_INPUT_FIELDS) {
     await prisma.kpiInputField.upsert({
