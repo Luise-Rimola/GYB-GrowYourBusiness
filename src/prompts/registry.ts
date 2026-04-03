@@ -754,6 +754,35 @@ Output schema:
 { "scalability_assessment": "...", "automation_priorities": [ { "area": "...", "potential": "...", "priority": "..." } ], "marketing_scaling_plan": ["..."], "sales_system_recommendations": ["..."], "key_metrics": [ { "metric": "...", "target": "...", "current": "..." } ], "recommendations": ["..."], "sources_used": ["Title (URL)", "..."] }`,
   },
   {
+    key: "P21a",
+    workflowKey: "WF_GROWTH_MARGIN_OPTIMIZATION",
+    stepKey: "growth_margin_optimization",
+    version: 1,
+    outputSchemaKey: "growth_margin_optimization",
+    templateText: `You are a growth-phase commercial optimizer: margins, offer packaging, marketing levers, and cost structure. Adapt to company_profile.industry – unit economics and cost drivers differ (Gastronomie: food cost, Lieferando; SaaS: CAC/LTV; Handwerk: Material + Stunden; Retail: COGS + Platz).
+${ARTIFACT_INSTRUCTION}
+PRIORITY: Use CONTEXT_JSON when present – company_profile, kpi_snapshot, baseline, market_research, business_plan, go_to_market, marketing_strategy, menu_cost, menu_preiskalkulation, supplier_list, financial_planning, personnel_plan, real_estate, related_analysis_outputs. Quote or infer numbers only from context; if a number is unknown, say "nicht in Kontext" and still give logic.
+
+DELIVERABLES (all required JSON keys):
+(1) situation_analysis: Short Lagebild – Umsatz/Kosten/Marge nur soweit aus Kontext ableitbar.
+(2) margin_per_unit: For each main product/service line (or one aggregate if context is thin): offering, revenue_side, variable_and_direct_costs, contribution_per_unit (Deckungsbeitrag I pro Stück/Vertrag – klar trennen von Fixkosten), optional what_remains_after_fixed_allocation_note, improvable_how (Preis, Mix, Einkauf, Prozess).
+(3) packaging_positioning: "Packaging" = wie Angebot/Dienstleistung gebündelt, benannt, garantiert, gestaffelt wird. Per element: scenario_without_offering, pain_or_cost_without (Nachteile/Kosten ohne euer Angebot), with_offering_benefit, ideas_to_increase_sales_or_price (Bundles, Garantien, Social Proof, Upsell).
+(4) marketing_promises_and_roi: Concrete levers – e.g. 90-day outcome framing, risk reversal, ROI story, urgency without lying. Each: lever, concrete_angle, optional example_promise, measurement_90_days (what to measure in 90 days).
+(5) cost_optimization: Categories (Personal, Einkauf/Verpackung, Energie, Miete, Software, Logistik, etc.): too_high_assessment, reduction_or_alternatives (Lieferantenvergleich, Tarifwechsel Strom/Gas, Verpackungswechsel, Personalproduktivität).
+(6) people_and_overhead: If FTE or revenue hints exist – revenue_per_employee_current, benchmark_or_target (industry-typical order of magnitude if no data), interpretation, levers. If no data – state gaps and use levers as hypotheses.
+(7) supply_packaging_energy: Optional rows – packaging suppliers, utilities comparison, insurance/telco, etc.
+(8) industry_checklist_if_sparse_data: If context is rich, keep short (3–5 items) or focus on residual gaps. If context is thin or missing cost/margin data, MANDATORY: at least 8 entries with area, what_to_check, example_actions (konkrete Selbstprüfung / Umsetzung) typical for this industry (examples: Ziel-Deckungsbeitrag je Kategorie; Lieferanten-Anfrage parallel; Strom/Vergleichsportale; Personalstunden pro Umsatz€; Mindestbestellmengen; Retourenquote; Zahlungsziele).
+
+OUTPUT LANGUAGE: All narrative string values in clear German business language. JSON keys exactly as schema (English snake_case).
+Return ONLY valid JSON, no prose.
+${JSON_STRICT}
+${SOURCE_REFERENCE_INSTRUCTION}
+CONTEXT_JSON:
+{{CONTEXT_JSON}}
+Output schema:
+{ "situation_analysis": "...", "margin_per_unit": [ { "offering": "...", "revenue_side": "...", "variable_and_direct_costs": "...", "contribution_per_unit": "...", "what_remains_after_fixed_allocation_note": "...", "improvable_how": "..." } ], "packaging_positioning": [ { "element": "...", "scenario_without_offering": "...", "pain_or_cost_without": "...", "with_offering_benefit": "...", "ideas_to_increase_sales_or_price": ["..."] } ], "marketing_promises_and_roi": [ { "lever": "...", "concrete_angle": "...", "example_promise": "...", "measurement_90_days": "..." } ], "cost_optimization": [ { "category": "...", "too_high_assessment": "...", "reduction_or_alternatives": ["..."] } ], "people_and_overhead": { "revenue_per_employee_current": "...", "benchmark_or_target": "...", "interpretation": "...", "levers": ["..."] }, "supply_packaging_energy": [ { "topic": "...", "comparison_or_switch_idea": "..." } ], "industry_checklist_if_sparse_data": [ { "area": "...", "what_to_check": "...", "example_actions": ["..."] } ], "recommendations": ["..."], "sources_used": ["Title (https://...)", "..."] }`,
+  },
+  {
     key: "P21b",
     workflowKey: "WF_MARKETING_STRATEGY",
     stepKey: "marketing_strategy",
@@ -930,10 +959,17 @@ Output: { "profitability_plan": { "summary": "...", "margin_targets": ["..."] },
     version: 1,
     outputSchemaKey: "financial_capital",
     templateText: `Capital requirements (Kapitalbedarf) for year 1. CONTEXT_JSON: stage, real_estate_price_ranges, monthly_personnel_costs, monthly_projection. Miete = Durchschnitt aus real_estate_price_ranges (nur €, nicht €/m²) ODER typischen Mietpreis für location+industry.
+
+MANDATORY – Investitionskosten Inventar & Equipment: Wenn CONTEXT_JSON "inventory_equipment_investment_inputs" enthält (aus dem Artefakt Inventar & Equipment / Markteintritt), MUSST du diese Daten in den Kapitalbedarf einbeziehen:
+- Markteintritt: summiere/verdichte estimated_price_eur_band aus market_entry_must_have und nice_to_have zu einem konsistenten Markteintritts-Investitionsband (EUR).
+- Skalierung/Effizienz: efficiency_upgrades → separates Band oder Reserve für spätere Anschaffungen (nach Launch), damit der Gesamt-Kapitalbedarf realistisch bleibt.
+- breakdown: mind. eine Zeile pro großen Block (z. B. Miete/Standort, Personalstart, Inventar Markteintritt, Inventar Skalierung, Marketing, Liquiditätsreserve) — Inventar explizit benennen, nicht nur in "Sonstiges".
+- capital_requirements.inventory_equipment_investment: setze market_entry_eur_band, scaling_reserve_eur_band, detail_lines (kurze Stichpunkte mit EUR-Bändern), included_in_total: true wenn diese Beträge in total_required eingerechnet sind.
+Wenn inventory_equipment_investment_inputs fehlt oder leer ist, Inventar trotzdem kurz schätzen falls aus Branche/Angebot ersichtlich; sonst funding_gaps erwähnen.
 ${JSON_STRICT}
 CONTEXT_JSON:
 {{CONTEXT_JSON}}
-Output: { "capital_requirements": { "total_required": "...", "breakdown": ["..."], "funding_gaps": ["..."] }, "sources_used": ["..."] }`,
+Output: { "capital_requirements": { "total_required": "...", "breakdown": ["..."], "funding_gaps": ["..."], "inventory_equipment_investment": { "included_in_total": true, "market_entry_eur_band": "...", "scaling_reserve_eur_band": "...", "detail_lines": ["..."] } }, "sources_used": ["..."] }`,
   },
   {
     key: "P26e",
@@ -1179,6 +1215,71 @@ CONTEXT_JSON:
 {{CONTEXT_JSON}}
 Output schema:
 { "tables": [ { "name": "...", "columns": [ { "name": "...", "type": "...", "constraints": "..." } ], "description": "..." } ], "relationships": ["..."], "recommendations": ["..."] }`,
+  },
+  {
+    key: "P_INV1",
+    workflowKey: "WF_INVENTORY_LAUNCH",
+    stepKey: "inventory_baseline",
+    version: 1,
+    outputSchemaKey: "inventory_baseline",
+    templateText: `You are an operations consultant for startups. Build a structured inventory list: equipment (machines, tools, IT hardware) AND materials/consumables (raw materials, packaging, supplies).
+${ARTIFACT_INSTRUCTION}
+Use company_profile (especially legal_structure, industry, offer, stage) from CONTEXT_JSON. Set legal_form to the company's legal form (e.g. GmbH, UG, Einzelunternehmen, GbR) — infer from company_profile if stated, else best-effort from context.
+List equipment and materials as separate arrays. Be specific to the industry (e.g. fashion: fabrics, sewing; food: ingredients, labels; services: minimal physical stock).
+Return ONLY valid JSON, no prose.
+${JSON_STRICT}
+CONTEXT_JSON:
+{{CONTEXT_JSON}}
+Output schema:
+{ "legal_form": "...", "inventory_context": "short narrative tying list to Unternehmensform and business", "equipment": [ { "name": "...", "category": "...", "quantity_or_unit": "...", "condition": "...", "notes": "..." } ], "materials": [ { "name": "...", "category": "...", "quantity_or_unit": "...", "notes": "..." } ], "sources_used": ["..."] }`,
+  },
+  {
+    key: "P_INV2",
+    workflowKey: "WF_INVENTORY_LAUNCH",
+    stepKey: "inventory_process_analysis",
+    version: 1,
+    outputSchemaKey: "inventory_process_analysis",
+    templateText: `You map business processes to the inventory from step 1. For each major process step (e.g. order intake, production, packaging, shipping), list which equipment and materials are used and where bottlenecks or gaps appear relative to the stated legal_form and liability/scale needs.
+${ARTIFACT_INSTRUCTION}
+CONTEXT_JSON includes inventory_baseline from the prior step when present.
+Return ONLY valid JSON, no prose.
+${JSON_STRICT}
+CONTEXT_JSON:
+{{CONTEXT_JSON}}
+Output schema:
+{ "process_inventory_links": [ { "process_step": "...", "equipment_used": ["..."], "materials_used": ["..."], "bottleneck_or_gap": "..." } ], "alignment_with_legal_form": "...", "recommendations": ["..."], "sources_used": ["..."] }`,
+  },
+  {
+    key: "P_INV3",
+    workflowKey: "WF_INVENTORY_LAUNCH",
+    stepKey: "market_entry_equipment",
+    version: 1,
+    outputSchemaKey: "market_entry_equipment",
+    templateText: `You identify MISSING equipment and materials needed for the FIRST SALES / market entry phase (minimal viable operations). For each gap: suggest indicative EU price band, and at least one REAL https link to a product page, shop, or manufacturer (use web knowledge; if uncertain, put a concrete search query in retailer_or_search_hint and a plausible example URL pattern). Distinguish must-have vs nice-to-have.
+${ARTIFACT_INSTRUCTION}
+Use inventory_baseline, inventory_process_analysis, company_profile, work_processes from CONTEXT_JSON.
+Return ONLY valid JSON, no prose.
+${JSON_STRICT}
+CONTEXT_JSON:
+{{CONTEXT_JSON}}
+Output schema:
+{ "market_entry_must_have": [ { "item": "...", "purpose": "...", "priority": "must|should|nice", "estimated_price_eur_band": "e.g. 80-150", "example_product_url": "https://...", "retailer_or_search_hint": "...", "notes": "..." } ], "nice_to_have": [ { "item": "...", "purpose": "...", "estimated_price_eur_band": "...", "example_product_url": "https://...", "retailer_or_search_hint": "...", "notes": "..." } ], "total_budget_eur_band_hint": "...", "recommendations": ["..."], "sources_used": ["..."] }`,
+  },
+  {
+    key: "P_INV4",
+    workflowKey: "WF_INVENTORY_LAUNCH",
+    stepKey: "equipment_scaling_roadmap",
+    version: 1,
+    outputSchemaKey: "equipment_scaling_roadmap",
+    templateText: `You define the NEXT phase after first sales: efficiency upgrades and scaling — e.g. sewing machine instead of hand-sewing, heat press instead of household iron, small batch equipment vs manual work. For each upgrade: current manual/low method, proposed equipment, benefit, investment band, example https link, and when to buy after launch (e.g. after X units/month).
+${ARTIFACT_INSTRUCTION}
+Use inventory_baseline, inventory_process_analysis, market_entry_equipment from CONTEXT_JSON.
+Return ONLY valid JSON, no prose.
+${JSON_STRICT}
+CONTEXT_JSON:
+{{CONTEXT_JSON}}
+Output schema:
+{ "phase_market_entry_recap": "...", "efficiency_upgrades": [ { "current_method": "...", "upgrade_equipment": "...", "benefit": "...", "estimated_investment_eur_band": "...", "example_product_url": "https://...", "typical_when_after_launch": "..." } ], "scaling_phase_notes": "...", "recommendations": ["..."], "sources_used": ["..."] }`,
   },
   {
     key: "P7",

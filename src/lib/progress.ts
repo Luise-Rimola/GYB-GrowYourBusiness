@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { WIZARD_WORKFLOW_ORDER } from "@/lib/planningFramework";
+import { unlockAllWorkflowsFromEnv } from "@/lib/workflowUnlock";
 
 const WORKFLOW_STEPS: Record<string, { stepKey: string; label: string }[]> = {
   WF_BUSINESS_FORM: [{ stepKey: "business_form", label: "Unternehmensprofil" }],
@@ -55,6 +56,7 @@ const WORKFLOW_STEPS: Record<string, { stepKey: string; label: string }[]> = {
   WF_NEXT_BEST_ACTIONS: [{ stepKey: "decision_engine", label: "Entscheidungslogik" }],
   WF_MARKETING_STRATEGY: [{ stepKey: "marketing_strategy", label: "Marketing Strategie" }],
   WF_SCALING_STRATEGY: [{ stepKey: "scaling_strategy", label: "Skalierungsstrategie" }],
+  WF_GROWTH_MARGIN_OPTIMIZATION: [{ stepKey: "growth_margin_optimization", label: "Marge, Angebot & Kostenoptimierung" }],
   WF_PROCESS_OPTIMIZATION: [{ stepKey: "process_optimization", label: "Prozessoptimierung" }],
   WF_PORTFOLIO_MANAGEMENT: [{ stepKey: "portfolio_management", label: "Portfolio & Marke" }],
   WF_STRATEGIC_OPTIONS: [{ stepKey: "strategic_options", label: "Strategische Optionen" }],
@@ -160,7 +162,7 @@ export async function getProgressState(companyId: string): Promise<ProgressState
       "WF_STRATEGIC_PLANNING", "WF_TREND_ANALYSIS",
     ].includes(workflowKey);
     const noPrereqs = ["WF_BUSINESS_FORM", "WF_DATA_COLLECTION_PLAN", "WF_STARTUP_CONSULTING"];
-    const isLocked =
+    let isLocked =
       (workflowKey === "WF_BASELINE" && !intakeComplete) ||
       (!noPrereqs.includes(workflowKey) && workflowKey !== "WF_BASELINE" && !hasBaseline) ||
       (needsBaselineAndMarket && !hasMarketSnapshot) ||
@@ -169,6 +171,7 @@ export async function getProgressState(companyId: string): Promise<ProgressState
       (workflowKey === "WF_BUSINESS_PLAN" && !hasBusinessPlanPrereqs) ||
       (workflowKey === "WF_MENU_COST" && (!hasMenuCard || !hasSupplierList)) ||
       (workflowKey === "WF_MENU_PRICING" && (!hasBaseline || !hasMarketSnapshot));
+    if (unlockAllWorkflowsFromEnv()) isLocked = false;
 
     for (let i = 0; i < wfSteps.length; i++) {
       const { stepKey, label } = wfSteps[i];

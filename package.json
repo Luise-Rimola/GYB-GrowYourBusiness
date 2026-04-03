@@ -10,7 +10,8 @@
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:seed": "prisma db seed",
-    "db:vector:setup": "prisma db execute --schema prisma/schema.prisma --file prisma/sql/enable-pgvector.sql"
+    "db:vector:setup": "prisma db execute --schema prisma/schema.prisma --file prisma/sql/enable-pgvector.sql",
+    "db:inventory-enum": "prisma db execute --schema prisma/schema.prisma --file prisma/sql/add-inventory-equipment-plan-artifact-type.sql"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

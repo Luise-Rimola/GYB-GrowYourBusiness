@@ -1,12 +1,15 @@
 import { ReactNode } from "react";
+import { CollapsibleDetails } from "./CollapsibleDetails";
 
 type SectionProps = {
   title: string;
   description?: ReactNode;
   /** Actions/badges right-aligned next to title (extensible: add more via flex-wrap) */
   actions?: ReactNode;
-  /** When true, description is in a collapsible <details>, always starts closed */
+  /** When true, description is in a collapsible <details> */
   descriptionCollapsible?: boolean;
+  /** When collapsible, start expanded (client-side toggle still works) */
+  descriptionDefaultOpen?: boolean;
   /** Label for collapsible description toggle (when descriptionCollapsible) */
   descriptionToggleLabel?: string;
   /** Less padding and spacing for a more compact header */
@@ -14,7 +17,16 @@ type SectionProps = {
   children: ReactNode;
 };
 
-export function Section({ title, description, actions, descriptionCollapsible, descriptionToggleLabel = "Details anzeigen", compact, children }: SectionProps) {
+export function Section({
+  title,
+  description,
+  actions,
+  descriptionCollapsible,
+  descriptionDefaultOpen,
+  descriptionToggleLabel = "Details anzeigen",
+  compact,
+  children,
+}: SectionProps) {
   const hasHeader = title || description || actions;
   return (
     <section className={`rounded-2xl border border-[var(--card-border)] bg-[var(--card)] shadow-lg shadow-zinc-200/50 dark:shadow-zinc-950/50 ${compact ? "px-6 py-4" : "p-6"}`}>
@@ -28,15 +40,15 @@ export function Section({ title, description, actions, descriptionCollapsible, d
         </div>
         {description ? (
           descriptionCollapsible ? (
-            <details className={`group ${compact ? "mt-0.5" : ""}`}>
-              <summary className={`cursor-pointer list-none text-[var(--muted)] transition hover:text-[var(--foreground)] [&::-webkit-details-marker]:hidden ${compact ? "py-0.5 text-xs" : "text-sm"}`}>
-                <span className="inline-flex items-center gap-1">
-                  <span className="transition group-open:rotate-90">▸</span>
-                  {descriptionToggleLabel}
-                </span>
-              </summary>
-              <div className="mt-2 text-sm text-[var(--muted)]">{description}</div>
-            </details>
+            <CollapsibleDetails
+              defaultOpen={descriptionDefaultOpen ?? false}
+              className={compact ? "mt-0.5" : ""}
+              label={descriptionToggleLabel}
+              summaryClassName={`cursor-pointer list-none text-[var(--muted)] transition hover:text-[var(--foreground)] [&::-webkit-details-marker]:hidden ${compact ? "py-0.5 text-xs" : "text-sm"}`}
+              contentClassName="mt-2 text-sm text-[var(--muted)]"
+            >
+              {description}
+            </CollapsibleDetails>
           ) : (
             <div className="text-sm text-[var(--muted)]">{description}</div>
           )

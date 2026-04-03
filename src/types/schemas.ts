@@ -621,6 +621,62 @@ export const scalingStrategySchema = z
   })
   .strict();
 
+/** Wachstum: Marge, Angebots-/Packaging-Logik, Marketing-Hebel, Kosten & Personal – mit Branchen-Fallback bei dünnem Kontext */
+export const growthMarginOptimizationSchema = z
+  .object({
+    situation_analysis: z.string(),
+    margin_per_unit: z.array(z.object({
+      offering: z.string(),
+      revenue_side: z.string(),
+      variable_and_direct_costs: z.string(),
+      contribution_per_unit: z.string(),
+      what_remains_after_fixed_allocation_note: z.string().optional(),
+      improvable_how: z.string(),
+    })).min(1),
+    packaging_positioning: z.array(z.object({
+      element: z.string(),
+      scenario_without_offering: z.string(),
+      pain_or_cost_without: z.string(),
+      with_offering_benefit: z.string(),
+      ideas_to_increase_sales_or_price: z.array(z.string()),
+    })).min(1),
+    marketing_promises_and_roi: z.array(z.object({
+      lever: z.string(),
+      concrete_angle: z.string(),
+      example_promise: z.string().optional(),
+      measurement_90_days: z.string().optional(),
+    })).min(1),
+    cost_optimization: z.array(z.object({
+      category: z.string(),
+      too_high_assessment: z.string(),
+      reduction_or_alternatives: z.array(z.string()),
+    })).min(1),
+    people_and_overhead: z
+      .object({
+        revenue_per_employee_current: z.string().optional(),
+        benchmark_or_target: z.string().optional(),
+        interpretation: z.string().optional(),
+        levers: z.array(z.string()).optional(),
+      })
+      .optional(),
+    supply_packaging_energy: z
+      .array(
+        z.object({
+          topic: z.string(),
+          comparison_or_switch_idea: z.string(),
+        }),
+      )
+      .optional(),
+    industry_checklist_if_sparse_data: z.array(z.object({
+      area: z.string(),
+      what_to_check: z.string(),
+      example_actions: z.array(z.string()),
+    })).min(1),
+    recommendations: z.array(z.string()).min(1),
+    sources_used: z.array(z.string()).optional(),
+  })
+  .strict();
+
 export const portfolioManagementSchema = z
   .object({
     portfolio_analysis: z.array(z.object({
@@ -875,6 +931,15 @@ export const financialCapitalSchema = z.object({
     total_required: z.string().optional(),
     breakdown: z.array(z.string()).optional(),
     funding_gaps: z.array(z.string()).optional(),
+    /** Aus Inventar & Equipment (Markteintritt): Investitionskosten explizit im Kapitalbedarf */
+    inventory_equipment_investment: z
+      .object({
+        included_in_total: z.boolean().optional(),
+        market_entry_eur_band: z.string().optional(),
+        scaling_reserve_eur_band: z.string().optional(),
+        detail_lines: z.array(z.string()).optional(),
+      })
+      .optional(),
   }),
   sources_used: z.array(z.string()).optional(),
 }).strict();
@@ -1060,6 +1125,79 @@ export const physicalAutomationSchema = z.object({
   sources_used: z.array(z.string()).optional(),
 }).strict();
 
+/** Schritt 1: Bestandsliste Geräte & Material + Bezug zur Unternehmensform */
+export const inventoryBaselineSchema = z.object({
+  legal_form: z.string(),
+  inventory_context: z.string(),
+  equipment: z.array(z.object({
+    name: z.string(),
+    category: z.string(),
+    quantity_or_unit: z.string().optional(),
+    condition: z.string().optional(),
+    notes: z.string().optional(),
+  })),
+  materials: z.array(z.object({
+    name: z.string(),
+    category: z.string(),
+    quantity_or_unit: z.string().optional(),
+    notes: z.string().optional(),
+  })),
+  sources_used: z.array(z.string()).optional(),
+}).strict();
+
+/** Schritt 2: Prozesse vs. Inventar */
+export const inventoryProcessAnalysisSchema = z.object({
+  process_inventory_links: z.array(z.object({
+    process_step: z.string(),
+    equipment_used: z.array(z.string()),
+    materials_used: z.array(z.string()),
+    bottleneck_or_gap: z.string().optional(),
+  })),
+  alignment_with_legal_form: z.string(),
+  recommendations: z.array(z.string()),
+  sources_used: z.array(z.string()).optional(),
+}).strict();
+
+/** Schritt 3: Markteintritt – fehlendes Inventar mit Preisband & konkreten Web-Links */
+export const marketEntryEquipmentSchema = z.object({
+  market_entry_must_have: z.array(z.object({
+    item: z.string(),
+    purpose: z.string(),
+    priority: z.string(),
+    estimated_price_eur_band: z.string(),
+    example_product_url: z.string(),
+    retailer_or_search_hint: z.string(),
+    notes: z.string().optional(),
+  })),
+  nice_to_have: z.array(z.object({
+    item: z.string(),
+    purpose: z.string(),
+    estimated_price_eur_band: z.string(),
+    example_product_url: z.string(),
+    retailer_or_search_hint: z.string(),
+    notes: z.string().optional(),
+  })),
+  total_budget_eur_band_hint: z.string().optional(),
+  recommendations: z.array(z.string()),
+  sources_used: z.array(z.string()).optional(),
+}).strict();
+
+/** Schritt 4: Skalierung / Effizienz – Upgrades (z. B. Nähmaschine statt Handarbeit) */
+export const equipmentScalingRoadmapSchema = z.object({
+  phase_market_entry_recap: z.string(),
+  efficiency_upgrades: z.array(z.object({
+    current_method: z.string(),
+    upgrade_equipment: z.string(),
+    benefit: z.string(),
+    estimated_investment_eur_band: z.string(),
+    example_product_url: z.string(),
+    typical_when_after_launch: z.string(),
+  })),
+  scaling_phase_notes: z.string(),
+  recommendations: z.array(z.string()),
+  sources_used: z.array(z.string()).optional(),
+}).strict();
+
 export const appProjectPlanSchema = z.object({
   project_overview: z.string(),
   phases: z.array(z.object({
@@ -1156,6 +1294,7 @@ export const schemaRegistry = {
   value_proposition: valuePropositionSchema,
   go_to_market: goToMarketSchema,
   scaling_strategy: scalingStrategySchema,
+  growth_margin_optimization: growthMarginOptimizationSchema,
   marketing_strategy: marketingStrategySchema,
   portfolio_management: portfolioManagementSchema,
   scenario_analysis: scenarioAnalysisSchema,
@@ -1176,6 +1315,10 @@ export const schemaRegistry = {
   tech_digitalization: techDigitalizationSchema,
   automation_roi: automationRoiSchema,
   physical_automation: physicalAutomationSchema,
+  inventory_baseline: inventoryBaselineSchema,
+  inventory_process_analysis: inventoryProcessAnalysisSchema,
+  market_entry_equipment: marketEntryEquipmentSchema,
+  equipment_scaling_roadmap: equipmentScalingRoadmapSchema,
   app_project_plan: appProjectPlanSchema,
   app_requirements: appRequirementsSchema,
   app_tech_spec: appTechSpecSchema,

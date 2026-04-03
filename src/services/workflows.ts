@@ -10,6 +10,19 @@ function toPrismaJson(obj: unknown): object {
   return JSON.parse(JSON.stringify(obj ?? {}));
 }
 
+function latestParsedOutputForStepKey(
+  steps: Array<{ stepKey: string; createdAt: Date; parsedOutputJson: unknown }>,
+  stepKey: string
+): unknown {
+  const list = steps.filter((s) => s.stepKey === stepKey);
+  if (list.length === 0) return null;
+  let best = list[0];
+  for (const s of list) {
+    if (new Date(s.createdAt) > new Date(best.createdAt)) best = s;
+  }
+  return best.parsedOutputJson ?? null;
+}
+
 /** Create artifact – fallback to raw SQL if Prisma client enum is outdated (e.g. after schema change without regenerate) */
 async function createArtifactWithEnumFallback(params: {
   companyId: string;
@@ -206,6 +219,7 @@ import {
   valuePropositionSchema,
   goToMarketSchema,
   scalingStrategySchema,
+  growthMarginOptimizationSchema,
   marketingStrategySchema,
   portfolioManagementSchema,
   scenarioAnalysisSchema,
@@ -774,6 +788,22 @@ export const WorkflowService = {
             });
             await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
           }
+        } else if (params.stepKey === "growth_margin_optimization") {
+          const parsed = growthMarginOptimizationSchema.safeParse(validation.data);
+          if (parsed.success) {
+            await prisma.artifact.create({
+              data: {
+                companyId: run.companyId,
+                runId: run.id,
+                type: "growth_margin_optimization",
+                title: "Marge, Angebot & Kostenoptimierung",
+                version: 1,
+                contentJson: parsed.data as object,
+                exportHtml: this.renderGrowthMarginOptimizationHtml(parsed.data),
+              },
+            });
+            await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
+          }
         } else if (params.stepKey === "portfolio_management") {
           const parsed = portfolioManagementSchema.safeParse(validation.data);
           if (parsed.success) {
@@ -971,6 +1001,25 @@ export const WorkflowService = {
               contentJson: parsed.data as object,
               exportHtml: null,
             });
+          }
+        } else if (params.stepKey === "equipment_scaling_roadmap") {
+          const { equipmentScalingRoadmapSchema } = await import("@/types/schemas");
+          const parsed = equipmentScalingRoadmapSchema.safeParse(validation.data);
+          if (parsed.success && run.steps) {
+            await createArtifactWithEnumFallback({
+              companyId: run.companyId,
+              runId: run.id,
+              type: "inventory_equipment_plan",
+              title: "Inventar & Equipment (Markteintritt & Skalierung)",
+              contentJson: {
+                inventory_baseline: latestParsedOutputForStepKey(run.steps, "inventory_baseline"),
+                inventory_process_analysis: latestParsedOutputForStepKey(run.steps, "inventory_process_analysis"),
+                market_entry_equipment: latestParsedOutputForStepKey(run.steps, "market_entry_equipment"),
+                equipment_scaling_roadmap: parsed.data,
+              } as object,
+              exportHtml: null,
+            });
+            await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
           }
         } else if (params.stepKey === "app_ideas") {
           const { appProjectPlanSchema } = await import("@/types/schemas");
@@ -1606,6 +1655,22 @@ export const WorkflowService = {
           });
           await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
         }
+      } else if (step.stepKey === "growth_margin_optimization") {
+        const parsed = growthMarginOptimizationSchema.safeParse(validation.data);
+        if (parsed.success) {
+          await prisma.artifact.create({
+            data: {
+              companyId: run.companyId,
+              runId: run.id,
+              type: "growth_margin_optimization",
+              title: "Marge, Angebot & Kostenoptimierung",
+              version: 1,
+              contentJson: parsed.data as object,
+              exportHtml: this.renderGrowthMarginOptimizationHtml(parsed.data),
+            },
+          });
+          await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
+        }
       } else if (step.stepKey === "portfolio_management") {
         const parsed = portfolioManagementSchema.safeParse(validation.data);
         if (parsed.success) {
@@ -1865,6 +1930,27 @@ export const WorkflowService = {
             type: "physical_automation",
             title: "Physische Prozess-Automatisierung",
             contentJson: parsed.data as object,
+            exportHtml: null,
+          });
+          await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
+        }
+      } else if (step.stepKey === "equipment_scaling_roadmap") {
+        const { equipmentScalingRoadmapSchema } = await import("@/types/schemas");
+        const parsed = equipmentScalingRoadmapSchema.safeParse(validation.data);
+        if (parsed.success) {
+          const runWithSteps = await prisma.run.findUnique({ where: { id: run.id }, include: { steps: true } });
+          const st = runWithSteps?.steps ?? [];
+          await createArtifactWithEnumFallback({
+            companyId: run.companyId,
+            runId: run.id,
+            type: "inventory_equipment_plan",
+            title: "Inventar & Equipment (Markteintritt & Skalierung)",
+            contentJson: {
+              inventory_baseline: latestParsedOutputForStepKey(st, "inventory_baseline"),
+              inventory_process_analysis: latestParsedOutputForStepKey(st, "inventory_process_analysis"),
+              market_entry_equipment: latestParsedOutputForStepKey(st, "market_entry_equipment"),
+              equipment_scaling_roadmap: parsed.data,
+            } as object,
             exportHtml: null,
           });
           await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
@@ -2442,6 +2528,39 @@ export const WorkflowService = {
     `;
   },
 
+  renderGrowthMarginOptimizationHtml(data: {
+    situation_analysis?: string;
+    margin_per_unit?: Array<{
+      offering?: string;
+      contribution_per_unit?: string;
+      improvable_how?: string;
+    }>;
+    packaging_positioning?: Array<{ element?: string; with_offering_benefit?: string }>;
+    marketing_promises_and_roi?: Array<{ lever?: string; concrete_angle?: string }>;
+    cost_optimization?: Array<{ category?: string; too_high_assessment?: string }>;
+    people_and_overhead?: { interpretation?: string; levers?: string[] };
+    industry_checklist_if_sparse_data?: Array<{ area?: string; what_to_check?: string }>;
+    recommendations?: string[];
+  }) {
+    const margins = data.margin_per_unit ?? [];
+    const pack = data.packaging_positioning ?? [];
+    const mkt = data.marketing_promises_and_roi ?? [];
+    const costs = data.cost_optimization ?? [];
+    const checklist = data.industry_checklist_if_sparse_data ?? [];
+    const recs = data.recommendations ?? [];
+    const ppl = data.people_and_overhead;
+    return `
+      <h3>Situation</h3><p>${data.situation_analysis ?? "—"}</p>
+      ${margins.length ? `<h3>Marge & Deckungsbeitrag</h3><ul>${margins.map((m) => `<li><strong>${m.offering ?? "—"}</strong>: ${m.contribution_per_unit ?? ""} — ${m.improvable_how ?? ""}</li>`).join("")}</ul>` : ""}
+      ${pack.length ? `<h3>Angebot & Positionierung</h3><ul>${pack.map((p) => `<li><strong>${p.element ?? "—"}</strong>: ${p.with_offering_benefit ?? ""}</li>`).join("")}</ul>` : ""}
+      ${mkt.length ? `<h3>Marketing & ROI-Hebel</h3><ul>${mkt.map((x) => `<li><strong>${x.lever ?? "—"}</strong>: ${x.concrete_angle ?? ""}</li>`).join("")}</ul>` : ""}
+      ${costs.length ? `<h3>Kostenoptimierung</h3><ul>${costs.map((c) => `<li><strong>${c.category ?? "—"}</strong>: ${c.too_high_assessment ?? ""}</li>`).join("")}</ul>` : ""}
+      ${ppl && (ppl.interpretation || (ppl.levers?.length ?? 0)) ? `<h3>Personal & Produktivität</h3><p>${ppl.interpretation ?? ""}</p>${(ppl.levers ?? []).length ? `<ul>${(ppl.levers ?? []).map((l) => `<li>${l}</li>`).join("")}</ul>` : ""}` : ""}
+      ${checklist.length ? `<h3>Branchen-Checkliste / Lücken</h3><ul>${checklist.map((c) => `<li><strong>${c.area ?? "—"}</strong>: ${c.what_to_check ?? ""}</li>`).join("")}</ul>` : ""}
+      ${recs.length ? `<h3>Empfehlungen</h3><ul>${recs.map((r) => `<li>${r}</li>`).join("")}</ul>` : ""}
+    `;
+  },
+
   renderMarketingStrategyHtml(data: {
     constraints?: string;
     marketing_initiatives?: Array<{ name?: string; goal?: string; actions?: string; content?: string; hashtags?: string; cta?: string; tracking?: string; expected_conversion?: string; budget_eur?: number | string; effort_h_week?: string; roi?: string }>;
@@ -2541,16 +2660,39 @@ export const WorkflowService = {
     `;
   },
 
-  renderFinancialPlanningHtml(data: { liquidity_plan?: { summary: string }; profitability_plan?: { summary: string }; capital_requirements?: { total_required?: string }; break_even_analysis?: { break_even_point: string }; recommendations?: string[] }) {
+  renderFinancialPlanningHtml(data: {
+    liquidity_plan?: { summary: string };
+    profitability_plan?: { summary: string };
+    capital_requirements?: {
+      total_required?: string;
+      inventory_equipment_investment?: {
+        market_entry_eur_band?: string;
+        scaling_reserve_eur_band?: string;
+        detail_lines?: string[];
+      };
+    };
+    break_even_analysis?: { break_even_point: string };
+    recommendations?: string[];
+  }) {
     const liq = data.liquidity_plan?.summary ?? "—";
     const prof = data.profitability_plan?.summary ?? "—";
     const cap = data.capital_requirements?.total_required ?? "—";
+    const inv = data.capital_requirements?.inventory_equipment_investment;
+    const invHtml =
+      inv &&
+      (inv.market_entry_eur_band || inv.scaling_reserve_eur_band || (inv.detail_lines?.length ?? 0) > 0)
+        ? `<h4>Inventar &amp; Equipment (Investition)</h4>
+          ${inv.market_entry_eur_band ? `<p><strong>Markteintritt:</strong> ${inv.market_entry_eur_band}</p>` : ""}
+          ${inv.scaling_reserve_eur_band ? `<p><strong>Skalierung/Reserve:</strong> ${inv.scaling_reserve_eur_band}</p>` : ""}
+          ${inv.detail_lines?.length ? `<ul>${inv.detail_lines.map((l) => `<li>${l}</li>`).join("")}</ul>` : ""}`
+        : "";
     const be = data.break_even_analysis?.break_even_point ?? "—";
     const recs = data.recommendations ?? [];
     return `
       <h3>Liquiditätsplan</h3><p>${liq}</p>
       <h3>Rentabilitätsplan</h3><p>${prof}</p>
       <h3>Kapitalbedarf</h3><p>${cap}</p>
+      ${invHtml}
       <h3>Break-Even</h3><p>${be}</p>
       ${recs.length ? `<h3>Recommendations</h3><ul>${recs.map((r) => `<li>${r}</li>`).join("")}</ul>` : ""}
     `;
@@ -2648,6 +2790,11 @@ export const WorkflowService = {
       WF_VALUE_PROPOSITION: { stepKey: "value_proposition", schemaKey: "value_proposition", type: "value_proposition" },
       WF_GO_TO_MARKET: { stepKey: "go_to_market", schemaKey: "go_to_market", type: "go_to_market" },
       WF_SCALING_STRATEGY: { stepKey: "scaling_strategy", schemaKey: "scaling_strategy", type: "scaling_strategy" },
+      WF_GROWTH_MARGIN_OPTIMIZATION: {
+        stepKey: "growth_margin_optimization",
+        schemaKey: "growth_margin_optimization",
+        type: "growth_margin_optimization",
+      },
       WF_PORTFOLIO_MANAGEMENT: { stepKey: "portfolio_management", schemaKey: "portfolio_management", type: "portfolio_management" },
       WF_SCENARIO_ANALYSIS: { stepKey: "scenario_analysis", schemaKey: "scenario_analysis", type: "scenario_analysis" },
       WF_OPERATIVE_PLAN: { stepKey: "operative_plan", schemaKey: "operative_plan", type: "operative_plan" },
@@ -3299,6 +3446,23 @@ export const WorkflowService = {
           },
         });
         created.push("scaling_strategy");
+        await prisma.run.update({ where: { id: runId }, data: { status: "complete" } });
+      }
+    } else if (config.type === "growth_margin_optimization") {
+      const parsed = growthMarginOptimizationSchema.safeParse(data);
+      if (parsed.success) {
+        await prisma.artifact.create({
+          data: {
+            companyId: run.companyId,
+            runId: run.id,
+            type: "growth_margin_optimization",
+            title: "Marge, Angebot & Kostenoptimierung",
+            version: 1,
+            contentJson: parsed.data as object,
+            exportHtml: this.renderGrowthMarginOptimizationHtml(parsed.data),
+          },
+        });
+        created.push("growth_margin_optimization");
         await prisma.run.update({ where: { id: runId }, data: { status: "complete" } });
       }
     } else if (config.type === "portfolio_management") {

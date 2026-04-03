@@ -218,6 +218,7 @@ function WorkflowsDependent({ dataType, restartLabel }: { dataType: string; rest
         <form key={key} action={createRunWorkflowAction} className="inline">
           <input type="hidden" name="workflow_key" value={key} />
           <input type="hidden" name="force_new" value="1" />
+          <input type="hidden" name="return_target" value="data" />
           <button type="submit" className="rounded-lg border border-teal-600 px-2 py-1 text-xs font-medium text-teal-700 transition hover:bg-teal-50 dark:border-teal-500 dark:text-teal-300 dark:hover:bg-teal-950/50">
             {WORKFLOW_NAMES[key] ?? key} →
           </button>
@@ -227,7 +228,12 @@ function WorkflowsDependent({ dataType, restartLabel }: { dataType: string; rest
   );
 }
 
-export default async function DataPage() {
+export default async function DataPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ run_error?: string }>;
+}) {
+  const params = await searchParams;
   const locale = await getServerLocale();
   const t = getTranslations(locale);
   const company = await getOrCreateDemoCompany();
@@ -295,6 +301,12 @@ export default async function DataPage() {
         </p>
       </header>
 
+      {params.run_error === "run_start_failed" && (
+        <div className="rounded-xl border border-rose-300 bg-rose-50 p-4 text-sm text-rose-800 dark:border-rose-800 dark:bg-rose-950/30 dark:text-rose-200">
+          {t.data.runStartFailed}
+        </div>
+      )}
+
       <Section
         title={t.data.dbMapping}
         description={t.data.dbMappingDesc}
@@ -339,6 +351,7 @@ export default async function DataPage() {
             <form key={key} action={createRunWorkflowAction} className="inline">
               <input type="hidden" name="workflow_key" value={key} />
               <input type="hidden" name="force_new" value="1" />
+              <input type="hidden" name="return_target" value="data" />
               <button
                 type="submit"
                 className="rounded-xl border border-teal-200 bg-teal-50/50 px-4 py-2 text-sm font-medium text-teal-800 transition hover:bg-teal-100 dark:border-teal-800 dark:bg-teal-950/30 dark:text-teal-200 dark:hover:bg-teal-900/50"

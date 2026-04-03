@@ -10,6 +10,20 @@ import { getOrCreateStudyParticipant } from "@/lib/study";
 import { createArtifactEvaluation } from "@/lib/artifactEvaluations";
 import { createFeatureEvaluation, type FeatureEvaluationKind } from "@/lib/featureEvaluations";
 import { setPlanningPhaseArtifactRelease } from "@/lib/planningPhaseRelease";
+import { isRedirectError } from "@/lib/isRedirectError";
+
+function buildDashboardRunErrorUrl(formData: FormData, errorCode: string): string {
+  const q = new URLSearchParams();
+  const view = String(formData.get("return_view") ?? "").trim();
+  if (view === "overview") q.set("view", "overview");
+  else q.set("view", "execution");
+  const phase = String(formData.get("return_phase") ?? "").trim();
+  if (phase && /^[a-z0-9_]+$/i.test(phase)) q.set("phase", phase);
+  const assistant = String(formData.get("return_assistant_phase") ?? "").trim();
+  if (assistant && /^[a-z0-9_]+$/i.test(assistant)) q.set("assistant_phase", assistant);
+  q.set("run_error", errorCode);
+  return `/dashboard?${q.toString()}`;
+}
 
 export async function startWizardAction() {
   const company = await getOrCreateDemoCompany();
@@ -102,22 +116,33 @@ export async function startStudyWizardAction() {
 export async function createRunWorkflowAction(formData: FormData) {
   const workflowKey = String(formData.get("workflow_key"));
   const forceNew = formData.get("force_new") === "1";
-  const company = await getOrCreateDemoCompany();
+  const returnTarget = String(formData.get("return_target") ?? "dashboard").trim();
 
-  if (!forceNew) {
-    const existing = await prisma.run.findFirst({
-      where: { companyId: company.id, workflowKey, status: { in: ["draft", "running", "incomplete"] } },
-      include: { _count: { select: { steps: true } } },
-      orderBy: { createdAt: "desc" },
-    });
-    if (existing) {
-      redirect(`/runs/${existing.id}`);
+  try {
+    const company = await getOrCreateDemoCompany();
+
+    if (!forceNew) {
+      const existing = await prisma.run.findFirst({
+        where: { companyId: company.id, workflowKey, status: { in: ["draft", "running", "incomplete"] } },
+        include: { _count: { select: { steps: true } } },
+        orderBy: { createdAt: "desc" },
+      });
+      if (existing) {
+        redirect(`/runs/${existing.id}`);
+      }
     }
-  }
 
-  const contextPack = await ContextPackService.build(company.id, workflowKey);
-  const run = await WorkflowService.createRun(company.id, workflowKey, contextPack);
-  redirect(`/runs/${run.id}`);
+    const contextPack = await ContextPackService.build(company.id, workflowKey);
+    const run = await WorkflowService.createRun(company.id, workflowKey, contextPack);
+    redirect(`/runs/${run.id}`);
+  } catch (e) {
+    if (isRedirectError(e)) throw e;
+    console.error("[createRunWorkflowAction]", workflowKey, e);
+    if (returnTarget === "data") {
+      redirect("/data?run_error=run_start_failed");
+    }
+    redirect(buildDashboardRunErrorUrl(formData, "run_start_failed"));
+  }
 }
 
 export async function startPhaseRunsAction(formData: FormData) {
@@ -145,24 +170,31 @@ export async function startPhaseRunsAction(formData: FormData) {
   }
 
   const createdOrExistingRunIds: string[] = [];
-  for (const workflowKey of workflowKeys) {
-    const existing = await prisma.run.findFirst({
-      where: {
-        companyId: company.id,
-        workflowKey,
-        status: { in: ["draft", "running", "incomplete"] },
-      },
-      orderBy: { createdAt: "desc" },
-      select: { id: true },
-    });
-    if (existing?.id) {
-      createdOrExistingRunIds.push(existing.id);
-      continue;
-    }
+  try {
+    for (const workflowKey of workflowKeys) {
+      const existing = await prisma.run.findFirst({
+        where: {
+          companyId: company.id,
+          workflowKey,
+          status: { in: ["draft", "running", "incomplete"] },
+        },
+        orderBy: { createdAt: "desc" },
+        select: { id: true },
+      });
+      if (existing?.id) {
+        createdOrExistingRunIds.push(existing.id);
+        continue;
+      }
 
-    const contextPack = await ContextPackService.build(company.id, workflowKey);
-    const run = await WorkflowService.createRun(company.id, workflowKey, contextPack);
-    createdOrExistingRunIds.push(run.id);
+      const contextPack = await ContextPackService.build(company.id, workflowKey);
+      const run = await WorkflowService.createRun(company.id, workflowKey, contextPack);
+      createdOrExistingRunIds.push(run.id);
+    }
+  } catch (e) {
+    if (isRedirectError(e)) throw e;
+    console.error("[startPhaseRunsAction]", phaseId, e);
+    const hash = phaseId ? `#phase-${encodeURIComponent(phaseId)}` : "";
+    redirect(`/dashboard?view=execution&run_error=run_start_failed${hash}`);
   }
 
   const hash = phaseId ? `#phase-${encodeURIComponent(phaseId)}` : "";

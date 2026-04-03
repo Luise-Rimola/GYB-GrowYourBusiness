@@ -55,6 +55,8 @@ const INTROS: Record<string, string> = {
     "Dieses Dokument beschreibt Marketingziele, Kernbotschaften, Zielgruppenansprache und priorisierte Maßnahmen. Es unterstützt eine wirksame und konsistente Marktbearbeitung.",
   scaling_strategy:
     "Dieses Dokument zeigt, wie Wachstum strukturiert umgesetzt werden kann, inklusive Voraussetzungen, Engpässen und Prioritäten. Es hilft, Skalierung kontrolliert und ressourcenschonend zu gestalten.",
+  growth_margin_optimization:
+    "Dieses Dokument fasst Situation, Deckungsbeitrag pro Angebotslinie, Angebots- und Kommunikationslogik sowie Kostentreiber zusammen. Es unterstützt gezielte Hebel für mehr Absatz oder bessere Preise und zeigt Einsparpotenziale – ergänzt um eine Branchen-Checkliste, wenn Zahlen noch fehlen.",
   portfolio_management:
     "Dieses Dokument bewertet mehrere Produkte oder Geschäftsfelder anhand von Leistung, Potenzial und Ressourcenbedarf. Es unterstützt Entscheidungen zu Fokus, Ausbau oder Reduktion einzelner Portfolioteile.",
   scenario_analysis:
@@ -83,6 +85,8 @@ const INTROS: Record<string, string> = {
     "Dieses Dokument bewertet den wirtschaftlichen Nutzen geplanter Automatisierung anhand Kosten, Einsparpotenzial und Amortisationszeit. Es dient als Investitionsgrundlage für Automatisierungsentscheidungen.",
   physical_automation:
     "Dieses Dokument beschreibt Möglichkeiten physischer Automatisierung, z. B. durch Maschinen oder technische Assistenzsysteme. Es bewertet Nutzen, Integrationsaufwand und operative Auswirkungen.",
+  inventory_equipment_plan:
+    "Dieses Dokument bündelt Inventar (Geräte und Material), Abgleich mit Prozessen und Unternehmensform, empfohlene Anschaffungen für die Markteintrittsphase mit Richtpreisen und Referenzlinks sowie eine spätere Effizienz- und Skalierungsperspektive.",
   app_project_plan:
     "Dieses Dokument strukturiert ein App-Vorhaben nach Umfang, Arbeitspaketen, Phasen und Steuerungslogik. Es schafft Klarheit über Vorgehen, Prioritäten und Umsetzungspfad.",
   app_requirements:

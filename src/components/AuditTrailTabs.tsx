@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { ReadableDataView } from "@/components/ReadableDataView";
@@ -26,8 +25,6 @@ type AuditTrailTabsProps = {
   verifyStep: (formData: FormData) => Promise<void>;
   deleteStep: (formData: FormData) => Promise<void>;
   updateStep: (formData: FormData) => Promise<void>;
-  nextWorkflowNav?: { href: string; label: string } | null;
-  nextWorkflowCta?: string;
 };
 
 export function AuditTrailTabs({
@@ -37,8 +34,6 @@ export function AuditTrailTabs({
   verifyStep,
   deleteStep,
   updateStep,
-  nextWorkflowNav = null,
-  nextWorkflowCta = "Nächster Prozess",
 }: AuditTrailTabsProps) {
   const searchParams = useSearchParams();
   const [activeIndex, setActiveIndex] = useState(0);
@@ -92,7 +87,7 @@ export function AuditTrailTabs({
       </div>
       {active && (
         <div className="p-5">
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div className="mb-4 flex flex-wrap items-center gap-3">
             <div className="flex flex-wrap items-center gap-2">
               <span
                 className={`text-xs font-medium ${
@@ -139,16 +134,6 @@ export function AuditTrailTabs({
                 </ConfirmDeleteForm>
               )}
             </div>
-            {active.verifiedByUser && nextWorkflowNav ? (
-              <Link
-                href={nextWorkflowNav.href}
-                prefetch={false}
-                className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-teal-700"
-              >
-                {nextWorkflowCta}: {nextWorkflowNav.label}
-                <span aria-hidden>→</span>
-              </Link>
-            ) : null}
           </div>
           {!active.schemaValidationPassed && active.validationErrorsJson ? (
             <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700 dark:border-rose-800 dark:bg-rose-950/30 dark:text-rose-300">

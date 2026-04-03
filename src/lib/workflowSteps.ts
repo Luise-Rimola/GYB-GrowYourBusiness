@@ -47,6 +47,21 @@ export function mergeRunStepsIntoContext(
   if (stepKey === "app_db_schema" && appPagesStep?.parsedOutputJson) {
     result.app_page_specs = appPagesStep.parsedOutputJson;
   }
+  const invBase = steps.find((s) => s.stepKey === "inventory_baseline");
+  const invProc = steps.find((s) => s.stepKey === "inventory_process_analysis");
+  const invMarket = steps.find((s) => s.stepKey === "market_entry_equipment");
+  if (stepKey === "inventory_process_analysis" && invBase?.parsedOutputJson) {
+    result.inventory_baseline = invBase.parsedOutputJson;
+  }
+  if (stepKey === "market_entry_equipment") {
+    if (invBase?.parsedOutputJson) result.inventory_baseline = invBase.parsedOutputJson;
+    if (invProc?.parsedOutputJson) result.inventory_process_analysis = invProc.parsedOutputJson;
+  }
+  if (stepKey === "equipment_scaling_roadmap") {
+    if (invBase?.parsedOutputJson) result.inventory_baseline = invBase.parsedOutputJson;
+    if (invProc?.parsedOutputJson) result.inventory_process_analysis = invProc.parsedOutputJson;
+    if (invMarket?.parsedOutputJson) result.market_entry_equipment = invMarket.parsedOutputJson;
+  }
   return result;
 }
 
@@ -102,6 +117,9 @@ export const workflowSteps: Record<
   WF_VALUE_PROPOSITION: [{ stepKey: "value_proposition", schemaKey: "value_proposition", label: "Wertversprechen & Problem-Lösungs-Fit" }],
   WF_GO_TO_MARKET: [{ stepKey: "go_to_market", schemaKey: "go_to_market", label: "Markteintritt & Preisstrategie" }],
   WF_SCALING_STRATEGY: [{ stepKey: "scaling_strategy", schemaKey: "scaling_strategy", label: "Skalierungsstrategie" }],
+  WF_GROWTH_MARGIN_OPTIMIZATION: [
+    { stepKey: "growth_margin_optimization", schemaKey: "growth_margin_optimization", label: "Marge, Angebot & Kostenoptimierung" },
+  ],
   WF_PORTFOLIO_MANAGEMENT: [{ stepKey: "portfolio_management", schemaKey: "portfolio_management", label: "Portfolio- & Markenstrategie" }],
   WF_SCENARIO_ANALYSIS: [{ stepKey: "scenario_analysis", schemaKey: "scenario_analysis", label: "Szenario- & Risikoanalyse" }],
   WF_OPERATIVE_PLAN: [{ stepKey: "operative_plan", schemaKey: "operative_plan", label: "Operativer Plan" }],
@@ -122,6 +140,12 @@ export const workflowSteps: Record<
   WF_TECH_DIGITALIZATION: [{ stepKey: "tech_digitalization", schemaKey: "tech_digitalization", label: "Technologie & Digitalisierung" }],
   WF_AUTOMATION_ROI: [{ stepKey: "automation_roi", schemaKey: "automation_roi", label: "Computer-Automatisierung & ROI" }],
   WF_PHYSICAL_AUTOMATION: [{ stepKey: "physical_automation", schemaKey: "physical_automation", label: "Physische Prozess-Automatisierung" }],
+  WF_INVENTORY_LAUNCH: [
+    { stepKey: "inventory_baseline", schemaKey: "inventory_baseline", label: "Inventarliste & Unternehmensform" },
+    { stepKey: "inventory_process_analysis", schemaKey: "inventory_process_analysis", label: "Prozesse & Inventar" },
+    { stepKey: "market_entry_equipment", schemaKey: "market_entry_equipment", label: "Markteintritt: fehlendes Equipment" },
+    { stepKey: "equipment_scaling_roadmap", schemaKey: "equipment_scaling_roadmap", label: "Effizienz & Skalierung" },
+  ],
   WF_APP_DEVELOPMENT: [
     { stepKey: "app_ideas", schemaKey: "app_project_plan", label: "App-Ideen & Projektplanung" },
     { stepKey: "app_requirements", schemaKey: "app_requirements", label: "Anforderungen" },

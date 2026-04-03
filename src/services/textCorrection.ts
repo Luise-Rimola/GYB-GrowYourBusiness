@@ -50,7 +50,7 @@ const ARTIFACT_TO_RERUN_WORKFLOWS: Record<string, string[]> = {
   personnel_plan: ["WF_FINANCIAL_PLANNING"],
   financial_planning: ["WF_BUSINESS_PLAN"],
   real_estate: ["WF_FINANCIAL_PLANNING", "WF_BUSINESS_PLAN"],
-  menu_cost: ["WF_FINANCIAL_PLANNING", "WF_BUSINESS_PLAN"],
+  menu_cost: ["WF_FINANCIAL_PLANNING", "WF_BUSINESS_PLAN", "WF_GROWTH_MARGIN_OPTIMIZATION"],
   business_plan: [],
 };
 

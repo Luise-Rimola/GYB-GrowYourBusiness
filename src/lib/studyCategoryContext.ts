@@ -132,8 +132,8 @@ const STUDY_CATEGORY_CONTEXT_DE: Record<StudyCategoryKey, StudyCategoryLocaleBlo
   },
   wachstum_expansion: {
     phase: "Wachstumsphase",
-    workflowKeys: ["WF_SCALING_STRATEGY", "WF_NEXT_BEST_ACTIONS"],
-    fb2WorkflowKeys: ["WF_SCALING_STRATEGY", "WF_NEXT_BEST_ACTIONS"],
+    workflowKeys: ["WF_SCALING_STRATEGY", "WF_GROWTH_MARGIN_OPTIMIZATION", "WF_NEXT_BEST_ACTIONS"],
+    fb2WorkflowKeys: ["WF_SCALING_STRATEGY", "WF_GROWTH_MARGIN_OPTIMIZATION", "WF_NEXT_BEST_ACTIONS"],
     description:
       "Wir befinden uns in der Wachstumsphase. Diese Phase ist wichtig, weil jetzt klare Prioritäten und umsetzbare nächste Schritte gebraucht werden.",
     important: [
@@ -273,8 +273,8 @@ const STUDY_CATEGORY_CONTEXT_EN: Record<StudyCategoryKey, StudyCategoryLocaleBlo
   },
   wachstum_expansion: {
     phase: "Growth phase",
-    workflowKeys: ["WF_SCALING_STRATEGY", "WF_NEXT_BEST_ACTIONS"],
-    fb2WorkflowKeys: ["WF_SCALING_STRATEGY", "WF_NEXT_BEST_ACTIONS"],
+    workflowKeys: ["WF_SCALING_STRATEGY", "WF_GROWTH_MARGIN_OPTIMIZATION", "WF_NEXT_BEST_ACTIONS"],
+    fb2WorkflowKeys: ["WF_SCALING_STRATEGY", "WF_GROWTH_MARGIN_OPTIMIZATION", "WF_NEXT_BEST_ACTIONS"],
     description:
       "You are in the growth phase. This phase is important because priorities, scaling, and operations are aligned.",
     important: [

@@ -86,6 +86,7 @@ const RELATED_ARTIFACT_TYPES_BY_WORKFLOW: Record<string, readonly string[]> = {
   WF_TECH_DIGITALIZATION: [],
   WF_AUTOMATION_ROI: [],
   WF_PHYSICAL_AUTOMATION: [],
+  WF_INVENTORY_LAUNCH: [],
   WF_APP_DEVELOPMENT: [
     "value_proposition",
     "business_plan",
@@ -182,9 +183,32 @@ const RELATED_ARTIFACT_TYPES_BY_WORKFLOW: Record<string, readonly string[]> = {
   WF_STRATEGIC_PLANNING: ["swot_analysis", "scenario_analysis", "trend_analysis", "value_proposition", "business_plan"],
   WF_MARKETING_STRATEGY: ["value_proposition", "go_to_market", "business_plan", "decision_pack", "market_research"],
   WF_SCALING_STRATEGY: ["go_to_market", "marketing_strategy", "business_plan", "baseline", "scenario_analysis"],
+  WF_GROWTH_MARGIN_OPTIMIZATION: [
+    "go_to_market",
+    "marketing_strategy",
+    "business_plan",
+    "baseline",
+    "scenario_analysis",
+    "menu_cost",
+    "menu_preiskalkulation",
+    "supplier_list",
+    "financial_planning",
+    "personnel_plan",
+    "value_proposition",
+    "kpi_estimation",
+    "scaling_strategy",
+    "process_optimization",
+  ],
   WF_PORTFOLIO_MANAGEMENT: ["business_plan", "strategic_planning", "baseline", "market_research"],
   WF_GO_TO_MARKET: ["value_proposition", "business_plan", "market_research", "scenario_analysis", "swot_analysis"],
-  WF_FINANCIAL_PLANNING: ["business_plan", "baseline", "scenario_analysis", "kpi_estimation", "value_proposition"],
+  WF_FINANCIAL_PLANNING: [
+    "business_plan",
+    "baseline",
+    "scenario_analysis",
+    "kpi_estimation",
+    "value_proposition",
+    "inventory_equipment_plan",
+  ],
   WF_KPI_ESTIMATION: ["baseline", "business_plan", "financial_planning", "market_research", "value_proposition"],
   WF_BUSINESS_PLAN: [
     "swot_analysis",
@@ -283,6 +307,7 @@ const CONTEXT_WHITELIST: Record<string, (keyof ContextPack)[]> = {
   WF_TECH_DIGITALIZATION: ["company_profile", "industry_research", "work_processes"],
   WF_AUTOMATION_ROI: ["company_profile", "work_processes", "industry_research"],
   WF_PHYSICAL_AUTOMATION: ["company_profile", "work_processes", "industry_research"],
+  WF_INVENTORY_LAUNCH: ["company_profile", "work_processes", "industry_research", "market_snapshot", "related_analysis_outputs"],
   WF_APP_DEVELOPMENT: ["company_profile", "industry_research", "business_plan", "related_analysis_outputs"],
   WF_CUSTOMER_VALIDATION: [
     "company_profile",
@@ -462,6 +487,22 @@ const CONTEXT_WHITELIST: Record<string, (keyof ContextPack)[]> = {
     "business_model",
     "related_analysis_outputs",
   ],
+  WF_GROWTH_MARGIN_OPTIMIZATION: [
+    "company_profile",
+    "kpi_snapshot",
+    "market_research",
+    "baseline",
+    "business_plan",
+    "financial_planning",
+    "personnel_plan",
+    "menu_cost",
+    "supplier_list",
+    "industry_research",
+    "decision_pack",
+    "constraints",
+    "business_model",
+    "related_analysis_outputs",
+  ],
   WF_PORTFOLIO_MANAGEMENT: [
     "company_profile",
     "kpi_snapshot",
@@ -515,7 +556,12 @@ export const ContextPackService = {
       prisma.benchmark.findMany({ where: { companyId } }),
       prisma.source.findMany({ where: { companyId } }),
       prisma.artifact.findMany({ where: { companyId }, orderBy: { createdAt: "desc" } }),
-      prisma.knowledgeVersion.findFirst({ where: { status: "active" } }),
+      prisma.knowledgeVersion
+        .findFirst({ where: { status: "active" } })
+        .catch((err: unknown) => {
+          console.warn("[ContextPack] knowledgeVersion unavailable (DB schema, migrate, or connection):", err);
+          return null;
+        }),
       prisma.kpiInputField ? prisma.kpiInputField.findMany() : Promise.resolve([]),
       prisma.kpiLibrary ? prisma.kpiLibrary.findMany({ orderBy: { priorityWeight: "desc" } }) : Promise.resolve([]),
       prisma.strategyIndicator ? prisma.strategyIndicator.findMany() : Promise.resolve([]),
@@ -836,6 +882,30 @@ function minimalizeValue(key: string, val: unknown): unknown {
   return val;
 }
 
+/** Kompakte Inventar-/Equipment-Daten aus related_analysis_outputs (WF Inventar & Equipment). */
+function extractInventoryEquipmentForCapital(
+  related: ContextPack["related_analysis_outputs"] | undefined
+): Record<string, unknown> | null {
+  if (!related?.length) return null;
+  const row = related.find((r) => r.artifact_type === "inventory_equipment_plan");
+  if (!row?.content || typeof row.content !== "object" || Array.isArray(row.content)) return null;
+  const c = row.content as Record<string, unknown>;
+  const baseline = c.inventory_baseline as Record<string, unknown> | undefined;
+  const market = c.market_entry_equipment as Record<string, unknown> | undefined;
+  const scaling = c.equipment_scaling_roadmap as Record<string, unknown> | undefined;
+  return {
+    legal_form: baseline?.legal_form ?? null,
+    inventory_context: baseline?.inventory_context ?? null,
+    equipment_lines: baseline?.equipment ?? null,
+    materials_lines: baseline?.materials ?? null,
+    market_entry_budget_hint: market?.total_budget_eur_band_hint ?? null,
+    market_entry_must_have: market?.market_entry_must_have ?? null,
+    nice_to_have: market?.nice_to_have ?? null,
+    efficiency_upgrades: scaling?.efficiency_upgrades ?? null,
+    scaling_notes: scaling?.scaling_phase_notes ?? null,
+  };
+}
+
 /** Minimal flat context for financial steps – only hard numbers, no narratives. Single source per datum. */
 function buildMinimalContextForFinancialStep(context: Record<string, unknown>, stepKey: string): Record<string, unknown> {
   const profile = context.company_profile as Record<string, unknown> | null | undefined;
@@ -847,6 +917,7 @@ function buildMinimalContextForFinancialStep(context: Record<string, unknown>, s
   const constraints = context.constraints as Record<string, unknown> | null | undefined;
   const businessModel = context.business_model as { stage?: string; type?: string } | null | undefined;
   const kpiEst = context.kpi_estimation as { kpi_estimates?: Array<{ kpi_key?: string; value_month_1?: number; value_month_12?: number }> } | null | undefined;
+  const related = context.related_analysis_outputs as ContextPack["related_analysis_outputs"] | undefined;
 
   const monthlyProj = financial?.monthly_projection ?? businessPlan?.monthly_projection ?? null;
   const realEstatePriceRanges = extractPriceRangesFromRealEstate(realEstate);
@@ -862,6 +933,12 @@ function buildMinimalContextForFinancialStep(context: Record<string, unknown>, s
   };
   if (menuCost?.summary || menuCost?.total_warenkosten != null) {
     out.menu_cost_summary = menuCost.summary ?? `total_warenkosten: ${menuCost.total_warenkosten}`;
+  }
+  if (stepKey === "financial_capital") {
+    const inv = extractInventoryEquipmentForCapital(related);
+    if (inv && Object.keys(inv).length > 0) {
+      out.inventory_equipment_investment_inputs = inv;
+    }
   }
   if (stepKey === "financial_monthly_h1" || stepKey === "financial_monthly_h2") {
     const estimates = kpiEst?.kpi_estimates ?? [];

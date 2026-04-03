@@ -3,6 +3,7 @@
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { useCallback, useRef, useState } from "react";
 import { CopyButton } from "@/components/CopyButton";
+import { getWorkflowStepStatus } from "@/lib/workflowStepStatus";
 
 function RunLlmButton({
   prompt,
@@ -45,7 +46,7 @@ function RunLlmButton({
         type="button"
         onClick={handleRun}
         disabled={loading}
-        className="rounded-lg border border-teal-600 px-3 py-1.5 text-xs font-medium text-teal-700 transition hover:bg-teal-50 dark:border-teal-500 dark:text-teal-300 dark:hover:bg-teal-950/50 disabled:opacity-50"
+        className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-blue-700 disabled:opacity-50 dark:hover:bg-blue-500"
       >
         {loading ? "…" : "Ausführen des KI-Prozesses"}
       </button>
@@ -177,19 +178,11 @@ export function RunWizard({
     savedStep && !savedStep.schemaValidationPassed;
   const useUpdateForm = hasValidationErrors && updateStep;
 
-  const getStepStatus = (idx: number) => {
-    const cfg = stepsConfig[idx];
-    const saved = run.steps.find((s) => s.stepKey === cfg.stepKey);
-    const isFormStep = cfg.stepKey === "business_form" || cfg.stepKey === "kpi_questions_answer";
-    const formComplete =
-      cfg.stepKey === "business_form" && businessFormStep?.isComplete ||
-      cfg.stepKey === "kpi_questions_answer" && kpiQuestionsStep?.isComplete;
-    if (isFormStep && formComplete) return "verified";
-    if (saved?.verifiedByUser) return "verified";
-    if (saved?.schemaValidationPassed) return "saved";
-    if (saved && !saved.schemaValidationPassed) return "invalid";
-    return "pending";
-  };
+  const getStepStatus = (idx: number) =>
+    getWorkflowStepStatus(idx, stepsConfig, run.steps, {
+      businessFormComplete: businessFormStep?.isComplete,
+      kpiQuestionsComplete: kpiQuestionsStep?.isComplete,
+    });
 
   const completedCount = stepsConfig.filter((_, idx) => {
     const s = getStepStatus(idx);
@@ -231,12 +224,12 @@ export function RunWizard({
         </div>
       )}
 
-      {/* Step card */}
+      {/* KI-Prozess: ein Block in der äußeren Karte — kein zweiter Kasten um die Summary */}
       <details
-        className="group"
+        className={`group ${showStepList ? "border-t border-[var(--card-border)] pt-5" : ""}`}
         open={!savedStep}
       >
-        <summary className="cursor-pointer list-none rounded-xl border border-[var(--card-border)] bg-[var(--card)] px-5 py-4 text-sm font-semibold text-[var(--foreground)] transition hover:bg-slate-50 dark:hover:bg-slate-900/30 [&::-webkit-details-marker]:hidden">
+        <summary className="cursor-pointer list-none rounded-lg px-0 py-3 text-sm font-semibold text-[var(--foreground)] transition hover:bg-slate-50/80 dark:hover:bg-slate-900/20 [&::-webkit-details-marker]:hidden">
           <span className="flex items-center justify-between gap-3">
             <span className="inline-flex items-center gap-2">
               <span className="text-[var(--muted)] transition group-open:rotate-90">▸</span>
@@ -247,7 +240,7 @@ export function RunWizard({
             ) : null}
           </span>
         </summary>
-        <div className="px-1 py-4">
+        <div className="px-0 pb-1 pt-1">
         <div className="mb-2 flex items-center justify-end">
           <div className="flex items-center gap-2">
             {savedStep && !savedStep.schemaValidationPassed && (

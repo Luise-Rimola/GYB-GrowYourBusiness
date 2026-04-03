@@ -14,11 +14,11 @@ import { SchemaKey } from "@/types/schemas";
 import { getWorkflowName, getWorkflowSubtitle, getWorkflowExplanationLines } from "@/lib/workflows";
 import { mergeRunStepsIntoContext, workflowSteps } from "@/lib/workflowSteps";
 import { isRunProcessFullyComplete } from "@/lib/runProcessCompletion";
-import { getNextWorkflowNavigation } from "@/lib/nextWorkflowNavigation";
 import { AssistantRunEmbedBridge } from "@/components/AssistantRunEmbedBridge";
 import { filterContextForStep } from "@/services/contextPack";
 import { getServerLocale } from "@/lib/locale";
 import { getTranslations } from "@/lib/i18n";
+import { getWorkflowStepStatus } from "@/lib/workflowStepStatus";
 
 async function verifyStep(formData: FormData) {
   "use server";
@@ -256,7 +256,7 @@ export default async function RunDetailPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams?: Promise<{ embed?: string }>;
+  searchParams?: Promise<{ embed?: string; step?: string }>;
 }) {
   const locale = await getServerLocale();
   const t = getTranslations(locale);
@@ -281,6 +281,8 @@ export default async function RunDetailPage({
   }, []);
 
   const steps = workflowSteps[run.workflowKey] ?? [];
+  const stepParam = Math.max(0, Number(String(sp.step ?? "0")) || 0);
+  const stepIndex = steps.length ? Math.min(stepParam, steps.length - 1) : 0;
   const hasBusinessFormStep = steps.some((s) => s.stepKey === "business_form");
 
   let businessFormStep: { existing: Record<string, unknown>; submitAction: (fd: FormData) => Promise<void>; isComplete: boolean } | undefined;
@@ -331,8 +333,6 @@ export default async function RunDetailPage({
     runStepsLatest.map((s) => ({ stepKey: s.stepKey, schemaValidationPassed: s.schemaValidationPassed })),
   );
 
-  const nextWorkflowNav = await getNextWorkflowNavigation(run.companyId, run.workflowKey);
-
   let appDevelopmentConfig: { existingIdeas: { id: string; title: string }[] } | undefined;
   if (run.workflowKey === "WF_APP_DEVELOPMENT") {
     const appIdeas = await prisma.artifact.findMany({
@@ -357,6 +357,16 @@ export default async function RunDetailPage({
       {embedAssistant ? (
         <AssistantRunEmbedBridge embed={embedAssistant} runId={run.id} allComplete={allProcessStepsValid} />
       ) : null}
+      <div className="flex justify-start">
+        <Link
+          href="/dashboard"
+          prefetch={false}
+          {...(embedAssistant ? ({ target: "_top", rel: "noopener noreferrer" } as const) : {})}
+          className="text-sm font-medium text-blue-600 transition hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+        >
+          ← {t.nav.plans}
+        </Link>
+      </div>
       <Section
         compact
         title={getWorkflowName(run.workflowKey)}
@@ -371,28 +381,45 @@ export default async function RunDetailPage({
             <div className="mt-3">
               <p className="text-xs font-semibold text-[var(--muted)]">Schritte</p>
               <div className="mt-2 flex flex-wrap gap-2">
-                {steps.map((s, i) => (
-                  <span
-                    key={s.stepKey}
-                    className="rounded-lg border border-[var(--card-border)] bg-[var(--background)] px-2.5 py-1 text-xs text-[var(--foreground)]"
-                  >
-                    {i + 1}. {s.label}
-                  </span>
-                ))}
+                {steps.map((s, i) => {
+                  const status = getWorkflowStepStatus(i, steps, runStepsLatest, {
+                    businessFormComplete: businessFormStep?.isComplete,
+                    kpiQuestionsComplete: kpiQuestionsStep?.isComplete,
+                  });
+                  const isCurrent = i === stepIndex;
+                  const chipClass = isCurrent
+                    ? "rounded-lg bg-teal-600 px-2.5 py-1 text-xs font-medium text-white ring-2 ring-teal-400"
+                    : status === "verified"
+                      ? "rounded-lg bg-teal-100 px-2.5 py-1 text-xs font-medium text-teal-800 dark:bg-teal-900/50 dark:text-teal-200"
+                      : status === "saved"
+                        ? "rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                        : status === "invalid"
+                          ? "rounded-lg bg-rose-100 px-2.5 py-1 text-xs font-medium text-rose-700 dark:bg-rose-900/50 dark:text-rose-300"
+                          : "rounded-lg border border-[var(--card-border)] bg-slate-100/70 px-2.5 py-1 text-xs font-medium text-slate-500 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-400";
+                  const stepQuery = embedAssistant ? `step=${i}&embed=1` : `step=${i}`;
+                  return (
+                    <Link
+                      key={s.stepKey}
+                      href={`/runs/${run.id}?${stepQuery}`}
+                      prefetch={false}
+                      aria-current={isCurrent ? "step" : undefined}
+                      {...(embedAssistant ? ({ target: "_top", rel: "noopener noreferrer" } as const) : {})}
+                      className={`${chipClass} inline-block cursor-pointer no-underline transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--card)]`}
+                    >
+                      {i + 1}. {s.label}
+                      {status === "verified" ? " ✓" : ""}
+                    </Link>
+                  );
+                })}
               </div>
             </div>
           </>
         }
         descriptionCollapsible
+        descriptionDefaultOpen
         descriptionToggleLabel="Workflow-Details anzeigen"
         actions={
           <div className="flex flex-wrap items-center gap-3 text-sm">
-            <Link
-              href="/runs"
-              className="font-medium text-[var(--muted)] transition hover:text-teal-600 dark:hover:text-teal-400"
-            >
-              ← Alle Läufe
-            </Link>
             {run.workflowKey !== "WF_BUSINESS_FORM" && (
               <>
                 <span className="rounded-lg border border-[var(--card-border)] bg-slate-50 px-2.5 py-1 text-xs font-medium dark:bg-slate-900/50">
@@ -498,8 +525,6 @@ export default async function RunDetailPage({
               verifyStep={verifyStep}
               deleteStep={deleteStep}
               updateStep={updateStep}
-              nextWorkflowNav={nextWorkflowNav}
-              nextWorkflowCta={locale === "de" ? "Nächster Prozess" : "Next process"}
             />
           </Section>
         </div>

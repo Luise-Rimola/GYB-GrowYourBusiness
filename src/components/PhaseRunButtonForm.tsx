@@ -49,7 +49,11 @@ export function PhaseRunButtonForm({ formId, phaseId, buttonLabel, workflows }: 
         const text =
           data?.error === "llm_missing"
             ? "Bitte hinterlege eine LLM API in den Einstellungen oder führe die Schritte manuell durch."
-            : data?.error ?? "Prozesse konnten nicht gestartet werden.";
+            : data?.error === "run_start_failed" || res.status >= 500
+              ? "Der Prozess-Lauf konnte nicht gestartet werden. Bitte erneut versuchen oder die Verbindung prüfen."
+              : typeof data?.error === "string"
+                ? data.error
+                : "Prozesse konnten nicht gestartet werden.";
         setMessage({ tone: "error", text });
         setLoading(false);
         return;
@@ -72,7 +76,7 @@ export function PhaseRunButtonForm({ formId, phaseId, buttonLabel, workflows }: 
             e.preventDefault();
             setOpenMenu((v) => !v);
           }}
-          className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+          className="rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-teal-700 disabled:opacity-60"
         >
           {loading ? "Läuft…" : buttonLabel}
         </button>

@@ -14,6 +14,7 @@ import { getPlanningPhaseReleasedMap } from "@/lib/planningPhaseRelease";
 import { PhaseArtifactsReleaseBlock } from "@/components/PhaseArtifactsReleaseBlock";
 import { PhaseRunButtonForm } from "@/components/PhaseRunButtonForm";
 import { getStudyCategoryContext, type StudyCategoryKey } from "@/lib/studyCategoryContext";
+import { unlockAllWorkflowsFromEnv } from "@/lib/workflowUnlock";
 
 function getWorkflowArtifactLabel(workflowKey: string, artifactType: string, locale: "de" | "en") {
   if (workflowKey === "WF_IDEA_USP_VALIDATION" && artifactType === "value_proposition") {
@@ -81,6 +82,7 @@ export default async function DashboardPage({
     WF_DIAGNOSTIC: "Root-cause analysis",
     WF_NEXT_BEST_ACTIONS: "Top decisions",
     WF_SCALING_STRATEGY: "Scaling strategy",
+    WF_GROWTH_MARGIN_OPTIMIZATION: "Margin, offer & cost optimization",
     WF_PROCESS_OPTIMIZATION: "Process optimization",
     WF_PORTFOLIO_MANAGEMENT: "Portfolio management",
     WF_STRATEGIC_OPTIONS: "Strategic options",
@@ -92,6 +94,7 @@ export default async function DashboardPage({
     WF_TECH_DIGITALIZATION: "Technology & digitalization",
     WF_AUTOMATION_ROI: "Computer automation & ROI",
     WF_PHYSICAL_AUTOMATION: "Physical automation",
+    WF_INVENTORY_LAUNCH: "Inventory & equipment (market entry)",
     WF_APP_DEVELOPMENT: "App development",
     WF_STARTUP_CONSULTING: "Startup consulting",
     WF_BUSINESS_FORM: "Company profile",
@@ -123,6 +126,7 @@ export default async function DashboardPage({
     WF_GO_TO_MARKET: ["Go-to-market & pricing"],
     WF_MARKETING_STRATEGY: ["Marketing strategy"],
     WF_SCALING_STRATEGY: ["Scalability", "Automation", "Marketing scale-up", "Sales systems"],
+    WF_GROWTH_MARGIN_OPTIMIZATION: ["Contribution margin", "Offer & packaging logic", "Marketing & ROI levers", "Costs, people, procurement & energy"],
     WF_PROCESS_OPTIMIZATION: ["Process optimization", "Cost management", "Brand strategy", "Internationalization"],
     WF_PORTFOLIO_MANAGEMENT: ["Optimize product portfolio", "Expand market segments", "Strategic partnerships"],
     WF_SCENARIO_ANALYSIS: ["Scenario & risk analysis"],
@@ -139,6 +143,7 @@ export default async function DashboardPage({
     WF_TECH_DIGITALIZATION: ["POS system", "Document archiving", "Accounting", "CRM", "Additional tools"],
     WF_AUTOMATION_ROI: ["Automatable processes", "Cost & ROI"],
     WF_PHYSICAL_AUTOMATION: ["Dough machine", "Thermomix", "Conveyor systems", "Cost & ROI"],
+    WF_INVENTORY_LAUNCH: ["Inventory & legal form", "Processes & stock", "Market entry: gaps", "Efficiency & scale-up"],
     WF_APP_DEVELOPMENT: ["Ideas", "Project plan", "Requirements", "Tech spec", "MVP guide", "Page spec", "DB schema"],
   };
   const company = await getOrCreateDemoCompany();
@@ -233,6 +238,7 @@ export default async function DashboardPage({
     WF_VALUE_PROPOSITION: !hasBaseline || !hasMarketSnapshot,
     WF_GO_TO_MARKET: !hasBaseline || !hasMarketSnapshot,
     WF_SCALING_STRATEGY: !hasBaseline,
+    WF_GROWTH_MARGIN_OPTIMIZATION: !hasBaseline,
     WF_PORTFOLIO_MANAGEMENT: !hasBaseline,
     WF_SCENARIO_ANALYSIS: !hasBaseline,
     WF_OPERATIVE_PLAN: !hasBaseline,
@@ -244,8 +250,14 @@ export default async function DashboardPage({
     WF_TECH_DIGITALIZATION: false,
     WF_AUTOMATION_ROI: false,
     WF_PHYSICAL_AUTOMATION: false,
+    WF_INVENTORY_LAUNCH: !hasBaseline || !hasMarketSnapshot,
     WF_APP_DEVELOPMENT: false,
   };
+  if (unlockAllWorkflowsFromEnv()) {
+    for (const k of Object.keys(isLocked)) {
+      isLocked[k] = false;
+    }
+  }
   const hasInProgressRun = runs.some((r) => ["draft", "running", "incomplete"].includes(r.status));
 
   const enabledWorkflowKeys = WIZARD_WORKFLOW_ORDER.filter((k) => {
@@ -271,6 +283,7 @@ export default async function DashboardPage({
     "WF_TECH_DIGITALIZATION",
     "WF_AUTOMATION_ROI",
     "WF_PHYSICAL_AUTOMATION",
+    "WF_INVENTORY_LAUNCH",
     "WF_APP_DEVELOPMENT",
   ].filter((k) => WIZARD_WORKFLOW_ORDER.includes(k));
 
@@ -402,6 +415,12 @@ export default async function DashboardPage({
         </div>
       )}
 
+      {params.run_error === "run_start_failed" && (
+        <div className="rounded-xl border border-rose-300 bg-rose-50 p-4 text-sm text-rose-800 dark:border-rose-800 dark:bg-rose-950/30 dark:text-rose-200">
+          {t.dashboard.runStartFailed}
+        </div>
+      )}
+
       {activeView === "execution" && (
         <header>
           <h1 className="text-3xl font-bold tracking-tight text-[var(--foreground)]">
@@ -427,10 +446,8 @@ export default async function DashboardPage({
       )}
 
       {activeView === "overview" && (
-        <Section
-          title=""
-        >
-          <div className="rounded-2xl border border-[var(--card-border)] bg-[var(--card)] p-5 shadow-sm">
+        <div className="space-y-4 overflow-x-hidden">
+          <div className="p-0">
           <div className="grid gap-4 md:grid-cols-3">
             <Link href="/dashboard?view=execution" prefetch={false} className="rounded-xl border border-cyan-200 bg-cyan-50/80 p-4 transition hover:-translate-y-0.5 hover:border-cyan-300 hover:shadow-sm dark:border-cyan-900/60 dark:bg-cyan-950/20 dark:hover:border-cyan-700">
               <p className="text-xs font-medium text-[var(--muted)]">{isDe ? "Gesamtfortschritt" : "Overall progress"}</p>
@@ -453,8 +470,8 @@ export default async function DashboardPage({
           <div className="mt-4 h-2.5 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
             <div className="h-full rounded-full bg-teal-600 transition-all duration-300" style={{ width: `${progressPercent}%` }} />
           </div>
-          <div className="mt-5 overflow-x-auto border-b border-[var(--card-border)] pb-3" data-overview-phase-scroller>
-            <div className="flex min-w-max flex-nowrap gap-2">
+          <div className="mt-5 mb-5 w-full max-w-full overflow-x-auto overflow-y-hidden pb-4" data-overview-phase-scroller>
+            <div className="inline-flex min-w-max flex-nowrap gap-2">
             {phaseSummaries.map((summary) => {
               const { phase, completed, total } = summary;
               const active = selectedOverviewSummary?.phase.id === phase.id;
@@ -463,6 +480,7 @@ export default async function DashboardPage({
                   key={phase.id}
                   href={`/dashboard?view=overview&phase=${phase.id}`}
                   prefetch={false}
+                  data-overview-phase-chip-link="1"
                   data-overview-phase-chip={active ? "active" : "0"}
                   className={`min-w-[250px] rounded-xl px-4 py-3 text-left shadow-sm transition ${
                     active
@@ -484,9 +502,9 @@ export default async function DashboardPage({
           </div>
 
           {selectedOverviewSummary && (
-            <div className="mt-5 space-y-4">
-              <div className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-5 shadow-sm">
-                <div className="rounded-lg border border-[var(--card-border)] bg-[var(--background)]/30 p-4">
+            <div className="rounded-2xl border border-[var(--card-border)] bg-[var(--card)] p-6 shadow-sm space-y-4">
+              <div className="rounded-lg border border-[var(--card-border)] bg-[var(--background)]/30 p-4">
+                <div className="">
                   <h4 className="text-base font-semibold text-[var(--foreground)]">
                     {isDe ? selectedOverviewSummary.phase.name : (phaseNamesEn[selectedOverviewSummary.phase.id] ?? selectedOverviewSummary.phase.name)}
                   </h4>
@@ -540,11 +558,23 @@ export default async function DashboardPage({
                             </div>
                             <div className="mt-2">
                               {hasInProgress ? (
-                                <form action={createRunWorkflowAction}><input type="hidden" name="workflow_key" value={key} /><button type="submit" className="rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-teal-700">{isDe ? "Fortsetzen" : "Continue"}</button></form>
+                                <form action={createRunWorkflowAction}>
+                                  <input type="hidden" name="workflow_key" value={key} />
+                                  <input type="hidden" name="return_target" value="dashboard" />
+                                  <input type="hidden" name="return_view" value="overview" />
+                                  <input type="hidden" name="return_phase" value={selectedOverviewSummary.phase.id} />
+                                  <button type="submit" className="rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-teal-700">{isDe ? "Fortsetzen" : "Continue"}</button>
+                                </form>
                               ) : hasComplete && completeRun ? (
                                 <Link href={`/runs/${completeRun.id}`} className="rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-teal-700">{isDe ? "Lauf ansehen" : "View run"}</Link>
                               ) : (
-                                <form action={createRunWorkflowAction}><input type="hidden" name="workflow_key" value={key} /><button type="submit" disabled={locked} className="rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-teal-700 disabled:opacity-50">{isDe ? "Starten" : "Start"}</button></form>
+                                <form action={createRunWorkflowAction}>
+                                  <input type="hidden" name="workflow_key" value={key} />
+                                  <input type="hidden" name="return_target" value="dashboard" />
+                                  <input type="hidden" name="return_view" value="overview" />
+                                  <input type="hidden" name="return_phase" value={selectedOverviewSummary.phase.id} />
+                                  <button type="submit" disabled={locked} className="rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-teal-700 disabled:opacity-50">{isDe ? "Starten" : "Start"}</button>
+                                </form>
                               )}
                             </div>
                           </div>
@@ -596,7 +626,7 @@ export default async function DashboardPage({
             </div>
           )}
           </div>
-        </Section>
+        </div>
       )}
 
       {activeView === "execution" && !assistantPhaseId && (
@@ -633,12 +663,12 @@ export default async function DashboardPage({
       {activeView === "execution" && (
       <div>
         {!assistantPhaseId && (
-          <div className="rounded-2xl border border-[var(--card-border)] bg-[var(--card)]/50 p-6">
+          <div className="space-y-4">
             <h3 className="text-lg font-semibold text-[var(--foreground)]">{isDe ? "Unternehmensprofil anlegen" : "Create company profile"}</h3>
             <p className="mt-1 text-sm text-[var(--muted)]">
                   {isDe ? "Formularschritt vor den KI-Prozessen." : "Form step before the AI workflows."}
             </p>
-            <div className="mt-4 rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-4">
+            <div className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-4">
               <div className="flex items-center justify-between gap-4">
                 <div className="min-w-0 flex-1">
                   <p className="font-medium text-[var(--foreground)]">{isDe ? "Unternehmensprofil anlegen" : "Create company profile"}</p>
@@ -801,6 +831,9 @@ export default async function DashboardPage({
                               ) : hasInProgress ? (
                                 <form action={createRunWorkflowAction}>
                                   <input type="hidden" name="workflow_key" value={wf.key} />
+                                  <input type="hidden" name="return_target" value="dashboard" />
+                                  <input type="hidden" name="return_view" value="execution" />
+                                  {assistantPhaseId ? <input type="hidden" name="return_assistant_phase" value={assistantPhaseId} /> : null}
                                   <button type="submit" disabled={locked} className="rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-teal-700 disabled:opacity-50">
                                     {isDe ? "Fortsetzen" : "Continue"}
                                   </button>
@@ -813,6 +846,9 @@ export default async function DashboardPage({
                                   <form action={createRunWorkflowAction} className="inline">
                                     <input type="hidden" name="workflow_key" value={wf.key} />
                                     <input type="hidden" name="force_new" value="1" />
+                                    <input type="hidden" name="return_target" value="dashboard" />
+                                    <input type="hidden" name="return_view" value="execution" />
+                                    {assistantPhaseId ? <input type="hidden" name="return_assistant_phase" value={assistantPhaseId} /> : null}
                                     <button type="submit" disabled={locked} className="rounded-lg border px-3 py-1.5 text-xs font-medium hover:bg-teal-50 dark:hover:bg-teal-950/30">
                                       {isDe ? "Erneut" : "Rerun"}
                                     </button>
@@ -821,6 +857,9 @@ export default async function DashboardPage({
                               ) : (
                                 <form action={createRunWorkflowAction}>
                                   <input type="hidden" name="workflow_key" value={wf.key} />
+                                  <input type="hidden" name="return_target" value="dashboard" />
+                                  <input type="hidden" name="return_view" value="execution" />
+                                  {assistantPhaseId ? <input type="hidden" name="return_assistant_phase" value={assistantPhaseId} /> : null}
                                   <button type="submit" disabled={locked} className="rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-teal-700 disabled:opacity-50">
                                     {isDe ? "Starten" : "Start"}
                                   </button>
@@ -967,17 +1006,64 @@ export default async function DashboardPage({
       {activeView === "overview" && (
       <Script id="overview-phase-chip-scroll" strategy="afterInteractive">{`
         (function () {
+          function alignChipInScroller(scroller, chip) {
+            if (!scroller || !chip) return;
+            scroller.style.paddingLeft = "";
+            scroller.style.paddingRight = "";
+            var scrollerRect = scroller.getBoundingClientRect();
+            var chipRect = chip.getBoundingClientRect();
+            var inset = 0;
+            var newScroll = scroller.scrollLeft + (chipRect.left - scrollerRect.left) - inset;
+            var maxScroll = Math.max(0, scroller.scrollWidth - scroller.clientWidth);
+            var next = Math.max(0, Math.min(newScroll, maxScroll));
+            scroller.scrollTo({ left: next, behavior: "auto" });
+          }
+
           function alignOverviewPhaseChip() {
             var scroller = document.querySelector("[data-overview-phase-scroller]");
-            var activeChip = document.querySelector('[data-overview-phase-chip="active"]');
+            if (!scroller) return;
+            var activeChip = scroller.querySelector('[data-overview-phase-chip="active"]');
             if (!scroller || !activeChip) return;
-            activeChip.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+            alignChipInScroller(scroller, activeChip);
+          }
+
+          function bindPhaseChipClicks() {
+            var scroller = document.querySelector("[data-overview-phase-scroller]");
+            if (!scroller || scroller.dataset.boundChipClicks === "1") return;
+            scroller.dataset.boundChipClicks = "1";
+            scroller.addEventListener("click", function (e) {
+              var target = e.target;
+              if (!(target instanceof Element)) return;
+              var chip = target.closest('[data-overview-phase-chip-link="1"]');
+              if (!chip) return;
+              setTimeout(function () {
+                alignChipInScroller(scroller, chip);
+              }, 0);
+            });
+
+            var obs = new MutationObserver(function () {
+              alignOverviewPhaseChip();
+            });
+            obs.observe(scroller, {
+              subtree: true,
+              childList: true,
+              attributes: true,
+              attributeFilter: ["data-overview-phase-chip", "class"]
+            });
           }
           if (document.readyState === "loading") {
-            document.addEventListener("DOMContentLoaded", alignOverviewPhaseChip);
+            document.addEventListener("DOMContentLoaded", function () {
+              bindPhaseChipClicks();
+              alignOverviewPhaseChip();
+            });
           } else {
+            bindPhaseChipClicks();
             alignOverviewPhaseChip();
           }
+          setTimeout(alignOverviewPhaseChip, 60);
+          setTimeout(alignOverviewPhaseChip, 180);
+          window.addEventListener("pageshow", alignOverviewPhaseChip);
+          window.addEventListener("resize", alignOverviewPhaseChip);
         })();
       `}</Script>
       )}

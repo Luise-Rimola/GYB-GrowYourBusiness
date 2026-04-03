@@ -493,6 +493,8 @@ export const translations = {
       phaseReleaseConfirm: "Confirm release",
       phaseRevokeConfirm: "Undo release",
       phaseReleaseCancel: "Cancel",
+      runStartFailed:
+        "The workflow run could not be started (e.g. database or context preparation). Please try again or check the server logs.",
     },
     data: {
       title: "Data",
@@ -515,6 +517,8 @@ export const translations = {
       workflowsOnChange: "Workflows on Data Change",
       workflowsOnChangeDesc: "These workflows use master data in their prompts. Re-run after changes to Business Info, KPI Set or KPI Values.",
       clickToRestart: "Click a workflow to re-run it with current data.",
+      runStartFailed:
+        "The workflow run could not be started (e.g. database or context preparation). Please try again.",
       masterData: "Master Data",
       masterDataDesc: "Business Info and KPI Set. Edit manually – then re-run workflows.",
       companyCard: "Company",
@@ -1326,6 +1330,8 @@ export const translations = {
       phaseReleaseConfirm: "Freigabe bestätigen",
       phaseRevokeConfirm: "Zurücknehmen bestätigen",
       phaseReleaseCancel: "Abbrechen",
+      runStartFailed:
+        "Der Prozess-Lauf konnte nicht gestartet werden (z. B. Datenbank oder Kontextaufbau). Bitte erneut versuchen oder die Server-Logs prüfen.",
     },
     data: {
       title: "Daten",
@@ -1348,6 +1354,8 @@ export const translations = {
       workflowsOnChange: "Prozesse bei Datenänderung",
       workflowsOnChangeDesc: "Diese Prozesse nutzen die Stammdaten in ihren Prompts. Nach Änderungen an Business Info, KPI-Set oder KPI-Werten hier erneut starten.",
       clickToRestart: "Klicken Sie auf einen Prozess, um ihn mit den aktuellen Daten neu zu starten.",
+      runStartFailed:
+        "Der Prozess-Lauf konnte nicht gestartet werden (z. B. Datenbank oder Kontextaufbau). Bitte erneut versuchen.",
       masterData: "Stammdaten",
       masterDataDesc: "Business Info und KPI-Set. Manuell bearbeiten – danach Prozesse neu starten.",
       companyCard: "Unternehmen (Company)",

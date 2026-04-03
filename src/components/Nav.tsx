@@ -27,16 +27,6 @@ const settingsNavItems = [
   { href: "/runs", key: "runsAudit" as const },
   { href: "/settings", key: "settingsPage" as const },
 ];
-const phaseLinks = [
-  { id: "ideation", de: "Ideen- & Konzeptphase", en: "Ideation / Concept Phase" },
-  { id: "validation", de: "Validierungsphase", en: "Validation Phase" },
-  { id: "launch", de: "Gründungs- & Launch-Phase", en: "Founding / Launch Phase" },
-  { id: "scaling", de: "Wachstumsphase", en: "Growth Phase" },
-  { id: "tech_digital", de: "Technologie & Digitalisierung", en: "Technology & Digitalization" },
-  { id: "maturity", de: "Reifephase", en: "Maturity Phase" },
-  { id: "renewal", de: "Erneuerung / Exit / Transformation", en: "Renewal / Exit / Transformation" },
-] as const;
-
 function pathMatchesNav(pathname: string, href: string): boolean {
   if (href === "/home") {
     return pathname === "/home";
@@ -54,7 +44,6 @@ export default function Nav({ userEmail }: { userEmail?: string | null }) {
   const isEmbed = searchParams.get("embed") === "1";
   const [isInIframe, setIsInIframe] = useState(false);
   const [open, setOpen] = useState(false);
-  const [processesExpanded, setProcessesExpanded] = useState(false);
   const [studyExpanded, setStudyExpanded] = useState(false);
   const [settingsExpanded, setSettingsExpanded] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -155,17 +144,6 @@ export default function Nav({ userEmail }: { userEmail?: string | null }) {
           <div className="hidden items-center gap-2 md:flex">
             <div className="inline-flex rounded-xl border border-[var(--card-border)] bg-[var(--background)]/70 p-1">
               <Link
-                href="/dashboard/mosaic"
-                prefetch={false}
-                className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
-                  pathname.startsWith("/dashboard/mosaic")
-                    ? "bg-teal-600 text-white"
-                    : "text-[var(--muted)] hover:bg-teal-50 hover:text-teal-700 dark:hover:bg-teal-950/40 dark:hover:text-teal-300"
-                }`}
-              >
-                Dashboard
-              </Link>
-              <Link
                 href="/home"
                 prefetch={false}
                 className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
@@ -175,6 +153,17 @@ export default function Nav({ userEmail }: { userEmail?: string | null }) {
                 }`}
               >
                 Studie
+              </Link>
+              <Link
+                href="/dashboard/mosaic"
+                prefetch={false}
+                className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
+                  pathname.startsWith("/dashboard/mosaic")
+                    ? "bg-teal-600 text-white"
+                    : "text-[var(--muted)] hover:bg-teal-50 hover:text-teal-700 dark:hover:bg-teal-950/40 dark:hover:text-teal-300"
+                }`}
+              >
+                Dashboard
               </Link>
             </div>
           </div>
@@ -229,49 +218,6 @@ export default function Nav({ userEmail }: { userEmail?: string | null }) {
                 </div>
                 {mainNavItems.filter((item) => appNavHrefs.has(item.href)).map((item) => {
                   const active = pathMatchesNav(pathname, item.href);
-                  if (item.href === "/dashboard") {
-                    return (
-                      <div key={item.href} className="space-y-2">
-                        <div className="flex w-full items-center gap-2">
-                          <Link
-                            href={item.href}
-                            prefetch={false}
-                            onClick={() => setOpen(false)}
-                            aria-current={active ? "page" : undefined}
-                            className={
-                              active
-                                ? "block w-full rounded-lg border border-teal-400 bg-teal-50 px-3 py-2.5 text-sm font-medium text-teal-800 shadow-sm transition dark:border-teal-600 dark:bg-teal-950/50 dark:text-teal-200"
-                                : "block w-full rounded-lg border border-transparent px-3 py-2.5 text-sm font-medium text-[var(--foreground)] transition hover:border-teal-100 hover:bg-teal-50 dark:hover:border-teal-900/50 dark:hover:bg-teal-950/50"
-                            }
-                          >
-                            {t.nav[item.key]}
-                          </Link>
-                          <button
-                            type="button"
-                            onClick={() => setProcessesExpanded((v) => !v)}
-                            className="shrink-0 rounded-lg border border-[var(--card-border)] px-2 py-2 text-[var(--muted)] transition hover:bg-[var(--background)] hover:text-[var(--foreground)]"
-                          >
-                            {processesExpanded ? "▾" : "▸"}
-                          </button>
-                        </div>
-                        {processesExpanded ? (
-                          <div className="space-y-1 rounded-lg border border-[var(--card-border)]/70 bg-[var(--background)]/40 p-3">
-                            {phaseLinks.map((phase) => (
-                              <Link
-                                key={phase.id}
-                                href={`/dashboard?assistant_phase=${phase.id}#phase-${phase.id}`}
-                                prefetch={false}
-                                onClick={() => setOpen(false)}
-                                className="block w-full rounded-md px-2 py-2 text-sm text-[var(--muted)] transition hover:bg-teal-50 hover:text-teal-700 dark:hover:bg-teal-950/40 dark:hover:text-teal-300"
-                              >
-                                {locale === "de" ? phase.de : phase.en}
-                              </Link>
-                            ))}
-                          </div>
-                        ) : null}
-                      </div>
-                    );
-                  }
                   return (
                     <Link
                       key={item.href}

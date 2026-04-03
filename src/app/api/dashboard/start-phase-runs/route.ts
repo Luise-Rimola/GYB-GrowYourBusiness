@@ -50,6 +50,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true, created });
   } catch (err) {
     console.error("[dashboard/start-phase-runs] error:", err);
-    return NextResponse.json({ error: "Failed to start phase runs" }, { status: 500 });
+    return NextResponse.json({ error: "run_start_failed" }, { status: 500 });
   }
 }

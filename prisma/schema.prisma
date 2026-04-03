@@ -104,6 +104,7 @@ enum ArtifactType {
   go_to_market
   marketing_strategy
   scaling_strategy
+  growth_margin_optimization
   portfolio_management
   scenario_analysis
   operative_plan
@@ -118,6 +119,7 @@ enum ArtifactType {
   tech_digitalization
   automation_roi
   physical_automation
+  inventory_equipment_plan
   app_project_plan
   app_requirements
   app_tech_spec

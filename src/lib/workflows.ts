@@ -156,6 +156,12 @@ export const WORKFLOWS = [
     explanation: "Erklärung: Skalierungsstrategie für Wachstumsphase. Basiert auf: Company Profile, KPI-Snapshot, Market Research, Baseline. Zu Untersuchen: Skalierbarkeit des Modells, Automatisierung von Prozessen, Marketing-Skalierung, Vertriebssysteme. KPIs: CAC, LTV, Conversion Rate, Churn Rate, Umsatzwachstum. Output: scalability_assessment, automation_priorities, key_metrics (JSON).",
   },
   {
+    key: "WF_GROWTH_MARGIN_OPTIMIZATION",
+    name: "Marge, Angebot & Kostenoptimierung",
+    description: "Deckungsbeitrag pro Verkauf, Angebots-/Packaging-Logik, Marketing-Hebel, Kosten & Personal.",
+    explanation: "Erklärung: Situationsanalyse und Optimierung in der Wachstumsphase. Basiert auf: Baseline, KPIs, Markt-/Businessplan, Go-to-Market, Marketing, ggf. Warenkosten und Finanzplanung. Zu Untersuchen: was pro Verkauf wirtschaftlich hängen bleibt; wie Angebot und Kommunikation Preis oder Absatz heben können; Kostentreiber und Einsparpotenziale (Personal, Einkauf, Energie, Verpackung). Wenn Daten fehlen: Branchen-Checkliste mit Beispielen zum Selbstprüfen. Output: growth_margin_optimization (JSON).",
+  },
+  {
     key: "WF_PORTFOLIO_MANAGEMENT",
     name: "Portfolio- & Markenstrategie",
     description: "Portfolio Management, Markenstrategie, Internationalisierung, strategische Partnerschaften.",
@@ -189,7 +195,7 @@ export const WORKFLOWS = [
     key: "WF_FINANCIAL_PLANNING",
     name: "Finanzplanung",
     description: "Liquiditätsplan, Rentabilitätsplan, Kapitalbedarf, Break-Even.",
-    explanation: "Erklärung: Finanzplanung für Launch. Basiert auf: Company Profile, Supplier List, Real Estate, Business Plan. Zu Untersuchen: Liquiditätsplan, Rentabilitätsplan, Kapitalbedarf, Break-Even Analyse. Kritisch: Cashflow Management, Liquiditätsreserve. Output: liquidity_plan, profitability_plan, capital_requirements, break_even_analysis (JSON).",
+    explanation: "Erklärung: Finanzplanung für Launch. Basiert auf: Company Profile, Supplier List, Real Estate, Business Plan; bei vorhandenem Artefakt auch Inventar & Equipment (Markteintritt) für Investitionskosten im Kapitalbedarf. Zu Untersuchen: Liquiditätsplan, Rentabilitätsplan, Kapitalbedarf inkl. Inventar/Equipment, Break-Even Analyse. Kritisch: Cashflow Management, Liquiditätsreserve. Output: liquidity_plan, profitability_plan, capital_requirements, break_even_analysis (JSON).",
   },
   {
     key: "WF_STRATEGIC_PLANNING",
@@ -220,6 +226,12 @@ export const WORKFLOWS = [
     name: "Physische Prozess-Automatisierung",
     description: "Teigmaschine, Thermomix, Laufbänder – Kosten, ROI, Sinnhaftigkeit.",
     explanation: "Erklärung: Physische Geräte zur Prozessautomatisierung. Basiert auf: Company Profile, Industry. Zu Untersuchen: Teigmaschine, Thermomix, Laufbänder, Förderbänder – Kosten, ROI, ob es sinnvoll ist. Output: physical_automation (JSON).",
+  },
+  {
+    key: "WF_INVENTORY_LAUNCH",
+    name: "Inventar & Equipment (Markteintritt)",
+    description: "Bestandsliste mit Unternehmensform, Prozessabgleich, fehlendes Equipment für erste Verkäufe (Preis & Links), dann Effizienz-Upgrades für die Skalierung.",
+    explanation: "Erklärung: Vier Schritte – (1) Inventar Geräte/Material mit Bezug zur Rechtsform, (2) Abgleich mit Arbeitsprozessen, (3) Markteintritt: fehlende Anschaffungen mit Richtpreisen und Web-Links, (4) spätere Phase: Maschinen/Equipment zur Effizienzsteigerung. Output: inventory_equipment_plan (JSON).",
   },
   {
     key: "WF_APP_DEVELOPMENT",
@@ -309,6 +321,8 @@ const SIMPLE_EXPLANATIONS: Record<string, string> = {
     "Hier wird geplant, wie du dein Angebot erfolgreich in den Markt bringst. Du erhältst eine klare Linie für Positionierung, Preise, Kanäle und erste Verkaufsaktivitäten.",
   WF_SCALING_STRATEGY:
     "Dieser Prozess zeigt, wie dein Unternehmen kontrolliert wachsen kann. Er macht sichtbar, welche Bereiche zuerst skaliert werden sollten und welche Voraussetzungen dafür nötig sind.",
+  WF_GROWTH_MARGIN_OPTIMIZATION:
+    "Hier werden Marge pro Verkauf, Angebotsgestaltung und Kostentreiber zusammengeführt. Du siehst, was sich rechnet, was du kommunizieren kannst, und wo du realistisch sparen oder nachjustieren solltest.",
   WF_PORTFOLIO_MANAGEMENT:
     "Hier wird bewertet, welche Produkte oder Leistungen gestärkt, angepasst oder reduziert werden sollten. Das hilft, Ressourcen auf die wichtigsten Umsatztreiber zu konzentrieren.",
   WF_SCENARIO_ANALYSIS:
@@ -320,7 +334,7 @@ const SIMPLE_EXPLANATIONS: Record<string, string> = {
   WF_SWOT:
     "In dieser SWOT-Analyse werden die Stärken und Schwächen deines Unternehmens sowie Chancen und Risiken im Markt übersichtlich gegenübergestellt. So erkennst du schnell, wo du gut aufgestellt bist, wo Handlungsbedarf besteht und welche nächsten Schritte strategisch sinnvoll sind.",
   WF_FINANCIAL_PLANNING:
-    "Hier wird deine Finanzplanung aufgebaut, zum Beispiel Kosten, Liquidität, Kapitalbedarf und Break-even. Damit siehst du früh, ob dein Vorhaben finanziell tragfähig ist.",
+    "Hier wird deine Finanzplanung aufgebaut, zum Beispiel Kosten, Liquidität, Kapitalbedarf und Break-even. Wenn du den Prozess „Inventar & Equipment“ genutzt hast, fließen dessen Investitionskosten in den Kapitalbedarf ein. Damit siehst du früh, ob dein Vorhaben finanziell tragfähig ist.",
   WF_STRATEGIC_PLANNING:
     "Dieser Prozess richtet dein Unternehmen langfristig aus und definiert klare Ziele für die nächsten Jahre. So entsteht ein roter Faden für wichtige Entscheidungen.",
   WF_TREND_ANALYSIS:
@@ -331,6 +345,8 @@ const SIMPLE_EXPLANATIONS: Record<string, string> = {
     "Hier wird geprüft, welche Aufgaben digital automatisiert werden können und ob sich das wirtschaftlich lohnt. Du bekommst eine klare Einschätzung zu Kosten und Nutzen.",
   WF_PHYSICAL_AUTOMATION:
     "Dieser Prozess bewertet Maschinen oder physische Automatisierungslösungen für deinen Betrieb. So siehst du, ob Investitionen in Geräte deinen Alltag messbar verbessern.",
+  WF_INVENTORY_LAUNCH:
+    "Hier erfasst du Geräte und Material, ordnest sie deiner Unternehmensform und deinen Prozessen zu, findest fehlende Anschaffungen für die ersten Verkäufe inklusive Richtpreisen und Links, und planst spätere Investitionen in Effizienz (z. B. professionelle statt manuelle Ausrüstung).",
   WF_APP_DEVELOPMENT:
     "Hier wird die Entwicklung einer eigenen App von der Idee bis zur technischen Struktur geplant. Du bekommst einen klaren Fahrplan, was gebaut werden soll und in welcher Reihenfolge.",
 };

@@ -1,7 +1,20 @@
-import { prisma } from "../src/lib/prisma";
+import { PrismaClient } from "@prisma/client";
 import { promptTemplates } from "../src/prompts/registry";
 import { KPI_INPUT_FIELDS, buildKpiLibraryRows } from "./data/kpiLibrary";
 import { STRATEGY_INDICATORS, INDICATOR_MAPPING_RULES } from "./data/strategyIndicators";
+
+/**
+ * Seed nutzt optional DIRECT_URL (direkte Postgres-Verbindung, z. B. Supabase Port 5432),
+ * damit der Supabase Session-Pooler nicht mit "MaxClientsInSessionMode" blockiert.
+ * In .env: DIRECT_URL=postgresql://...db.xxx.supabase.co:5432/... (aus Dashboard → Connection string → Direct)
+ */
+const prisma = new PrismaClient({
+  datasources: {
+    db: {
+      url: process.env.DIRECT_URL?.trim() || process.env.DATABASE_URL,
+    },
+  },
+});
 
 async function main() {
   // Legacy-Nutzer (ohne Verifizierungs-Flow): als bestätigt markieren — neue Registrierungen haben immer einen Code-Hash
@@ -105,6 +118,7 @@ async function main() {
     WF_VALUE_PROPOSITION: "Value Proposition",
     WF_GO_TO_MARKET: "Go-to-Market & Pricing",
     WF_SCALING_STRATEGY: "Scaling Strategy",
+    WF_GROWTH_MARGIN_OPTIMIZATION: "Margin, Offer & Cost Optimization",
     WF_PORTFOLIO_MANAGEMENT: "Portfolio & Brand Strategy",
     WF_SCENARIO_ANALYSIS: "Scenario & Risk Analysis",
     WF_COMPETITOR_ANALYSIS: "Competitor Analysis",
@@ -116,6 +130,7 @@ async function main() {
     WF_TECH_DIGITALIZATION: "Technologie & Digitalisierung",
     WF_AUTOMATION_ROI: "Computer-Automatisierung & ROI",
     WF_PHYSICAL_AUTOMATION: "Physische Prozess-Automatisierung",
+    WF_INVENTORY_LAUNCH: "Inventar & Equipment (Markteintritt)",
     WF_APP_DEVELOPMENT: "Eigene App – Entwicklung",
   };
   const workflows = workflowKeys.map((key) => ({

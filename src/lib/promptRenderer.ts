@@ -71,7 +71,7 @@ export function renderPrompt(
   // Token-Reduktion: Technologie-Workflows brauchen keine "Startup-Insights"-Blöcke.
   // Die werden sonst (bei fehlender/ungenauer Whitelist) komplett in den Prompt gepackt.
   let contextForPrompt = contextJson as unknown;
-  if (["WF_APP_DEVELOPMENT", "WF_TECH_DIGITALIZATION", "WF_AUTOMATION_ROI", "WF_PHYSICAL_AUTOMATION"].includes(workflowKey)) {
+  if (["WF_APP_DEVELOPMENT", "WF_TECH_DIGITALIZATION", "WF_AUTOMATION_ROI", "WF_PHYSICAL_AUTOMATION", "WF_INVENTORY_LAUNCH"].includes(workflowKey)) {
     if (
       contextJson &&
       typeof contextJson === "object" &&
