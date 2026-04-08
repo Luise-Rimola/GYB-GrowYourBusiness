@@ -51,6 +51,8 @@ export default function Nav({ userEmail }: { userEmail?: string | null }) {
   const { locale, setLocale } = useLanguage();
   const t = getTranslations(locale);
   const isAuthed = Boolean(userEmail);
+  const studyTabLabel = "Studie";
+  const dashboardTabLabel = "Dashboard";
 
   const settingsPathActive = useMemo(
     () => settingsNavItems.some((item) => pathMatchesNav(pathname, item.href)),
@@ -115,29 +117,39 @@ export default function Nav({ userEmail }: { userEmail?: string | null }) {
 
         {/* Desktop nav + Settings */}
         {!isAuthed && (
-        <div className="hidden flex-wrap items-center gap-1 text-sm font-medium md:flex">
-          {mainNavItems.map((item) => {
-            const active = pathMatchesNav(pathname, item.href);
-            return (
+          <div className="hidden items-center gap-2 md:flex">
+            <div className="inline-flex rounded-xl border border-[var(--card-border)] bg-[var(--background)]/70 p-1">
               <Link
-                key={item.href}
-                href={`/login?next=${encodeURIComponent(item.href)}`}
+                href="/login?next=%2Fhome"
                 prefetch={false}
-                aria-current={active ? "page" : undefined}
-                className={active ? linkActive : linkInactive}
+                className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
+                  !pathname.startsWith("/dashboard/mosaic")
+                    ? "bg-teal-600 text-white"
+                    : "text-[var(--muted)] hover:bg-teal-50 hover:text-teal-700 dark:hover:bg-teal-950/40 dark:hover:text-teal-300"
+                }`}
               >
-                {t.nav[item.key]}
+                {studyTabLabel}
               </Link>
-            );
-          })}
-          <Link
-            href="/login"
-            prefetch={false}
-            className="ml-2 rounded-lg bg-teal-600 px-3 py-2 text-white transition hover:bg-teal-700"
-          >
-            {t.auth.submitLogin}
-          </Link>
-        </div>
+              <Link
+                href="/login?next=%2Fdashboard%2Fmosaic"
+                prefetch={false}
+                className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
+                  pathname.startsWith("/dashboard/mosaic")
+                    ? "bg-teal-600 text-white"
+                    : "text-[var(--muted)] hover:bg-teal-50 hover:text-teal-700 dark:hover:bg-teal-950/40 dark:hover:text-teal-300"
+                }`}
+              >
+                {dashboardTabLabel}
+              </Link>
+            </div>
+            <Link
+              href="/login"
+              prefetch={false}
+              className="rounded-lg bg-teal-600 px-3 py-2 text-white transition hover:bg-teal-700"
+            >
+              {t.auth.submitLogin}
+            </Link>
+          </div>
         )}
 
         {isAuthed && (
@@ -152,7 +164,7 @@ export default function Nav({ userEmail }: { userEmail?: string | null }) {
                     : "text-[var(--muted)] hover:bg-teal-50 hover:text-teal-700 dark:hover:bg-teal-950/40 dark:hover:text-teal-300"
                 }`}
               >
-                Studie
+                {studyTabLabel}
               </Link>
               <Link
                 href="/dashboard/mosaic"
@@ -163,7 +175,7 @@ export default function Nav({ userEmail }: { userEmail?: string | null }) {
                     : "text-[var(--muted)] hover:bg-teal-50 hover:text-teal-700 dark:hover:bg-teal-950/40 dark:hover:text-teal-300"
                 }`}
               >
-                Dashboard
+                {dashboardTabLabel}
               </Link>
             </div>
           </div>
@@ -273,25 +285,66 @@ export default function Nav({ userEmail }: { userEmail?: string | null }) {
                   })}
                 </div> : null}
               </>
-            ) : mainNavItems.map((item) => {
-              const active = pathMatchesNav(pathname, item.href);
-              return (
-                <Link
-                  key={item.href}
-                  href={isAuthed ? item.href : `/login?next=${encodeURIComponent(item.href)}`}
-                  prefetch={false}
-                  onClick={() => setOpen(false)}
-                  aria-current={active ? "page" : undefined}
-                  className={
-                    active
-                      ? "block w-full rounded-lg border border-teal-400 bg-teal-50 px-3 py-2.5 text-sm font-medium text-teal-800 shadow-sm transition dark:border-teal-600 dark:bg-teal-950/50 dark:text-teal-200"
-                      : "block w-full rounded-lg border border-transparent px-3 py-2.5 text-sm font-medium text-[var(--foreground)] transition hover:border-teal-100 hover:bg-teal-50 dark:hover:border-teal-900/50 dark:hover:bg-teal-950/50"
-                  }
-                >
-                  {t.nav[item.key]}
-                </Link>
-              );
-            })}
+            ) : (
+              <>
+                <div className="mt-1 pb-2">
+                  <p className="mb-1 flex items-center gap-2 px-3 text-xs font-semibold text-[var(--muted)]">
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l9-9 9 9M5 10v10h14V10" />
+                    </svg>
+                    App
+                  </p>
+                  <div className="mt-1 border-b border-[var(--card-border)]" />
+                </div>
+                {mainNavItems.filter((item) => appNavHrefs.has(item.href)).map((item) => {
+                  const active = pathMatchesNav(pathname, item.href);
+                  return (
+                    <Link
+                      key={item.href}
+                      href={`/login?next=${encodeURIComponent(item.href)}`}
+                      prefetch={false}
+                      onClick={() => setOpen(false)}
+                      aria-current={active ? "page" : undefined}
+                      className={
+                        active
+                          ? "block w-full rounded-lg border border-teal-400 bg-teal-50 px-3 py-2.5 text-sm font-medium text-teal-800 shadow-sm transition dark:border-teal-600 dark:bg-teal-950/50 dark:text-teal-200"
+                          : "block w-full rounded-lg border border-transparent px-3 py-2.5 text-sm font-medium text-[var(--foreground)] transition hover:border-teal-100 hover:bg-teal-50 dark:hover:border-teal-900/50 dark:hover:bg-teal-950/50"
+                      }
+                    >
+                      {t.nav[item.key]}
+                    </Link>
+                  );
+                })}
+                <div className="mt-3 pb-2 pt-2">
+                  <p className="mb-1 flex items-center gap-2 px-3 text-xs font-semibold text-[var(--muted)]">
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6M5 21h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    </svg>
+                    Studie
+                  </p>
+                  <div className="mt-1 border-b border-[var(--card-border)]" />
+                </div>
+                {mainNavItems.filter((item) => studyNavHrefs.has(item.href)).map((item) => {
+                  const active = pathMatchesNav(pathname, item.href);
+                  return (
+                    <Link
+                      key={item.href}
+                      href={`/login?next=${encodeURIComponent(item.href)}`}
+                      prefetch={false}
+                      onClick={() => setOpen(false)}
+                      aria-current={active ? "page" : undefined}
+                      className={
+                        active
+                          ? "block w-full rounded-lg border border-teal-400 bg-teal-50 px-3 py-2.5 text-sm font-medium text-teal-800 shadow-sm transition dark:border-teal-600 dark:bg-teal-950/50 dark:text-teal-200"
+                          : "block w-full rounded-lg border border-transparent px-3 py-2.5 text-sm font-medium text-[var(--foreground)] transition hover:border-teal-100 hover:bg-teal-50 dark:hover:border-teal-900/50 dark:hover:bg-teal-950/50"
+                      }
+                    >
+                      {t.nav[item.key]}
+                    </Link>
+                  );
+                })}
+              </>
+            )}
             {isAuthed && (
               <div className="mt-3 pt-3">
                 <button
