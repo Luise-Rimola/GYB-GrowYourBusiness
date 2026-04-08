@@ -601,6 +601,35 @@ export const marketingStrategySchema = z
   })
   .passthrough();
 
+export const socialMediaContentPlanSchema = z
+  .object({
+    selected_channels: z.array(z.string()),
+    content_pillars: z.array(z.object({
+      pillar: z.string(),
+      goal: z.string().optional(),
+      channel_fit: z.array(z.string()).optional(),
+    })).optional(),
+    weekly_plan: z.array(z.object({
+      week: z.string(),
+      channel_posts: z.array(z.object({
+        channel: z.string(),
+        format: z.string().optional(),
+        topic: z.string(),
+        objective: z.string().optional(),
+        cta: z.string().optional(),
+      })),
+    })),
+    production_notes: z.array(z.string()).optional(),
+    kpi_tracking: z.array(z.object({
+      channel: z.string(),
+      metric: z.string(),
+      target: z.string().optional(),
+    })).optional(),
+    recommendations: z.array(z.string()).optional(),
+    sources_used: z.array(z.string()).optional(),
+  })
+  .strict();
+
 export const scalingStrategySchema = z
   .object({
     scalability_assessment: z.string(),
@@ -617,6 +646,216 @@ export const scalingStrategySchema = z
       current: z.string().optional(),
     })).optional(),
     recommendations: z.array(z.string()),
+    sources_used: z.array(z.string()).optional(),
+  })
+  .strict();
+
+export const businessModelMechanicsSchema = z
+  .object({
+    revenue_mechanics: z.array(z.object({
+      stream: z.string(),
+      pricing_logic: z.string(),
+      margin_logic: z.string(),
+      key_assumptions: z.array(z.string()).optional(),
+    })),
+    cost_mechanics: z.array(z.object({
+      cost_block: z.string(),
+      cost_behavior: z.string(),
+      optimization_levers: z.array(z.string()).optional(),
+    })).optional(),
+    risks: z.array(z.string()).optional(),
+    actions: z.array(z.string()).optional(),
+    metrics: z.object({
+      gross_margin_target: z.string().optional(),
+      contribution_margin_target: z.string().optional(),
+      break_even_logic: z.string().optional(),
+    }).optional(),
+    sources_used: z.array(z.string()).optional(),
+  })
+  .strict();
+
+export const customerEconomicsLtvCacSchema = z
+  .object({
+    ltv_cac_ratio: z.number().optional(),
+    payback_period_months: z.number().optional(),
+    cac_breakdown: z.array(z.object({
+      channel: z.string(),
+      cac_estimate: z.number().optional(),
+      rationale: z.string().optional(),
+    })).optional(),
+    ltv_assumptions: z.array(z.string()).optional(),
+    risks: z.array(z.string()).optional(),
+    levers: z.array(z.string()).optional(),
+    actions: z.array(z.string()).optional(),
+    sources_used: z.array(z.string()).optional(),
+  })
+  .strict();
+
+export const pmfAssessmentSchema = z
+  .object({
+    pmf_stage: z.enum(["not_ready", "emerging", "validated", "scaling_ready"]),
+    pmf_score: z.number().min(0).max(1).optional(),
+    signals_positive: z.array(z.string()),
+    signals_negative: z.array(z.string()).optional(),
+    key_gaps: z.array(z.string()).optional(),
+    actions_next_90_days: z.array(z.string()).optional(),
+    risks: z.array(z.string()).optional(),
+    sources_used: z.array(z.string()).optional(),
+  })
+  .strict();
+
+export const growthLoopsSchema = z
+  .object({
+    loops: z.array(z.object({
+      loop_name: z.string(),
+      trigger: z.string(),
+      action: z.string(),
+      output: z.string(),
+      measurable_kpi: z.string().optional(),
+    })),
+    bottlenecks: z.array(z.string()).optional(),
+    prioritization: z.array(z.object({
+      loop_name: z.string(),
+      impact: z.string().optional(),
+      effort: z.string().optional(),
+      priority: z.string().optional(),
+    })).optional(),
+    actions: z.array(z.string()).optional(),
+    sources_used: z.array(z.string()).optional(),
+  })
+  .strict();
+
+export const conversionFunnelAnalysisSchema = z
+  .object({
+    funnel_stages: z.array(z.object({
+      stage: z.string(),
+      conversion_rate: z.number().optional(),
+      drop_off_rate: z.number().optional(),
+      issue_hypotheses: z.array(z.string()).optional(),
+    })),
+    top_drop_off_points: z.array(z.string()).optional(),
+    optimization_levers: z.array(z.string()).optional(),
+    actions_next_30_days: z.array(z.string()).optional(),
+    metrics: z.object({
+      target_conversion_rate: z.string().optional(),
+      target_cpa: z.string().optional(),
+    }).optional(),
+    sources_used: z.array(z.string()).optional(),
+  })
+  .strict();
+
+export const barriersToEntrySchema = z
+  .object({
+    barriers: z.array(z.object({
+      barrier: z.string(),
+      strength: z.string().optional(),
+      time_to_build: z.string().optional(),
+      notes: z.string().optional(),
+    })),
+    opportunities: z.array(z.string()).optional(),
+    risks: z.array(z.string()).optional(),
+    actions: z.array(z.string()).optional(),
+    sources_used: z.array(z.string()).optional(),
+  })
+  .strict();
+
+export const moatAssessmentSchema = z
+  .object({
+    moat_score: z.number().min(0).max(1).optional(),
+    moat_dimensions: z.array(z.object({
+      dimension: z.string(),
+      current_state: z.string(),
+      evidence: z.array(z.string()).optional(),
+      strengthening_actions: z.array(z.string()).optional(),
+    })),
+    defendability_risks: z.array(z.string()).optional(),
+    actions_next_180_days: z.array(z.string()).optional(),
+    sources_used: z.array(z.string()).optional(),
+  })
+  .strict();
+
+export const customerExperienceCxSchema = z
+  .object({
+    journey_stages: z.array(z.object({
+      stage: z.string(),
+      customer_goal: z.string().optional(),
+      pain_points: z.array(z.string()).optional(),
+      improvement_levers: z.array(z.string()).optional(),
+    })),
+    cx_metrics: z.array(z.object({
+      metric: z.string(),
+      current: z.string().optional(),
+      target: z.string().optional(),
+    })).optional(),
+    risks: z.array(z.string()).optional(),
+    actions: z.array(z.string()).optional(),
+    sources_used: z.array(z.string()).optional(),
+  })
+  .strict();
+
+export const organizationRolesSchema = z
+  .object({
+    role_map: z.array(z.object({
+      role: z.string(),
+      responsibilities: z.array(z.string()),
+      decision_scope: z.string().optional(),
+      current_coverage: z.string().optional(),
+    })),
+    critical_gaps: z.array(z.string()).optional(),
+    governance_notes: z.array(z.string()).optional(),
+    actions: z.array(z.string()).optional(),
+    sources_used: z.array(z.string()).optional(),
+  })
+  .strict();
+
+export const hiringTalentStrategySchema = z
+  .object({
+    hiring_priorities: z.array(z.object({
+      role: z.string(),
+      urgency: z.string().optional(),
+      impact: z.string().optional(),
+      timeline: z.string().optional(),
+    })),
+    talent_channels: z.array(z.string()).optional(),
+    capability_gaps: z.array(z.string()).optional(),
+    risks: z.array(z.string()).optional(),
+    actions: z.array(z.string()).optional(),
+    sources_used: z.array(z.string()).optional(),
+  })
+  .strict();
+
+export const dataStrategySchema = z
+  .object({
+    decision_areas: z.array(z.object({
+      area: z.string(),
+      required_data: z.array(z.string()),
+      current_data_quality: z.string().optional(),
+      collection_method: z.string().optional(),
+    })),
+    instrumentation_priorities: z.array(z.string()).optional(),
+    governance_rules: z.array(z.string()).optional(),
+    risks: z.array(z.string()).optional(),
+    actions_next_60_days: z.array(z.string()).optional(),
+    sources_used: z.array(z.string()).optional(),
+  })
+  .strict();
+
+export const capitalStrategySchema = z
+  .object({
+    capital_mix_options: z.array(z.object({
+      source: z.string(),
+      suitability: z.string(),
+      dilution_or_cost: z.string().optional(),
+      constraints: z.array(z.string()).optional(),
+    })),
+    funding_roadmap: z.array(z.object({
+      phase: z.string(),
+      amount_target: z.string().optional(),
+      trigger: z.string().optional(),
+    })).optional(),
+    runway_target_months: z.number().optional(),
+    risks: z.array(z.string()).optional(),
+    actions: z.array(z.string()).optional(),
     sources_used: z.array(z.string()).optional(),
   })
   .strict();
@@ -1294,8 +1533,21 @@ export const schemaRegistry = {
   value_proposition: valuePropositionSchema,
   go_to_market: goToMarketSchema,
   scaling_strategy: scalingStrategySchema,
+  business_model_mechanics: businessModelMechanicsSchema,
+  customer_economics_ltv_cac: customerEconomicsLtvCacSchema,
+  conversion_funnel_analysis: conversionFunnelAnalysisSchema,
+  barriers_to_entry: barriersToEntrySchema,
+  moat_assessment: moatAssessmentSchema,
+  organization_roles: organizationRolesSchema,
+  hiring_talent_strategy: hiringTalentStrategySchema,
+  data_strategy: dataStrategySchema,
+  customer_experience_cx: customerExperienceCxSchema,
+  pmf_assessment: pmfAssessmentSchema,
+  growth_loops: growthLoopsSchema,
+  capital_strategy: capitalStrategySchema,
   growth_margin_optimization: growthMarginOptimizationSchema,
   marketing_strategy: marketingStrategySchema,
+  social_media_content_plan: socialMediaContentPlanSchema,
   portfolio_management: portfolioManagementSchema,
   scenario_analysis: scenarioAnalysisSchema,
   operative_plan: operativePlanSchema,

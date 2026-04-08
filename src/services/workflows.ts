@@ -219,6 +219,19 @@ import {
   valuePropositionSchema,
   goToMarketSchema,
   scalingStrategySchema,
+  businessModelMechanicsSchema,
+  customerEconomicsLtvCacSchema,
+  conversionFunnelAnalysisSchema,
+  socialMediaContentPlanSchema,
+  barriersToEntrySchema,
+  moatAssessmentSchema,
+  organizationRolesSchema,
+  hiringTalentStrategySchema,
+  dataStrategySchema,
+  customerExperienceCxSchema,
+  pmfAssessmentSchema,
+  growthLoopsSchema,
+  capitalStrategySchema,
   growthMarginOptimizationSchema,
   marketingStrategySchema,
   portfolioManagementSchema,
@@ -441,6 +454,19 @@ export const WorkflowService = {
             });
             await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
           }
+        } else if (params.stepKey === "data_strategy") {
+          const parsed = dataStrategySchema.safeParse(validation.data);
+          if (parsed.success) {
+            await createArtifactWithEnumFallback({
+              companyId: run.companyId,
+              runId: run.id,
+              type: "data_strategy",
+              title: "Data Strategy",
+              contentJson: parsed.data as object,
+              exportHtml: null,
+            });
+            await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
+          }
         } else if (params.stepKey === "market_research") {
           const parsed = marketResearchSchema.safeParse(validation.data);
           if (parsed.success) {
@@ -659,6 +685,19 @@ export const WorkflowService = {
             });
             await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
           }
+        } else if (params.stepKey === "capital_strategy") {
+          const parsed = capitalStrategySchema.safeParse(validation.data);
+          if (parsed.success) {
+            await createArtifactWithEnumFallback({
+              companyId: run.companyId,
+              runId: run.id,
+              type: "capital_strategy",
+              title: "Capital Strategy",
+              contentJson: parsed.data as object,
+              exportHtml: null,
+            });
+            await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
+          }
         } else if (params.stepKey === "customer_validation") {
           const parsed = customerValidationSchema.safeParse(validation.data);
           if (parsed.success) {
@@ -688,6 +727,45 @@ export const WorkflowService = {
                 contentJson: parsed.data as object,
                 exportHtml: this.renderProcessOptimizationHtml(parsed.data),
               },
+            });
+            await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
+          }
+        } else if (params.stepKey === "customer_experience_cx") {
+          const parsed = customerExperienceCxSchema.safeParse(validation.data);
+          if (parsed.success) {
+            await createArtifactWithEnumFallback({
+              companyId: run.companyId,
+              runId: run.id,
+              type: "customer_experience_cx",
+              title: "Customer Experience (CX)",
+              contentJson: parsed.data as object,
+              exportHtml: null,
+            });
+            await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
+          }
+        } else if (params.stepKey === "organization_roles") {
+          const parsed = organizationRolesSchema.safeParse(validation.data);
+          if (parsed.success) {
+            await createArtifactWithEnumFallback({
+              companyId: run.companyId,
+              runId: run.id,
+              type: "organization_roles",
+              title: "Organisation & Rollen",
+              contentJson: parsed.data as object,
+              exportHtml: null,
+            });
+            await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
+          }
+        } else if (params.stepKey === "hiring_talent_strategy") {
+          const parsed = hiringTalentStrategySchema.safeParse(validation.data);
+          if (parsed.success) {
+            await createArtifactWithEnumFallback({
+              companyId: run.companyId,
+              runId: run.id,
+              type: "hiring_talent_strategy",
+              title: "Hiring & Talent Strategie",
+              contentJson: parsed.data as object,
+              exportHtml: null,
             });
             await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
           }
@@ -772,6 +850,32 @@ export const WorkflowService = {
             });
             await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
           }
+        } else if (params.stepKey === "conversion_funnel_analysis") {
+          const parsed = conversionFunnelAnalysisSchema.safeParse(validation.data);
+          if (parsed.success) {
+            await createArtifactWithEnumFallback({
+              companyId: run.companyId,
+              runId: run.id,
+              type: "conversion_funnel_analysis",
+              title: "Conversion Funnel Analyse",
+              contentJson: parsed.data as object,
+              exportHtml: null,
+            });
+            await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
+          }
+        } else if (params.stepKey === "social_media_content_plan") {
+          const parsed = socialMediaContentPlanSchema.safeParse(validation.data);
+          if (parsed.success) {
+            await createArtifactWithEnumFallback({
+              companyId: run.companyId,
+              runId: run.id,
+              type: "social_media_content_plan",
+              title: "Social Media Content Plan",
+              contentJson: parsed.data as object,
+              exportHtml: null,
+            });
+            await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
+          }
         } else if (params.stepKey === "scaling_strategy") {
           const parsed = scalingStrategySchema.safeParse(validation.data);
           if (parsed.success) {
@@ -785,6 +889,45 @@ export const WorkflowService = {
                 contentJson: parsed.data as object,
                 exportHtml: this.renderScalingStrategyHtml(parsed.data),
               },
+            });
+            await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
+          }
+        } else if (params.stepKey === "customer_economics_ltv_cac") {
+          const parsed = customerEconomicsLtvCacSchema.safeParse(validation.data);
+          if (parsed.success) {
+            await createArtifactWithEnumFallback({
+              companyId: run.companyId,
+              runId: run.id,
+              type: "customer_economics_ltv_cac",
+              title: "Customer Economics (LTV/CAC)",
+              contentJson: parsed.data as object,
+              exportHtml: null,
+            });
+            await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
+          }
+        } else if (params.stepKey === "pmf_assessment") {
+          const parsed = pmfAssessmentSchema.safeParse(validation.data);
+          if (parsed.success) {
+            await createArtifactWithEnumFallback({
+              companyId: run.companyId,
+              runId: run.id,
+              type: "pmf_assessment",
+              title: "Product-Market-Fit Assessment",
+              contentJson: parsed.data as object,
+              exportHtml: null,
+            });
+            await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
+          }
+        } else if (params.stepKey === "growth_loops") {
+          const parsed = growthLoopsSchema.safeParse(validation.data);
+          if (parsed.success) {
+            await createArtifactWithEnumFallback({
+              companyId: run.companyId,
+              runId: run.id,
+              type: "growth_loops",
+              title: "Growth Loops",
+              contentJson: parsed.data as object,
+              exportHtml: null,
             });
             await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
           }
@@ -897,6 +1040,18 @@ export const WorkflowService = {
               throw new Error(`Artifact create failed (personnel_plan): ${msg}`);
             }
           }
+        } else if (params.stepKey === "business_model_mechanics") {
+          const parsed = businessModelMechanicsSchema.safeParse(validation.data);
+          if (parsed.success) {
+            await createArtifactWithEnumFallback({
+              companyId: run.companyId,
+              runId: run.id,
+              type: "business_model_mechanics",
+              title: "Business Model Mechanics",
+              contentJson: parsed.data as object,
+              exportHtml: null,
+            });
+          }
         } else if (["financial_liquidity", "financial_profitability", "financial_capital", "financial_break_even", "financial_monthly_h1", "financial_monthly_h2"].includes(params.stepKey)) {
           const merged = await this.tryMergeFinancialPlanningSteps(run);
           if (merged) {
@@ -944,6 +1099,32 @@ export const WorkflowService = {
                 contentJson: parsed.data as object,
                 exportHtml: this.renderStrategicPlanningHtml(parsed.data),
               },
+            });
+            await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
+          }
+        } else if (params.stepKey === "barriers_to_entry") {
+          const parsed = barriersToEntrySchema.safeParse(validation.data);
+          if (parsed.success) {
+            await createArtifactWithEnumFallback({
+              companyId: run.companyId,
+              runId: run.id,
+              type: "barriers_to_entry",
+              title: "Barriers to Entry",
+              contentJson: parsed.data as object,
+              exportHtml: null,
+            });
+            await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
+          }
+        } else if (params.stepKey === "moat_assessment") {
+          const parsed = moatAssessmentSchema.safeParse(validation.data);
+          if (parsed.success) {
+            await createArtifactWithEnumFallback({
+              companyId: run.companyId,
+              runId: run.id,
+              type: "moat_assessment",
+              title: "Moat Assessment",
+              contentJson: parsed.data as object,
+              exportHtml: null,
             });
             await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
           }
@@ -1299,6 +1480,19 @@ export const WorkflowService = {
           });
           await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
         }
+      } else if (step.stepKey === "data_strategy") {
+        const parsed = dataStrategySchema.safeParse(validation.data);
+        if (parsed.success) {
+          await createArtifactWithEnumFallback({
+            companyId: run.companyId,
+            runId: run.id,
+            type: "data_strategy",
+            title: "Data Strategy",
+            contentJson: parsed.data as object,
+            exportHtml: null,
+          });
+          await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
+        }
       } else if (step.stepKey === "kpi_estimation") {
         const parsed = kpiEstimationSchema.safeParse(validation.data);
         if (parsed.success) {
@@ -1530,6 +1724,19 @@ export const WorkflowService = {
           });
           await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
         }
+      } else if (step.stepKey === "capital_strategy") {
+        const parsed = capitalStrategySchema.safeParse(validation.data);
+        if (parsed.success) {
+          await createArtifactWithEnumFallback({
+            companyId: run.companyId,
+            runId: run.id,
+            type: "capital_strategy",
+            title: "Capital Strategy",
+            contentJson: parsed.data as object,
+            exportHtml: null,
+          });
+          await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
+        }
       } else if (step.stepKey === "customer_validation") {
         const parsed = customerValidationSchema.safeParse(validation.data);
         if (parsed.success) {
@@ -1559,6 +1766,45 @@ export const WorkflowService = {
               contentJson: parsed.data as object,
               exportHtml: this.renderProcessOptimizationHtml(parsed.data),
             },
+          });
+          await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
+        }
+      } else if (step.stepKey === "customer_experience_cx") {
+        const parsed = customerExperienceCxSchema.safeParse(validation.data);
+        if (parsed.success) {
+          await createArtifactWithEnumFallback({
+            companyId: run.companyId,
+            runId: run.id,
+            type: "customer_experience_cx",
+            title: "Customer Experience (CX)",
+            contentJson: parsed.data as object,
+            exportHtml: null,
+          });
+          await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
+        }
+      } else if (step.stepKey === "organization_roles") {
+        const parsed = organizationRolesSchema.safeParse(validation.data);
+        if (parsed.success) {
+          await createArtifactWithEnumFallback({
+            companyId: run.companyId,
+            runId: run.id,
+            type: "organization_roles",
+            title: "Organisation & Rollen",
+            contentJson: parsed.data as object,
+            exportHtml: null,
+          });
+          await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
+        }
+      } else if (step.stepKey === "hiring_talent_strategy") {
+        const parsed = hiringTalentStrategySchema.safeParse(validation.data);
+        if (parsed.success) {
+          await createArtifactWithEnumFallback({
+            companyId: run.companyId,
+            runId: run.id,
+            type: "hiring_talent_strategy",
+            title: "Hiring & Talent Strategie",
+            contentJson: parsed.data as object,
+            exportHtml: null,
           });
           await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
         }
@@ -1639,6 +1885,32 @@ export const WorkflowService = {
           });
           await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
         }
+      } else if (step.stepKey === "conversion_funnel_analysis") {
+        const parsed = conversionFunnelAnalysisSchema.safeParse(validation.data);
+        if (parsed.success) {
+          await createArtifactWithEnumFallback({
+            companyId: run.companyId,
+            runId: run.id,
+            type: "conversion_funnel_analysis",
+            title: "Conversion Funnel Analyse",
+            contentJson: parsed.data as object,
+            exportHtml: null,
+          });
+          await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
+        }
+      } else if (step.stepKey === "social_media_content_plan") {
+        const parsed = socialMediaContentPlanSchema.safeParse(validation.data);
+        if (parsed.success) {
+          await createArtifactWithEnumFallback({
+            companyId: run.companyId,
+            runId: run.id,
+            type: "social_media_content_plan",
+            title: "Social Media Content Plan",
+            contentJson: parsed.data as object,
+            exportHtml: null,
+          });
+          await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
+        }
       } else if (step.stepKey === "scaling_strategy") {
         const parsed = scalingStrategySchema.safeParse(validation.data);
         if (parsed.success) {
@@ -1652,6 +1924,45 @@ export const WorkflowService = {
               contentJson: parsed.data as object,
               exportHtml: this.renderScalingStrategyHtml(parsed.data),
             },
+          });
+          await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
+        }
+      } else if (step.stepKey === "customer_economics_ltv_cac") {
+        const parsed = customerEconomicsLtvCacSchema.safeParse(validation.data);
+        if (parsed.success) {
+          await createArtifactWithEnumFallback({
+            companyId: run.companyId,
+            runId: run.id,
+            type: "customer_economics_ltv_cac",
+            title: "Customer Economics (LTV/CAC)",
+            contentJson: parsed.data as object,
+            exportHtml: null,
+          });
+          await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
+        }
+      } else if (step.stepKey === "pmf_assessment") {
+        const parsed = pmfAssessmentSchema.safeParse(validation.data);
+        if (parsed.success) {
+          await createArtifactWithEnumFallback({
+            companyId: run.companyId,
+            runId: run.id,
+            type: "pmf_assessment",
+            title: "Product-Market-Fit Assessment",
+            contentJson: parsed.data as object,
+            exportHtml: null,
+          });
+          await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
+        }
+      } else if (step.stepKey === "growth_loops") {
+        const parsed = growthLoopsSchema.safeParse(validation.data);
+        if (parsed.success) {
+          await createArtifactWithEnumFallback({
+            companyId: run.companyId,
+            runId: run.id,
+            type: "growth_loops",
+            title: "Growth Loops",
+            contentJson: parsed.data as object,
+            exportHtml: null,
           });
           await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
         }
@@ -1775,6 +2086,18 @@ export const WorkflowService = {
             throw new Error(`Artifact create failed (personnel_plan): ${msg}`);
           }
         }
+      } else if (step.stepKey === "business_model_mechanics") {
+        const parsed = businessModelMechanicsSchema.safeParse(validation.data);
+        if (parsed.success) {
+          await createArtifactWithEnumFallback({
+            companyId: run.companyId,
+            runId: run.id,
+            type: "business_model_mechanics",
+            title: "Business Model Mechanics",
+            contentJson: parsed.data as object,
+            exportHtml: null,
+          });
+        }
       } else if (step.stepKey === "financial_planning") {
         const parsed = financialPlanningSchema.safeParse(validation.data);
         if (parsed.success) {
@@ -1857,6 +2180,32 @@ export const WorkflowService = {
               contentJson: parsed.data as object,
               exportHtml: this.renderStrategicPlanningHtml(parsed.data),
             },
+          });
+          await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
+        }
+      } else if (step.stepKey === "barriers_to_entry") {
+        const parsed = barriersToEntrySchema.safeParse(validation.data);
+        if (parsed.success) {
+          await createArtifactWithEnumFallback({
+            companyId: run.companyId,
+            runId: run.id,
+            type: "barriers_to_entry",
+            title: "Barriers to Entry",
+            contentJson: parsed.data as object,
+            exportHtml: null,
+          });
+          await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
+        }
+      } else if (step.stepKey === "moat_assessment") {
+        const parsed = moatAssessmentSchema.safeParse(validation.data);
+        if (parsed.success) {
+          await createArtifactWithEnumFallback({
+            companyId: run.companyId,
+            runId: run.id,
+            type: "moat_assessment",
+            title: "Moat Assessment",
+            contentJson: parsed.data as object,
+            exportHtml: null,
           });
           await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
         }
@@ -3429,6 +3778,20 @@ export const WorkflowService = {
           exportHtml: this.renderMarketingStrategyHtml(parsed.data),
         });
         created.push("marketing_strategy");
+        await prisma.run.update({ where: { id: runId }, data: { status: "complete" } });
+      }
+    } else if (config.type === "social_media_content_plan") {
+      const parsed = socialMediaContentPlanSchema.safeParse(data);
+      if (parsed.success) {
+        await createArtifactWithEnumFallback({
+          companyId: run.companyId,
+          runId: run.id,
+          type: "social_media_content_plan",
+          title: "Social Media Content Plan",
+          contentJson: parsed.data as object,
+          exportHtml: null,
+        });
+        created.push("social_media_content_plan");
         await prisma.run.update({ where: { id: runId }, data: { status: "complete" } });
       }
     } else if (config.type === "scaling_strategy") {

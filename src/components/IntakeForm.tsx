@@ -528,6 +528,23 @@ export function IntakeForm({
           <FieldCheckboxes options={[{ name: "find_best_acquisition_channels", label: c.findBestAcquisitionChannels }]} existing={existing} />
         </div>
         <div>
+          <label className={labelClass}>{c.socialMediaChannels}</label>
+          <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{c.socialMediaChannelsHint}</p>
+          <div className="mt-2 flex flex-wrap gap-3">
+            {c.socialMediaChannelOptions.map((opt) => {
+              const existingChannels = Array.isArray(existing.social_media_channels)
+                ? (existing.social_media_channels as string[])
+                : [];
+              return (
+                <label key={opt.value} className="flex items-center gap-2 rounded-lg border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-700">
+                  <input type="checkbox" name="social_media_channels" value={opt.value} defaultChecked={existingChannels.includes(opt.value)} className="rounded" />
+                  <span>{opt.label}</span>
+                </label>
+              );
+            })}
+          </div>
+        </div>
+        <div>
           <label className={labelClass}>{c.aov}</label>
           <input name="aov" type="number" step="any" defaultValue={existing.aov != null ? String(existing.aov) : ""} className={`mt-2 ${inputClass}`} placeholder={c.aovPh} />
         </div>

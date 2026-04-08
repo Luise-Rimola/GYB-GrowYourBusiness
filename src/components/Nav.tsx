@@ -124,7 +124,7 @@ export default function Nav({ userEmail }: { userEmail?: string | null }) {
                 href={`/login?next=${encodeURIComponent(item.href)}`}
                 prefetch={false}
                 aria-current={active ? "page" : undefined}
-                className="rounded-lg px-3 py-2 text-gray-400 transition hover:bg-gray-100 hover:text-gray-500 dark:text-gray-500 dark:hover:bg-gray-900/40 dark:hover:text-gray-400"
+                className={active ? linkActive : linkInactive}
               >
                 {t.nav[item.key]}
               </Link>
@@ -274,7 +274,7 @@ export default function Nav({ userEmail }: { userEmail?: string | null }) {
                 </div> : null}
               </>
             ) : mainNavItems.map((item) => {
-              const active = isAuthed && pathMatchesNav(pathname, item.href);
+              const active = pathMatchesNav(pathname, item.href);
               return (
                 <Link
                   key={item.href}
@@ -282,7 +282,11 @@ export default function Nav({ userEmail }: { userEmail?: string | null }) {
                   prefetch={false}
                   onClick={() => setOpen(false)}
                   aria-current={active ? "page" : undefined}
-                  className="rounded-lg px-3 py-2.5 text-sm font-medium text-gray-400 transition hover:bg-gray-100 hover:text-gray-500 dark:text-gray-500 dark:hover:bg-gray-900/40 dark:hover:text-gray-400"
+                  className={
+                    active
+                      ? "block w-full rounded-lg border border-teal-400 bg-teal-50 px-3 py-2.5 text-sm font-medium text-teal-800 shadow-sm transition dark:border-teal-600 dark:bg-teal-950/50 dark:text-teal-200"
+                      : "block w-full rounded-lg border border-transparent px-3 py-2.5 text-sm font-medium text-[var(--foreground)] transition hover:border-teal-100 hover:bg-teal-50 dark:hover:border-teal-900/50 dark:hover:bg-teal-950/50"
+                  }
                 >
                   {t.nav[item.key]}
                 </Link>

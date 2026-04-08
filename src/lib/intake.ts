@@ -12,11 +12,13 @@ export async function processIntakeForm(
 
   const goals = formData.getAll("goals") as string[];
   const aiRequests = formData.getAll("ai_request") as string[];
+  const socialMediaChannels = formData.getAll("social_media_channels") as string[];
 
   const answers: Record<string, unknown> = {
     business_state: String(formData.get("business_state") || ""),
     goals,
     ai_requests: aiRequests,
+    social_media_channels: socialMediaChannels,
     company_name: String(formData.get("company_name") || ""),
     location: String(formData.get("location") || ""),
     website: String(formData.get("website") || ""),

@@ -85,6 +85,7 @@ enum ArtifactType {
   diagnostic
   decision_pack
   data_collection_plan
+  data_strategy
   knowledge_digest
   strategy_pack
   best_practices
@@ -98,20 +99,32 @@ enum ArtifactType {
   startup_guide
   customer_validation
   process_optimization
+  customer_experience_cx
+  organization_roles
+  hiring_talent_strategy
   strategic_options
   hr_planning
   value_proposition
   go_to_market
   marketing_strategy
+  social_media_content_plan
+  conversion_funnel_analysis
   scaling_strategy
+  customer_economics_ltv_cac
+  pmf_assessment
+  growth_loops
   growth_margin_optimization
   portfolio_management
   scenario_analysis
   operative_plan
   swot_analysis
   financial_planning
+  business_model_mechanics
+  capital_strategy
   personnel_plan
   strategic_planning
+  barriers_to_entry
+  moat_assessment
   trend_analysis
   competitor_analysis
   kpi_estimation

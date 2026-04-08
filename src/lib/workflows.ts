@@ -68,8 +68,8 @@ export const WORKFLOWS = [
   {
     key: "WF_MARKETING_STRATEGY",
     name: "Marketing Strategie",
-    description: "Marketingstrategie für Wachstum – Kanäle, Zielgruppen, Budget.",
-    explanation: "Erklärung: Marketingstrategie für die Wachstumsphase. Basiert auf: Baseline, Next Best Actions, Market Research, Industry Research, Company Profile. Zu Untersuchen: Marketingkanäle, Zielgruppen, Budgetverteilung, Kampagnenplanung, Messung. Output: marketing_strategy (JSON).",
+    description: "Marketingstrategie für Wachstum inkl. Conversion Funnel und Social-Media-Content-Plan.",
+    explanation: "Erklärung: Marketingstrategie für die Wachstumsphase. Basiert auf: Baseline, Next Best Actions, Market Research, Industry Research, Company Profile. Zu Untersuchen: Marketingkanäle, Zielgruppen, Budgetverteilung, Kampagnenplanung, Messung, Funnel-Stufen/Drop-offs sowie ein kanalbasierter Social-Media-Content-Plan. Output: marketing_strategy, conversion_funnel_analysis, social_media_content_plan (JSON).",
   },
   {
     key: "WF_BUSINESS_PLAN",
@@ -86,14 +86,14 @@ export const WORKFLOWS = [
   {
     key: "WF_DATA_COLLECTION_PLAN",
     name: "Datenerhebungsplan",
-    description: "Fallback when data is missing.",
-    explanation: "Erklärung: Plan zur Datenerhebung für fehlende KPIs. Basiert auf: KPI-Set, missing_inputs, Company Profile. Zu Untersuchen: Welche Daten fehlen, wie sie erhoben werden. Output: questions_simple, mapping_to_kpi_keys (JSON).",
+    description: "Fallback when data is missing inkl. Data-Strategy.",
+    explanation: "Erklärung: Plan zur Datenerhebung für fehlende KPIs. Basiert auf: KPI-Set, missing_inputs, Company Profile. Zu Untersuchen: Welche Daten fehlen, wie sie erhoben werden und welche Datenstrategie/Instrumentierung nötig ist. Output: questions_simple, mapping_to_kpi_keys, data_strategy (JSON).",
   },
   {
     key: "WF_STARTUP_CONSULTING",
     name: "Funding",
-    description: "Rechtsform, Funding & Gründungsoptionen.",
-    explanation: "Erklärung: Rechtsform und Finanzierungsempfehlungen für Launch. Basiert auf: Company Profile (stage, industry, funding_status, legal_structure), Startup Insights, Industry Research. Zu Untersuchen: Rechtsform, Finanzierungsmodelle, Gründungsoptionen. Output: funding_recommendations, incorporation_recommendations (JSON).",
+    description: "Rechtsform, Funding, Gründungsoptionen und Capital Strategy.",
+    explanation: "Erklärung: Rechtsform und Finanzierungsempfehlungen für Launch. Basiert auf: Company Profile (stage, industry, funding_status, legal_structure), Startup Insights, Industry Research. Zu Untersuchen: Rechtsform, Finanzierungsmodelle, Gründungsoptionen und Kapitalmix/Roadmap. Output: startup_consulting, capital_strategy (JSON).",
   },
   {
     key: "WF_IDEA_USP_VALIDATION",
@@ -128,8 +128,8 @@ export const WORKFLOWS = [
   {
     key: "WF_PROCESS_OPTIMIZATION",
     name: "Process Optimization",
-    description: "Prozessoptimierung, Kostenmanagement, Markenstrategie, Internationalisierung.",
-    explanation: "Erklärung: Prozessoptimierung und Kostenmanagement für Reifephase. Basiert auf: Company Profile, KPI-Snapshot, Industry Research, Baseline. Zu Untersuchen: Prozesse, Bottlenecks, Kostentreiber, Einsparpotenzial. Kennzahlen: EBITDA, Gewinnmarge. Output: process_analysis, cost_analysis, recommendations (JSON).",
+    description: "Prozessoptimierung inkl. CX, Organisation/Rollen und Hiring-Strategie.",
+    explanation: "Erklärung: Prozessoptimierung und Kostenmanagement für Reifephase. Basiert auf: Company Profile, KPI-Snapshot, Industry Research, Baseline. Zu Untersuchen: Prozesse, Bottlenecks, Kostentreiber, Einsparpotenzial, Customer Experience sowie Organisations-/Rollenklarheit und Hiring-Prioritäten. Kennzahlen: EBITDA, Gewinnmarge. Output: process_optimization, customer_experience_cx, organization_roles, hiring_talent_strategy (JSON).",
   },
   {
     key: "WF_STRATEGIC_OPTIONS",
@@ -152,8 +152,8 @@ export const WORKFLOWS = [
   {
     key: "WF_SCALING_STRATEGY",
     name: "Skalierungsstrategie",
-    description: "Skalierung, Automatisierung, Marketing-Skalierung, Vertriebssysteme.",
-    explanation: "Erklärung: Skalierungsstrategie für Wachstumsphase. Basiert auf: Company Profile, KPI-Snapshot, Market Research, Baseline. Zu Untersuchen: Skalierbarkeit des Modells, Automatisierung von Prozessen, Marketing-Skalierung, Vertriebssysteme. KPIs: CAC, LTV, Conversion Rate, Churn Rate, Umsatzwachstum. Output: scalability_assessment, automation_priorities, key_metrics (JSON).",
+    description: "Skalierung, Automatisierung, LTV/CAC, PMF und Growth Loops.",
+    explanation: "Erklärung: Skalierungsstrategie für Wachstumsphase. Basiert auf: Company Profile, KPI-Snapshot, Market Research, Baseline. Zu Untersuchen: Skalierbarkeit des Modells, Automatisierung von Prozessen, Marketing-Skalierung, Vertriebssysteme sowie Customer Economics (LTV/CAC), Product-Market-Fit und Growth Loops. KPIs: CAC, LTV, Conversion Rate, Churn Rate, Umsatzwachstum. Output: scaling_strategy, customer_economics_ltv_cac, pmf_assessment, growth_loops (JSON).",
   },
   {
     key: "WF_GROWTH_MARGIN_OPTIMIZATION",
@@ -194,14 +194,14 @@ export const WORKFLOWS = [
   {
     key: "WF_FINANCIAL_PLANNING",
     name: "Finanzplanung",
-    description: "Liquiditätsplan, Rentabilitätsplan, Kapitalbedarf, Break-Even.",
-    explanation: "Erklärung: Finanzplanung für Launch. Basiert auf: Company Profile, Supplier List, Real Estate, Business Plan; bei vorhandenem Artefakt auch Inventar & Equipment (Markteintritt) für Investitionskosten im Kapitalbedarf. Zu Untersuchen: Liquiditätsplan, Rentabilitätsplan, Kapitalbedarf inkl. Inventar/Equipment, Break-Even Analyse. Kritisch: Cashflow Management, Liquiditätsreserve. Output: liquidity_plan, profitability_plan, capital_requirements, break_even_analysis (JSON).",
+    description: "Liquiditätsplan, Rentabilitätsplan, Kapitalbedarf, Break-Even, Business-Model-Mechanics.",
+    explanation: "Erklärung: Finanzplanung für Launch. Basiert auf: Company Profile, Supplier List, Real Estate, Business Plan; bei vorhandenem Artefakt auch Inventar & Equipment (Markteintritt) für Investitionskosten im Kapitalbedarf. Zu Untersuchen: Liquiditätsplan, Rentabilitätsplan, Kapitalbedarf inkl. Inventar/Equipment, Break-Even Analyse und Monetarisierungs-/Margenlogik des Geschäftsmodells. Kritisch: Cashflow Management, Liquiditätsreserve. Output: business_model_mechanics, liquidity_plan, profitability_plan, capital_requirements, break_even_analysis (JSON).",
   },
   {
     key: "WF_STRATEGIC_PLANNING",
     name: "Strategische Planung",
-    description: "Marktposition, Wettbewerbsvorteile, Innovation (3–10 Jahre).",
-    explanation: "Erklärung: Langfristige strategische Ausrichtung. Basiert auf: Company Profile, Market Snapshot, Market Research, Industry Research. Zu Untersuchen: Marktposition, Wettbewerbsvorteile, Innovation. Output: market_position, competitive_advantages, strategic_initiatives (JSON).",
+    description: "Marktposition, Wettbewerbsvorteile, Innovation, Barriers-to-Entry und Moat (3–10 Jahre).",
+    explanation: "Erklärung: Langfristige strategische Ausrichtung. Basiert auf: Company Profile, Market Snapshot, Market Research, Industry Research. Zu Untersuchen: Marktposition, Wettbewerbsvorteile, Innovation, Eintrittsbarrieren und Verteidigbarkeit (Moat). Output: strategic_planning, barriers_to_entry, moat_assessment (JSON).",
   },
   {
     key: "WF_TREND_ANALYSIS",

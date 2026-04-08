@@ -62,6 +62,10 @@ export function mergeRunStepsIntoContext(
     if (invProc?.parsedOutputJson) result.inventory_process_analysis = invProc.parsedOutputJson;
     if (invMarket?.parsedOutputJson) result.market_entry_equipment = invMarket.parsedOutputJson;
   }
+  const funnelStep = steps.find((s) => s.stepKey === "conversion_funnel_analysis");
+  if ((stepKey === "pmf_assessment" || stepKey === "growth_loops") && funnelStep?.parsedOutputJson) {
+    result.conversion_funnel_analysis = funnelStep.parsedOutputJson;
+  }
   return result;
 }
 
@@ -86,9 +90,16 @@ export const workflowSteps: Record<
   ],
   WF_DIAGNOSTIC: [{ stepKey: "root_cause_trees", schemaKey: "root_cause_trees", label: "Ursachenbäume" }],
   WF_NEXT_BEST_ACTIONS: [{ stepKey: "decision_engine", schemaKey: "decision_pack", label: "Entscheidungslogik" }],
-  WF_MARKETING_STRATEGY: [{ stepKey: "marketing_strategy", schemaKey: "marketing_strategy", label: "Marketing Strategie" }],
+  WF_MARKETING_STRATEGY: [
+    { stepKey: "marketing_strategy", schemaKey: "marketing_strategy", label: "Marketing Strategie" },
+    { stepKey: "conversion_funnel_analysis", schemaKey: "conversion_funnel_analysis", label: "Conversion Funnel Analyse" },
+    { stepKey: "social_media_content_plan", schemaKey: "social_media_content_plan", label: "Social Media Content Plan" },
+  ],
   WF_KPI_ESTIMATION: [{ stepKey: "kpi_estimation", schemaKey: "kpi_estimation", label: "KPI-Schätzung" }],
-  WF_DATA_COLLECTION_PLAN: [{ stepKey: "kpi_computation_plan", schemaKey: "kpi_questions", label: "KPI-Fragenplan" }],
+  WF_DATA_COLLECTION_PLAN: [
+    { stepKey: "kpi_computation_plan", schemaKey: "kpi_questions", label: "KPI-Fragenplan" },
+    { stepKey: "data_strategy", schemaKey: "data_strategy", label: "Data Strategy" },
+  ],
   WF_BUSINESS_PLAN: [
     { stepKey: "business_plan_executive", schemaKey: "business_plan_section", label: "Zusammenfassung" },
     { stepKey: "business_plan_market", schemaKey: "business_plan_section", label: "Marktanalyse" },
@@ -106,17 +117,30 @@ export const workflowSteps: Record<
     { stepKey: "menu_preiskalkulation", schemaKey: "menu_preiskalkulation", label: "Preiskalkulation" },
   ],
   WF_REAL_ESTATE: [{ stepKey: "real_estate", schemaKey: "real_estate", label: "Standortoptionen" }],
-  WF_STARTUP_CONSULTING: [{ stepKey: "startup_consulting", schemaKey: "startup_consulting", label: "Finanzierung & Gründung" }],
+  WF_STARTUP_CONSULTING: [
+    { stepKey: "startup_consulting", schemaKey: "startup_consulting", label: "Finanzierung & Gründung" },
+    { stepKey: "capital_strategy", schemaKey: "capital_strategy", label: "Capital Strategy" },
+  ],
   WF_IDEA_USP_VALIDATION: [{ stepKey: "value_proposition", schemaKey: "value_proposition", label: "Idee- und USP-Check" }],
   WF_FEASIBILITY_VALIDATION: [{ stepKey: "scenario_analysis", schemaKey: "scenario_analysis", label: "Machbarkeit & Voraussetzungen" }],
   WF_PATENT_CHECK: [{ stepKey: "strategic_options", schemaKey: "strategic_options", label: "Patentierbarkeit & Quellenprüfung" }],
   WF_LEGAL_FOUNDATION: [{ stepKey: "startup_consulting", schemaKey: "startup_consulting", label: "Rechtsrahmen & Unternehmensform" }],
   WF_CUSTOMER_VALIDATION: [{ stepKey: "customer_validation", schemaKey: "customer_validation", label: "Kundenvalidierung" }],
-  WF_PROCESS_OPTIMIZATION: [{ stepKey: "process_optimization", schemaKey: "process_optimization", label: "Prozessoptimierung" }],
+  WF_PROCESS_OPTIMIZATION: [
+    { stepKey: "process_optimization", schemaKey: "process_optimization", label: "Prozessoptimierung" },
+    { stepKey: "customer_experience_cx", schemaKey: "customer_experience_cx", label: "Customer Experience (CX)" },
+    { stepKey: "organization_roles", schemaKey: "organization_roles", label: "Organisation & Rollen" },
+    { stepKey: "hiring_talent_strategy", schemaKey: "hiring_talent_strategy", label: "Hiring & Talent Strategie" },
+  ],
   WF_STRATEGIC_OPTIONS: [{ stepKey: "strategic_options", schemaKey: "strategic_options", label: "Strategische Optionen" }],
   WF_VALUE_PROPOSITION: [{ stepKey: "value_proposition", schemaKey: "value_proposition", label: "Wertversprechen & Problem-Lösungs-Fit" }],
   WF_GO_TO_MARKET: [{ stepKey: "go_to_market", schemaKey: "go_to_market", label: "Markteintritt & Preisstrategie" }],
-  WF_SCALING_STRATEGY: [{ stepKey: "scaling_strategy", schemaKey: "scaling_strategy", label: "Skalierungsstrategie" }],
+  WF_SCALING_STRATEGY: [
+    { stepKey: "scaling_strategy", schemaKey: "scaling_strategy", label: "Skalierungsstrategie" },
+    { stepKey: "customer_economics_ltv_cac", schemaKey: "customer_economics_ltv_cac", label: "LTV/CAC Analyse" },
+    { stepKey: "pmf_assessment", schemaKey: "pmf_assessment", label: "PMF Assessment" },
+    { stepKey: "growth_loops", schemaKey: "growth_loops", label: "Growth Loops" },
+  ],
   WF_GROWTH_MARGIN_OPTIMIZATION: [
     { stepKey: "growth_margin_optimization", schemaKey: "growth_margin_optimization", label: "Marge, Angebot & Kostenoptimierung" },
   ],
@@ -128,6 +152,7 @@ export const workflowSteps: Record<
   WF_FINANCIAL_PLANNING: [
     { stepKey: "work_processes", schemaKey: "work_processes", label: "Arbeitsprozesse (Planung → Einkauf → Endkunde)" },
     { stepKey: "personnel_plan", schemaKey: "personnel_plan", label: "Personalplan & Personalkosten" },
+    { stepKey: "business_model_mechanics", schemaKey: "business_model_mechanics", label: "Business Model Mechanics" },
     { stepKey: "financial_liquidity", schemaKey: "financial_liquidity", label: "Liquiditätsplan" },
     { stepKey: "financial_profitability", schemaKey: "financial_profitability", label: "Rentabilitätsplan" },
     { stepKey: "financial_capital", schemaKey: "financial_capital", label: "Kapitalbedarf" },
@@ -135,7 +160,11 @@ export const workflowSteps: Record<
     { stepKey: "financial_monthly_h1", schemaKey: "financial_monthly_projection", label: "Monatsprognose 1–6" },
     { stepKey: "financial_monthly_h2", schemaKey: "financial_monthly_projection", label: "Monatsprognose 7–12" },
   ],
-  WF_STRATEGIC_PLANNING: [{ stepKey: "strategic_planning", schemaKey: "strategic_planning", label: "Strategische Planung" }],
+  WF_STRATEGIC_PLANNING: [
+    { stepKey: "strategic_planning", schemaKey: "strategic_planning", label: "Strategische Planung" },
+    { stepKey: "barriers_to_entry", schemaKey: "barriers_to_entry", label: "Barriers to Entry" },
+    { stepKey: "moat_assessment", schemaKey: "moat_assessment", label: "Moat Assessment" },
+  ],
   WF_TREND_ANALYSIS: [{ stepKey: "trend_analysis", schemaKey: "trend_analysis", label: "Trendanalyse" }],
   WF_TECH_DIGITALIZATION: [{ stepKey: "tech_digitalization", schemaKey: "tech_digitalization", label: "Technologie & Digitalisierung" }],
   WF_AUTOMATION_ROI: [{ stepKey: "automation_roi", schemaKey: "automation_roi", label: "Computer-Automatisierung & ROI" }],

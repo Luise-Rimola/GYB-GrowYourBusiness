@@ -59,6 +59,9 @@ export type IntakeFormCopy = {
   yearsInBusiness: string;
   targetMarket: string;
   acquisition: string;
+  socialMediaChannels: string;
+  socialMediaChannelsHint: string;
+  socialMediaChannelOptions: { value: string; label: string }[];
   aov: string;
   retention: string;
   anythingElse: string;
@@ -178,6 +181,18 @@ const EN: IntakeFormCopy = {
   yearsInBusiness: "Years in business",
   targetMarket: "Target market size (TAM/SAM/SOM if known)",
   acquisition: "Main customer acquisition channels",
+  socialMediaChannels: "Which social media channels do you actively use?",
+  socialMediaChannelsHint: "Select all channels you currently use for content or customer communication.",
+  socialMediaChannelOptions: [
+    { value: "instagram", label: "Instagram" },
+    { value: "facebook", label: "Facebook" },
+    { value: "tiktok", label: "TikTok" },
+    { value: "linkedin", label: "LinkedIn" },
+    { value: "youtube", label: "YouTube" },
+    { value: "pinterest", label: "Pinterest" },
+    { value: "x", label: "X / Twitter" },
+    { value: "snapchat", label: "Snapchat" },
+  ],
   aov: "Average order value (AOV)",
   retention: "Customer retention / churn (if known)",
   anythingElse: "Anything else we should know?",
@@ -319,6 +334,18 @@ const DE: IntakeFormCopy = {
   yearsInBusiness: "Jahre am Markt",
   targetMarket: "Zielmarkt (TAM/SAM/SOM, falls bekannt)",
   acquisition: "Wichtigste Akquisekanäle",
+  socialMediaChannels: "Welche Social-Media-Kanäle nutzen Sie aktiv?",
+  socialMediaChannelsHint: "Bitte alle Kanäle auswählen, die Sie für Inhalte oder Kundenkommunikation nutzen.",
+  socialMediaChannelOptions: [
+    { value: "instagram", label: "Instagram" },
+    { value: "facebook", label: "Facebook" },
+    { value: "tiktok", label: "TikTok" },
+    { value: "linkedin", label: "LinkedIn" },
+    { value: "youtube", label: "YouTube" },
+    { value: "pinterest", label: "Pinterest" },
+    { value: "x", label: "X / Twitter" },
+    { value: "snapchat", label: "Snapchat" },
+  ],
   aov: "Durchschnittlicher Warenkorb (AOV)",
   retention: "Kundenbindung / Churn (falls bekannt)",
   anythingElse: "Was sollten wir noch wissen?",

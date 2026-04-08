@@ -903,7 +903,7 @@ export const translations = {
     home: {
       title: "Grow Your Business",
       badge: "KI-gestütztes Wachstumssystem",
-      subtitle: "Nutzen Sie das System wie einen KI-Unternehmensberater und als Decision Support System für strategische Entscheidungen in Markteintritts- und Wachstumsphasen.",
+      subtitle: "Nutzen Sie das System wie einen KI-Unternehmensberater und als Entscheidungsunterstützungssystem (Decision Support System, DSS) für strategische Entscheidungen in Markteintritts- und Wachstumsphasen.",
       subtitleDetails:
         "Diese Studie untersucht, wie KI strategische Entscheidungen in Markteintritts- und Wachstumsphasen unterstützen kann. Das Tool arbeitet als Decision Support System (DSS): Es strukturiert Informationen, verknüpft KPIs und Quellen und liefert nachvollziehbare, evidenzbasierte Empfehlungen als Entscheidungsgrundlage.",
       companyProfile: "Geschäftsprofil",

@@ -808,6 +808,228 @@ Output schema:
 { "constraints": "...", "marketing_initiatives": [ { "name": "...", "goal": "...", "actions": "...", "hashtags": "...", "cta": "...", "tracking": "...", "expected_conversion": "...", "budget_eur": 0, "effort_h_week": "...", "roi": "..." } ], "roadmap_30_days": [ { "week": "KW 1", "tasks": ["...", "..."] }, { "week": "KW 2", "tasks": [...] }, { "week": "KW 3", "tasks": [...] }, { "week": "KW 4", "tasks": [...] } ], "kpi_goals_30_days": [ { "target": "...", "metric": "..." } ], "offline_visibility": "...", "concluding_offer": "...", "recommendations": ["..."], "sources_used": ["Title (URL)", "..."] }`,
   },
   {
+    key: "P21c",
+    workflowKey: "WF_MARKETING_STRATEGY",
+    stepKey: "conversion_funnel_analysis",
+    version: 1,
+    outputSchemaKey: "conversion_funnel_analysis",
+    templateText: `You are a conversion funnel analyst.
+${ARTIFACT_INSTRUCTION}
+Use company_profile, marketing_strategy, market_research, kpi_snapshot from CONTEXT_JSON.
+Identify funnel stages, conversion/drop-off values (best effort), key loss points, and concrete levers.
+Return ONLY valid JSON, no prose.
+${JSON_STRICT}
+CONTEXT_JSON:
+{{CONTEXT_JSON}}
+Output schema:
+{ "funnel_stages": [ { "stage": "...", "conversion_rate": 0.0, "drop_off_rate": 0.0, "issue_hypotheses": ["..."] } ], "top_drop_off_points": ["..."], "optimization_levers": ["..."], "actions_next_30_days": ["..."], "metrics": { "target_conversion_rate": "...", "target_cpa": "..." }, "sources_used": ["..."] }`,
+  },
+  {
+    key: "P21g",
+    workflowKey: "WF_MARKETING_STRATEGY",
+    stepKey: "social_media_content_plan",
+    version: 1,
+    outputSchemaKey: "social_media_content_plan",
+    templateText: `You are a social media content strategist.
+${ARTIFACT_INSTRUCTION}
+Use company_profile.social_media_channels (selected in intake), company_profile, marketing_strategy, conversion_funnel_analysis and market_research from CONTEXT_JSON.
+If social_media_channels is missing, infer 2-3 realistic channels from company profile.
+Create a practical 4-week content plan per selected channel.
+Return ONLY valid JSON, no prose.
+${JSON_STRICT}
+CONTEXT_JSON:
+{{CONTEXT_JSON}}
+Output schema:
+{ "selected_channels": ["instagram", "tiktok"], "content_pillars": [ { "pillar": "...", "goal": "...", "channel_fit": ["..."] } ], "weekly_plan": [ { "week": "KW 1", "channel_posts": [ { "channel": "instagram", "format": "reel|post|story", "topic": "...", "objective": "...", "cta": "..." } ] } ], "production_notes": ["..."], "kpi_tracking": [ { "channel": "...", "metric": "...", "target": "..." } ], "recommendations": ["..."], "sources_used": ["..."] }`,
+  },
+  {
+    key: "P21d",
+    workflowKey: "WF_SCALING_STRATEGY",
+    stepKey: "customer_economics_ltv_cac",
+    version: 1,
+    outputSchemaKey: "customer_economics_ltv_cac",
+    templateText: `You are a unit economics analyst.
+${ARTIFACT_INSTRUCTION}
+Use company_profile, kpi_snapshot, marketing_strategy, conversion_funnel_analysis, go_to_market, financial_planning from CONTEXT_JSON.
+Provide LTV/CAC and payback perspective with transparent assumptions, risks and actions.
+Return ONLY valid JSON, no prose.
+${JSON_STRICT}
+CONTEXT_JSON:
+{{CONTEXT_JSON}}
+Output schema:
+{ "ltv_cac_ratio": 0.0, "payback_period_months": 0, "cac_breakdown": [ { "channel": "...", "cac_estimate": 0, "rationale": "..." } ], "ltv_assumptions": ["..."], "risks": ["..."], "levers": ["..."], "actions": ["..."], "sources_used": ["..."] }`,
+  },
+  {
+    key: "P21e",
+    workflowKey: "WF_SCALING_STRATEGY",
+    stepKey: "pmf_assessment",
+    version: 1,
+    outputSchemaKey: "pmf_assessment",
+    templateText: `You are a product-market-fit assessor.
+${ARTIFACT_INSTRUCTION}
+Use company_profile, customer_validation, conversion_funnel_analysis, kpi_snapshot, market_research from CONTEXT_JSON.
+Evaluate PMF stage and score, signal quality, critical gaps and 90-day actions.
+Return ONLY valid JSON, no prose.
+${JSON_STRICT}
+CONTEXT_JSON:
+{{CONTEXT_JSON}}
+Output schema:
+{ "pmf_stage": "not_ready|emerging|validated|scaling_ready", "pmf_score": 0.0, "signals_positive": ["..."], "signals_negative": ["..."], "key_gaps": ["..."], "actions_next_90_days": ["..."], "risks": ["..."], "sources_used": ["..."] }`,
+  },
+  {
+    key: "P21f",
+    workflowKey: "WF_SCALING_STRATEGY",
+    stepKey: "growth_loops",
+    version: 1,
+    outputSchemaKey: "growth_loops",
+    templateText: `You are a growth systems strategist.
+${ARTIFACT_INSTRUCTION}
+Use company_profile, pmf_assessment, customer_economics_ltv_cac, conversion_funnel_analysis, go_to_market from CONTEXT_JSON.
+Design growth loops with bottlenecks, prioritization and concrete actions.
+Return ONLY valid JSON, no prose.
+${JSON_STRICT}
+CONTEXT_JSON:
+{{CONTEXT_JSON}}
+Output schema:
+{ "loops": [ { "loop_name": "...", "trigger": "...", "action": "...", "output": "...", "measurable_kpi": "..." } ], "bottlenecks": ["..."], "prioritization": [ { "loop_name": "...", "impact": "...", "effort": "...", "priority": "..." } ], "actions": ["..."], "sources_used": ["..."] }`,
+  },
+  {
+    key: "P16b",
+    workflowKey: "WF_PROCESS_OPTIMIZATION",
+    stepKey: "customer_experience_cx",
+    version: 1,
+    outputSchemaKey: "customer_experience_cx",
+    templateText: `You are a customer experience analyst.
+${ARTIFACT_INSTRUCTION}
+Use process_optimization, customer_validation, market_research, kpi_snapshot from CONTEXT_JSON.
+Map customer journey stages, pain points, CX metrics and actions.
+Return ONLY valid JSON, no prose.
+${JSON_STRICT}
+CONTEXT_JSON:
+{{CONTEXT_JSON}}
+Output schema:
+{ "journey_stages": [ { "stage": "...", "customer_goal": "...", "pain_points": ["..."], "improvement_levers": ["..."] } ], "cx_metrics": [ { "metric": "...", "current": "...", "target": "..." } ], "risks": ["..."], "actions": ["..."], "sources_used": ["..."] }`,
+  },
+  {
+    key: "P16c",
+    workflowKey: "WF_PROCESS_OPTIMIZATION",
+    stepKey: "organization_roles",
+    version: 1,
+    outputSchemaKey: "organization_roles",
+    templateText: `You are an organization design advisor.
+${ARTIFACT_INSTRUCTION}
+Use process_optimization, work_processes, personnel_plan, company_profile from CONTEXT_JSON.
+Define role map, decision scopes, critical gaps, governance notes and actions.
+Return ONLY valid JSON, no prose.
+${JSON_STRICT}
+CONTEXT_JSON:
+{{CONTEXT_JSON}}
+Output schema:
+{ "role_map": [ { "role": "...", "responsibilities": ["..."], "decision_scope": "...", "current_coverage": "..." } ], "critical_gaps": ["..."], "governance_notes": ["..."], "actions": ["..."], "sources_used": ["..."] }`,
+  },
+  {
+    key: "P16d",
+    workflowKey: "WF_PROCESS_OPTIMIZATION",
+    stepKey: "hiring_talent_strategy",
+    version: 1,
+    outputSchemaKey: "hiring_talent_strategy",
+    templateText: `You are a hiring and talent strategy advisor.
+${ARTIFACT_INSTRUCTION}
+Use organization_roles, personnel_plan, process_optimization, company_profile from CONTEXT_JSON.
+Define hiring priorities, channels, capability gaps, risks and actions.
+Return ONLY valid JSON, no prose.
+${JSON_STRICT}
+CONTEXT_JSON:
+{{CONTEXT_JSON}}
+Output schema:
+{ "hiring_priorities": [ { "role": "...", "urgency": "...", "impact": "...", "timeline": "..." } ], "talent_channels": ["..."], "capability_gaps": ["..."], "risks": ["..."], "actions": ["..."], "sources_used": ["..."] }`,
+  },
+  {
+    key: "P27b",
+    workflowKey: "WF_STRATEGIC_PLANNING",
+    stepKey: "barriers_to_entry",
+    version: 1,
+    outputSchemaKey: "barriers_to_entry",
+    templateText: `You are a competitive strategy analyst.
+${ARTIFACT_INSTRUCTION}
+Use strategic_planning, competitor_analysis, market_research, industry_research from CONTEXT_JSON.
+Assess market entry barriers, opportunities, risks and actions.
+Return ONLY valid JSON, no prose.
+${JSON_STRICT}
+CONTEXT_JSON:
+{{CONTEXT_JSON}}
+Output schema:
+{ "barriers": [ { "barrier": "...", "strength": "...", "time_to_build": "...", "notes": "..." } ], "opportunities": ["..."], "risks": ["..."], "actions": ["..."], "sources_used": ["..."] }`,
+  },
+  {
+    key: "P27c",
+    workflowKey: "WF_STRATEGIC_PLANNING",
+    stepKey: "moat_assessment",
+    version: 1,
+    outputSchemaKey: "moat_assessment",
+    templateText: `You are a moat assessment expert.
+${ARTIFACT_INSTRUCTION}
+Use strategic_planning, barriers_to_entry, competitor_analysis, value_proposition from CONTEXT_JSON.
+Assess defendability and propose moat-strengthening actions.
+Return ONLY valid JSON, no prose.
+${JSON_STRICT}
+CONTEXT_JSON:
+{{CONTEXT_JSON}}
+Output schema:
+{ "moat_score": 0.0, "moat_dimensions": [ { "dimension": "...", "current_state": "...", "evidence": ["..."], "strengthening_actions": ["..."] } ], "defendability_risks": ["..."], "actions_next_180_days": ["..."], "sources_used": ["..."] }`,
+  },
+  {
+    key: "P3c",
+    workflowKey: "WF_DATA_COLLECTION_PLAN",
+    stepKey: "data_strategy",
+    version: 1,
+    outputSchemaKey: "data_strategy",
+    templateText: `You are a data strategy planner.
+${ARTIFACT_INSTRUCTION}
+Use kpi_set, baseline, kpi_snapshot, company_profile from CONTEXT_JSON.
+Define decision areas, required data, collection methods, governance and 60-day actions.
+Return ONLY valid JSON, no prose.
+${JSON_STRICT}
+CONTEXT_JSON:
+{{CONTEXT_JSON}}
+Output schema:
+{ "decision_areas": [ { "area": "...", "required_data": ["..."], "current_data_quality": "...", "collection_method": "..." } ], "instrumentation_priorities": ["..."], "governance_rules": ["..."], "risks": ["..."], "actions_next_60_days": ["..."], "sources_used": ["..."] }`,
+  },
+  {
+    key: "P14c",
+    workflowKey: "WF_STARTUP_CONSULTING",
+    stepKey: "capital_strategy",
+    version: 1,
+    outputSchemaKey: "capital_strategy",
+    templateText: `You are a capital strategy advisor.
+${ARTIFACT_INSTRUCTION}
+Use startup_consulting, financial_planning, company_profile, industry_research from CONTEXT_JSON.
+Recommend funding mix, roadmap triggers, runway target, risks and actions.
+Return ONLY valid JSON, no prose.
+${JSON_STRICT}
+CONTEXT_JSON:
+{{CONTEXT_JSON}}
+Output schema:
+{ "capital_mix_options": [ { "source": "...", "suitability": "...", "dilution_or_cost": "...", "constraints": ["..."] } ], "funding_roadmap": [ { "phase": "...", "amount_target": "...", "trigger": "..." } ], "runway_target_months": 0, "risks": ["..."], "actions": ["..."], "sources_used": ["..."] }`,
+  },
+  {
+    key: "P26h",
+    workflowKey: "WF_FINANCIAL_PLANNING",
+    stepKey: "business_model_mechanics",
+    version: 1,
+    outputSchemaKey: "business_model_mechanics",
+    templateText: `You are a business model economics expert.
+${ARTIFACT_INSTRUCTION}
+Use company_profile, financial_planning context, market_research and go_to_market from CONTEXT_JSON.
+Describe monetization and margin mechanics with explicit risks, levers and actions.
+Return ONLY valid JSON, no prose.
+${JSON_STRICT}
+CONTEXT_JSON:
+{{CONTEXT_JSON}}
+Output schema:
+{ "revenue_mechanics": [ { "stream": "...", "pricing_logic": "...", "margin_logic": "...", "key_assumptions": ["..."] } ], "cost_mechanics": [ { "cost_block": "...", "cost_behavior": "...", "optimization_levers": ["..."] } ], "risks": ["..."], "actions": ["..."], "metrics": { "gross_margin_target": "...", "contribution_margin_target": "...", "break_even_logic": "..." }, "sources_used": ["..."] }`,
+  },
+  {
     key: "P22",
     workflowKey: "WF_PORTFOLIO_MANAGEMENT",
     stepKey: "portfolio_management",
