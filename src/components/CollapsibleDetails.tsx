@@ -22,10 +22,17 @@ export function CollapsibleDetails({
   const [open, setOpen] = useState(defaultOpen);
   return (
     <details className={className} open={open} onToggle={(e) => setOpen(e.currentTarget.open)}>
-      <summary className={summaryClassName}>
-        <span className="inline-flex items-center gap-1">
+      <summary
+        className={[
+          "list-none [&::-webkit-details-marker]:hidden [&::marker]:content-none",
+          summaryClassName,
+        ]
+          .filter(Boolean)
+          .join(" ")}
+      >
+        <span className="inline-flex items-center gap-2">
           <span
-            className={`inline-block transition-transform duration-200 ${open ? "rotate-90" : ""}`}
+            className={`inline-block text-base leading-none transition-transform duration-200 ${open ? "rotate-90" : ""}`}
             aria-hidden
           >
             ▸

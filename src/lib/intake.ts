@@ -2,6 +2,33 @@ import { prisma } from "@/lib/prisma";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 
+/** Intake-Antworten und Profil-JSON zusammenführen (Profil gewinnt bei Überschneidungen). */
+export async function getMergedIntakeExisting(companyId: string): Promise<Record<string, unknown>> {
+  const { existing } = await getIntakeFormState(companyId);
+  return existing;
+}
+
+export async function getIntakeFormState(companyId: string): Promise<{
+  existing: Record<string, unknown>;
+  formKey: string;
+}> {
+  const [latestSession, latestProfile] = await Promise.all([
+    prisma.intakeSession.findFirst({
+      where: { companyId },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.companyProfile.findFirst({
+      where: { companyId },
+      orderBy: { version: "desc" },
+    }),
+  ]);
+  const sessionObj = (latestSession?.answersJson as Record<string, unknown>) ?? {};
+  const profileObj = (latestProfile?.profileJson as Record<string, unknown>) ?? {};
+  const existing = { ...sessionObj, ...profileObj };
+  const formKey = `${latestProfile?.version ?? 0}-${latestSession?.id ?? "none"}`;
+  return { existing, formKey };
+}
+
 export async function processIntakeForm(
   companyId: string,
   formData: FormData

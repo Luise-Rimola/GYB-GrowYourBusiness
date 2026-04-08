@@ -1,9 +1,8 @@
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
 import { Section } from "@/components/Section";
 import { getOrCreateDemoCompany } from "@/lib/demo";
 import { IntakeForm } from "@/components/IntakeForm";
-import { processIntakeForm } from "@/lib/intake";
+import { getIntakeFormState, processIntakeForm } from "@/lib/intake";
 import { getServerLocale } from "@/lib/locale";
 import { getTranslations } from "@/lib/i18n";
 
@@ -18,11 +17,7 @@ export default async function IntakePage() {
   const locale = await getServerLocale();
   const t = getTranslations(locale);
   const company = await getOrCreateDemoCompany();
-  const latestSession = await prisma.intakeSession.findFirst({
-    where: { companyId: company.id },
-    orderBy: { createdAt: "desc" },
-  });
-  const existing = (latestSession?.answersJson ?? {}) as Record<string, unknown>;
+  const { existing, formKey: intakeFormKey } = await getIntakeFormState(company.id);
 
   return (
     <div className="space-y-8">
@@ -30,7 +25,7 @@ export default async function IntakePage() {
         title={t.intake.title}
         description={t.intake.description}
       >
-        <IntakeForm existing={existing} submitAction={submitIntake} />
+        <IntakeForm key={intakeFormKey} existing={existing} submitAction={submitIntake} />
       </Section>
     </div>
   );

@@ -7,6 +7,7 @@ import {
   DQ_ITEMS,
   EV_ITEMS,
   TR_ITEMS,
+  scaleLabelFromStudy,
 } from "@/lib/fragebogenScales";
 
 type Fragebogen2FormProps = {
@@ -71,9 +72,9 @@ export function Fragebogen2Form({
         <section className="rounded-xl border border-[var(--card-border)] p-6">
           <h3 className="mb-4 text-sm font-semibold text-[var(--foreground)]">{t.fb2DQ}</h3>
           <div className="grid gap-4 sm:grid-cols-2">
-            {DQ_ITEMS.map(({ key, label }) => (
+            {DQ_ITEMS.map(({ key }) => (
               <div key={key}>
-                <label className="mb-1 block text-xs text-[var(--muted)]">{label}</label>
+                <label className="mb-1 block text-xs text-[var(--muted)]">{scaleLabelFromStudy(t, key)}</label>
                 <LikertSelect name={key} fieldKey={key} initialValues={initialValues} />
               </div>
             ))}
@@ -82,9 +83,9 @@ export function Fragebogen2Form({
         <section className="rounded-xl border border-[var(--card-border)] p-6">
           <h3 className="mb-4 text-sm font-semibold text-[var(--foreground)]">{t.fb2EV}</h3>
           <div className="grid gap-4 sm:grid-cols-2">
-            {EV_ITEMS.map(({ key, label }) => (
+            {EV_ITEMS.map(({ key }) => (
               <div key={key}>
-                <label className="mb-1 block text-xs text-[var(--muted)]">{label}</label>
+                <label className="mb-1 block text-xs text-[var(--muted)]">{scaleLabelFromStudy(t, key)}</label>
                 <LikertSelect name={key} fieldKey={key} initialValues={initialValues} />
               </div>
             ))}
@@ -93,9 +94,9 @@ export function Fragebogen2Form({
         <section className="rounded-xl border border-[var(--card-border)] p-6">
           <h3 className="mb-4 text-sm font-semibold text-[var(--foreground)]">{t.fb2TR}</h3>
           <div className="grid gap-4 sm:grid-cols-2">
-            {TR_ITEMS.map(({ key, label }) => (
+            {TR_ITEMS.map(({ key }) => (
               <div key={key}>
-                <label className="mb-1 block text-xs text-[var(--muted)]">{label}</label>
+                <label className="mb-1 block text-xs text-[var(--muted)]">{scaleLabelFromStudy(t, key)}</label>
                 <LikertSelect name={key} fieldKey={key} initialValues={initialValues} />
               </div>
             ))}
@@ -104,9 +105,9 @@ export function Fragebogen2Form({
         <section className="rounded-xl border border-[var(--card-border)] p-6">
           <h3 className="mb-4 text-sm font-semibold text-[var(--foreground)]">{t.fb2CF}</h3>
           <div className="grid gap-4 sm:grid-cols-2">
-            {CF_ITEMS.map(({ key, label }) => (
+            {CF_ITEMS.map(({ key }) => (
               <div key={key}>
-                <label className="mb-1 block text-xs text-[var(--muted)]">{label}</label>
+                <label className="mb-1 block text-xs text-[var(--muted)]">{scaleLabelFromStudy(t, key)}</label>
                 <LikertSelect name={key} fieldKey={key} initialValues={initialValues} />
               </div>
             ))}
@@ -115,9 +116,9 @@ export function Fragebogen2Form({
         <section className="rounded-xl border border-[var(--card-border)] p-6">
           <h3 className="mb-4 text-sm font-semibold text-[var(--foreground)]">{t.fb2CL}</h3>
           <div className="grid gap-4 sm:grid-cols-2">
-            {CL_ITEMS.map(({ key, label }) => (
+            {CL_ITEMS.map(({ key }) => (
               <div key={key}>
-                <label className="mb-1 block text-xs text-[var(--muted)]">{label}</label>
+                <label className="mb-1 block text-xs text-[var(--muted)]">{scaleLabelFromStudy(t, key)}</label>
                 <LikertSelect name={key} fieldKey={key} initialValues={initialValues} />
               </div>
             ))}

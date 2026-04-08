@@ -66,6 +66,9 @@ export type IntakeFormCopy = {
   retention: string;
   anythingElse: string;
   save: string;
+  enrichContinue: string;
+  enrichLoading: string;
+  optionalManualTitle: string;
   confirmRemoveProduct: string;
   confirmRemoveSupplier: string;
   confirmRemoveTeam: string;
@@ -118,14 +121,14 @@ export type IntakeFormCopy = {
 
 const EN: IntakeFormCopy = {
   businessStateGoals: "Business state & goals",
-  companyBasics: "1. Company basics",
-  productCatalog: "2. Product catalogue (all products with prices)",
-  suppliers: "3. Supplier materials & price per unit",
-  productionSteps: "4. Production steps",
-  team: "5. Team members & skills",
-  financials: "6. Financials & cost factors",
-  operations: "7. Operations & growth",
-  additional: "8. Additional context",
+  companyBasics: "Offer, customers & market",
+  productCatalog: "1. Product catalogue (all products with prices)",
+  suppliers: "2. Supplier materials & price per unit",
+  productionSteps: "3. Production steps",
+  team: "4. Team members & skills",
+  financials: "5. Financials & cost factors",
+  operations: "6. Operations & growth",
+  additional: "7. Additional context",
   whereBusiness: "Where is your business right now?",
   goalsLabel: "Goals (select all that apply)",
   selectPlaceholder: "— Select —",
@@ -197,6 +200,9 @@ const EN: IntakeFormCopy = {
   retention: "Customer retention / churn (if known)",
   anythingElse: "Anything else we should know?",
   save: "Save",
+  enrichContinue: "Continue — fetch & merge public info",
+  enrichLoading: "Fetching…",
+  optionalManualTitle: "Optional manual entry",
   confirmRemoveProduct: "Remove this product from the list?",
   confirmRemoveSupplier: "Remove this supplier from the list?",
   confirmRemoveTeam: "Remove this team member from the list?",
@@ -252,6 +258,7 @@ const EN: IntakeFormCopy = {
     { value: "growing_business", label: "Growing business" },
     { value: "scaling_business", label: "Scaling business" },
     { value: "established", label: "Established" },
+    { value: "ai_usage", label: "AI usage (focus on AI in the business)" },
   ],
   GOALS: [
     { value: "validate_idea", label: "Validate idea" },
@@ -271,14 +278,14 @@ const EN: IntakeFormCopy = {
 const DE: IntakeFormCopy = {
   ...EN,
   businessStateGoals: "Unternehmensphase & Ziele",
-  companyBasics: "1. Unternehmensstammdaten",
-  productCatalog: "2. Produktkatalog (alle Produkte mit Preisen)",
-  suppliers: "3. Materialien & Einkaufspreis pro Einheit",
-  productionSteps: "4. Produktionsschritte",
-  team: "5. Team & Kompetenzen",
-  financials: "6. Finanzen & Kostenfaktoren",
-  operations: "7. Operatives Geschäft & Wachstum",
-  additional: "8. Weiterer Kontext",
+  companyBasics: "Angebot, Kunden & Markt",
+  productCatalog: "1. Produktkatalog (alle Produkte mit Preisen)",
+  suppliers: "2. Materialien & Einkaufspreis pro Einheit",
+  productionSteps: "3. Produktionsschritte",
+  team: "4. Team & Kompetenzen",
+  financials: "5. Finanzen & Kostenfaktoren",
+  operations: "6. Operatives Geschäft & Wachstum",
+  additional: "7. Weiterer Kontext",
   whereBusiness: "In welcher Phase ist Ihr Unternehmen?",
   goalsLabel: "Ziele (alle zutreffenden auswählen)",
   selectPlaceholder: "— Bitte wählen —",
@@ -350,6 +357,9 @@ const DE: IntakeFormCopy = {
   retention: "Kundenbindung / Churn (falls bekannt)",
   anythingElse: "Was sollten wir noch wissen?",
   save: "Speichern",
+  enrichContinue: "Weiter — Infos aus dem Web übernehmen",
+  enrichLoading: "Wird geladen…",
+  optionalManualTitle: "Optionale manuelle Infoeingabe",
   confirmRemoveProduct: "Dieses Produkt aus der Liste entfernen?",
   confirmRemoveSupplier: "Diesen Eintrag entfernen?",
   confirmRemoveTeam: "Dieses Teammitglied entfernen?",
@@ -405,6 +415,7 @@ const DE: IntakeFormCopy = {
     { value: "growing_business", label: "Wachsendes Unternehmen" },
     { value: "scaling_business", label: "Skalierung" },
     { value: "established", label: "Etabliert" },
+    { value: "ai_usage", label: "KI-Nutzung (Fokus auf KI im Unternehmen)" },
   ],
   GOALS: [
     { value: "validate_idea", label: "Idee validieren" },

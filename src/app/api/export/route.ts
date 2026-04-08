@@ -3,10 +3,11 @@ import { PDFDocument, PDFFont, PDFPage, StandardFonts, rgb } from "pdf-lib";
 import { prisma } from "@/lib/prisma";
 import { getCompanyForApi } from "@/lib/companyContext";
 import { getServerLocale } from "@/lib/locale";
-import type { Locale } from "@/lib/i18n";
+import { studyScaleLabel, type Locale } from "@/lib/i18n";
 import { getArtifactEvaluationsByCompany } from "@/lib/artifactEvaluations";
 import { getFeatureEvaluations } from "@/lib/featureEvaluations";
 import {
+  ALL_LIKERT_SCALE_KEYS,
   CF_ITEMS,
   CL_ITEMS,
   COMP_ITEMS,
@@ -53,7 +54,7 @@ export async function GET(req: NextRequest) {
   const companyId = auth.company.id;
   const tables =
     scope === "study"
-      ? await buildStudyTables(companyId)
+      ? await buildStudyTables(companyId, locale)
       : scope === "artifacts"
         ? await buildArtifactTables(companyId)
         : scope === "usecase"
@@ -118,7 +119,7 @@ function parseFormat(v: string | null): ExportFormat | null {
   return null;
 }
 
-async function buildStudyTables(companyId: string): Promise<Table[]> {
+async function buildStudyTables(companyId: string, locale: Locale): Promise<Table[]> {
   const participants = await prisma.studyParticipant.findMany({
     where: { companyId },
     include: {
@@ -177,7 +178,7 @@ async function buildStudyTables(companyId: string): Promise<Table[]> {
         r.questionnaireType.toUpperCase(),
         r.category ? (SCENARIO_CATEGORIES[r.category as keyof typeof SCENARIO_CATEGORIES] ?? r.category) : "Global",
         item.itemKey,
-        resolveQuestionText(r.questionnaireType, item.itemKey),
+        resolveQuestionText(r.questionnaireType, item.itemKey, locale),
         answer || "—",
         toIso(r.createdAt),
       ]);
@@ -1272,13 +1273,13 @@ function wrapText(text: string, maxWidth: number, size: number, font: PDFFont): 
 
 const QUESTION_TEXT_BY_KEY: Record<string, string> = {
   fb1A1: "Rolle im Unternehmen",
-  fb1A2: "Unternehmensphase",
+  fb1A2: "Wo steht Ihr Unternehmen gerade (Entwicklungsstand)",
   fb1A3: "Teamgroesse",
   fb1A4: "Branche",
   fb1A5: "Erfahrung in Jahren",
   fb1A6: "Haeufigkeit strategischer Entscheidungen",
-  fb1B1: "Nutzung von LLMs im Arbeitskontext",
-  fb1B2: "Selbsteingeschaetzte Kompetenz im Umgang mit LLM-Tools (1-7)",
+  fb1B1: "Nutzung von LLM/KI im Arbeitskontext",
+  fb1B2: "Selbsteingeschaetzte Kompetenz im Umgang mit LLM/KI-Tools (1-7)",
   fb1B3: "Ich vertraue KI-Outputs grundsätzlich als Input für Business-Entscheidungen. (1-7)",
   fb1C1: "Unsere Entscheidungen sind aktuell gut strukturiert begründet. (1-7)",
   fb1C2: "Unsere Entscheidungen sind für Dritte gut nachvollziehbar (Audit Trail). (1-7)",
@@ -1287,7 +1288,8 @@ const QUESTION_TEXT_BY_KEY: Record<string, string> = {
   fb1C5: "In der Praxis fehlen haeufig entscheidungsrelevante Informationen/Quellen. (1-7)",
   fb1C6: "Der Zeitaufwand bis zu einer tragfaehigen Entscheidung ist hoch. (1-7)",
   fb1D1: "Welche zentralen Unternehmensrisiken sehen Sie aktuell?",
-  fb1D2: "Welche Fruehwarnsignale waeren sinnvoll regelmaessig zu beobachten?",
+  fb1D2:
+    "Worauf regelmaessig achten um Probleme frueh zu merken (z.B. Umsatz Liquiditaet Kundenfeedback)",
   fb1D3: "Welche Prozesse/Bereiche sollten konkret analysiert werden?",
   fb1D4: "Welche Indikatoren oder KPIs sind besonders relevant?",
   fb5X1: "Insgesamt wuerde der Einsatz einer solchen Loesung Sinn ergeben.",
@@ -1301,24 +1303,10 @@ const QUESTION_TEXT_BY_KEY: Record<string, string> = {
   fb5T4: "Sonstige Anmerkungen zu Akzeptanz und Nutzung im Alltag?",
 };
 
-const SCALE_QUESTION_TEXT = new Map<string, string>([
-  ...DQ_ITEMS.map((i): [string, string] => [i.key, i.label]),
-  ...EV_ITEMS.map((i): [string, string] => [i.key, i.label]),
-  ...TR_ITEMS.map((i): [string, string] => [i.key, i.label]),
-  ...CF_ITEMS.map((i): [string, string] => [i.key, i.label]),
-  ...CL_ITEMS.map((i): [string, string] => [i.key, i.label]),
-  ...US_ITEMS.map((i): [string, string] => [i.key, i.label]),
-  ...TAM_UTAUT_ITEMS.map((i): [string, string] => [i.key, i.label]),
-  ...COMP_ITEMS.map((i): [string, string] => [i.key, i.label]),
-  ...FIT_ITEMS.map((i): [string, string] => [i.key, i.label]),
-  ...GOV_ITEMS.map((i): [string, string] => [i.key, i.label]),
-]);
-
-function resolveQuestionText(questionnaireType: string, itemKey: string): string {
+function resolveQuestionText(questionnaireType: string, itemKey: string, locale: Locale): string {
   const keyed = QUESTION_TEXT_BY_KEY[`${questionnaireType}${itemKey}`];
   if (keyed) return keyed;
-  const scale = SCALE_QUESTION_TEXT.get(itemKey);
-  if (scale) return scale;
+  if (ALL_LIKERT_SCALE_KEYS.has(itemKey)) return studyScaleLabel(locale, itemKey);
   if (/^O\d+$/i.test(itemKey)) return "Offene Frage";
   if (/^I\d+$/i.test(itemKey)) return "Interview-Frage";
   return itemKey;

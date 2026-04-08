@@ -10,10 +10,10 @@ import { getOrCreateStudyParticipant } from "@/lib/study";
 import { getServerLocale } from "@/lib/locale";
 import { getTranslations } from "@/lib/i18n";
 import { Fragebogen3Form } from "@/components/Fragebogen3Form";
-import { WORKFLOW_NAMES } from "@/lib/planningFramework";
+import { workflowDisplayName } from "@/lib/planningFramework";
 import { AssistantSubmitBridge } from "@/components/AssistantSubmitBridge";
 import { artifactsUrlAfterFb3Assistant } from "@/lib/studyAssistantEmbed";
-import { getStudyCategoryContext, STUDY_CATEGORY_LABELS, VALID_STUDY_CATEGORIES, type StudyCategoryKey } from "@/lib/studyCategoryContext";
+import { getStudyCategoryContext, getStudyCategoryLabels, VALID_STUDY_CATEGORIES, type StudyCategoryKey } from "@/lib/studyCategoryContext";
 
 const VALID_CATEGORIES: StudyCategoryKey[] = VALID_STUDY_CATEGORIES;
 
@@ -70,9 +70,9 @@ export default async function Fragebogen3CategoryPage({
   const initialValues = fb3ResponsesJsonToFormDefaults(savedJson);
   const locale = await getServerLocale();
   const t = getTranslations(locale);
-  const categoryLabel = STUDY_CATEGORY_LABELS[category as StudyCategoryKey];
+  const categoryLabel = getStudyCategoryLabels(locale)[category as StudyCategoryKey];
   const context = getStudyCategoryContext(locale)[category as StudyCategoryKey];
-  const workflowNames = context.workflowKeys.map((k) => WORKFLOW_NAMES[k] ?? k).join(", ");
+  const workflowNames = context.workflowKeys.map((k) => workflowDisplayName(locale, k)).join(", ");
 
   return (
     <div className="space-y-8">

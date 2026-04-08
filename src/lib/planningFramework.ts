@@ -3,6 +3,8 @@
  * Workflows sind Phasen und Bereichen zugeordnet, mit optionalen Unterworkflows (Steps).
  */
 
+import type { Locale } from "@/lib/i18n";
+
 /** Workflows that consume each artifact/data type – für "Workflows neu starten" nach manueller Bearbeitung */
 export const DATA_TO_WORKFLOWS: Record<string, string[]> = {
   company_profile: ["WF_BASELINE", "WF_MARKET", "WF_RESEARCH", "WF_VALUE_PROPOSITION", "WF_COMPETITOR_ANALYSIS", "WF_SWOT", "WF_TREND_ANALYSIS", "WF_CUSTOMER_VALIDATION", "WF_BUSINESS_PLAN", "WF_MENU_CARD", "WF_SUPPLIER_LIST", "WF_REAL_ESTATE", "WF_GO_TO_MARKET", "WF_INVENTORY_LAUNCH", "WF_FINANCIAL_PLANNING", "WF_STARTUP_CONSULTING", "WF_DIAGNOSTIC", "WF_NEXT_BEST_ACTIONS", "WF_MARKETING_STRATEGY", "WF_STRATEGIC_PLANNING", "WF_TECH_DIGITALIZATION", "WF_AUTOMATION_ROI", "WF_PHYSICAL_AUTOMATION", "WF_APP_DEVELOPMENT"],
@@ -283,6 +285,57 @@ export const WORKFLOW_NAMES: Record<string, string> = {
   WF_INVENTORY_LAUNCH: "Inventar & Equipment (Markteintritt)",
   WF_APP_DEVELOPMENT: "Eigene App – Entwicklung",
 };
+
+/** Englische Kurznamen für Study-UI und locale=en (Keys identisch zu {@link WORKFLOW_NAMES}). */
+export const WORKFLOW_NAMES_EN: Record<string, string> = {
+  WF_BUSINESS_FORM: "Business form",
+  WF_BASELINE: "Baseline analysis & KPI set",
+  WF_MARKET: "Market overview",
+  WF_RESEARCH: "Market research",
+  WF_VALUE_PROPOSITION: "Value proposition",
+  WF_COMPETITOR_ANALYSIS: "Competitor analysis",
+  WF_SWOT: "SWOT",
+  WF_TREND_ANALYSIS: "Trend analysis",
+  WF_IDEA_USP_VALIDATION: "Idea & USP validation",
+  WF_FEASIBILITY_VALIDATION: "Feasibility validation",
+  WF_PATENT_CHECK: "Patents & protectability",
+  WF_LEGAL_FOUNDATION: "Legal requirements & business form",
+  WF_CUSTOMER_VALIDATION: "Customer validation",
+  WF_MENU_CARD: "Offer catalog",
+  WF_SUPPLIER_LIST: "Supplier list",
+  WF_MENU_COST: "Cost of goods",
+  WF_MENU_PRICING: "Menu & pricing",
+  WF_REAL_ESTATE: "Location options",
+  WF_BUSINESS_PLAN: "Business plan",
+  WF_STARTUP_CONSULTING: "Funding / grants",
+  WF_GO_TO_MARKET: "Go-to-market",
+  WF_FINANCIAL_PLANNING: "Financial planning",
+  WF_DIAGNOSTIC: "Root cause analysis",
+  WF_NEXT_BEST_ACTIONS: "Top decisions",
+  WF_MARKETING_STRATEGY: "Marketing strategy",
+  WF_SCALING_STRATEGY: "Scaling strategy",
+  WF_GROWTH_MARGIN_OPTIMIZATION: "Margin, offering & cost optimization",
+  WF_PROCESS_OPTIMIZATION: "Process optimization",
+  WF_PORTFOLIO_MANAGEMENT: "Portfolio management",
+  WF_STRATEGIC_OPTIONS: "Strategic options",
+  WF_KPI_ESTIMATION: "KPI estimation",
+  WF_DATA_COLLECTION_PLAN: "Data collection plan",
+  WF_STRATEGIC_PLANNING: "Strategic planning",
+  WF_SCENARIO_ANALYSIS: "Scenario analysis",
+  WF_OPERATIVE_PLAN: "Operational plan",
+  WF_TECH_DIGITALIZATION: "Technology & digitalization",
+  WF_AUTOMATION_ROI: "Computer automation & ROI",
+  WF_PHYSICAL_AUTOMATION: "Physical process automation",
+  WF_INVENTORY_LAUNCH: "Inventory & equipment (market entry)",
+  WF_APP_DEVELOPMENT: "Custom app development",
+};
+
+export function workflowDisplayName(locale: Locale, workflowKey: string): string {
+  if (locale === "de") {
+    return WORKFLOW_NAMES[workflowKey] ?? workflowKey;
+  }
+  return WORKFLOW_NAMES_EN[workflowKey] ?? WORKFLOW_NAMES[workflowKey] ?? workflowKey;
+}
 
 /** Unterworkflows (Steps) pro Workflow – für Anzeige */
 export const WORKFLOW_STEP_LABELS: Record<string, string[]> = {

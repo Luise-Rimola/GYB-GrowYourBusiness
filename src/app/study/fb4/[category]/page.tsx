@@ -10,8 +10,8 @@ import { getOrCreateStudyParticipant } from "@/lib/study";
 import { getServerLocale } from "@/lib/locale";
 import { getTranslations } from "@/lib/i18n";
 import { Fragebogen4Form } from "@/components/Fragebogen4Form";
-import { WORKFLOW_NAMES } from "@/lib/planningFramework";
-import { getStudyCategoryContext, STUDY_CATEGORY_LABELS, VALID_STUDY_CATEGORIES, type StudyCategoryKey } from "@/lib/studyCategoryContext";
+import { workflowDisplayName } from "@/lib/planningFramework";
+import { getStudyCategoryContext, getStudyCategoryLabels, VALID_STUDY_CATEGORIES, type StudyCategoryKey } from "@/lib/studyCategoryContext";
 import { AssistantSubmitBridge } from "@/components/AssistantSubmitBridge";
 import { urlAfterFb4Assistant } from "@/lib/studyAssistantEmbed";
 
@@ -96,9 +96,9 @@ export default async function Fragebogen4CategoryPage({
   const initialValues = fb4ResponsesJsonToFormDefaults(savedJson);
   const locale = await getServerLocale();
   const t = getTranslations(locale);
-  const categoryLabel = STUDY_CATEGORY_LABELS[category as StudyCategoryKey];
+  const categoryLabel = getStudyCategoryLabels(locale)[category as StudyCategoryKey];
   const context = getStudyCategoryContext(locale)[category as StudyCategoryKey];
-  const workflowNames = context.workflowKeys.map((k) => WORKFLOW_NAMES[k] ?? k).join(", ");
+  const workflowNames = context.workflowKeys.map((k) => workflowDisplayName(locale, k)).join(", ");
 
   return (
     <div className="space-y-8">

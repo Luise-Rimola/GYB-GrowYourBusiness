@@ -2,8 +2,11 @@
 
 import { Section } from "@/components/Section";
 import { PendingSubmitButton } from "@/components/PendingSubmitButton";
+import { getFragebogen1SelectOptions } from "@/lib/fragebogen1Options";
+import type { Locale } from "@/lib/i18n";
 
 type Fragebogen1FormProps = {
+  locale: Locale;
   action: (formData: FormData) => Promise<void>;
   t: {
     fb1CategoryA: string;
@@ -45,48 +48,8 @@ type Fragebogen1FormProps = {
   assistantEmbed?: boolean;
 };
 
-const A1_OPTIONS = [
-  { value: "Founder", label: "Founder" },
-  { value: "C-Level", label: "C-Level" },
-  { value: "Product", label: "Product" },
-  { value: "Marketing/Sales", label: "Marketing/Sales" },
-  { value: "Finance", label: "Finance" },
-  { value: "Ops", label: "Ops" },
-  { value: "Sonstiges", label: "Other" },
-];
-
-const A2_OPTIONS = [
-  { value: "Idee", label: "Idee" },
-  { value: "Pre-Seed", label: "Pre-Seed" },
-  { value: "Seed", label: "Seed" },
-  { value: "Scale-up", label: "Scale-up" },
-  { value: "KMU", label: "KMU" },
-];
-
-const A3_OPTIONS = [
-  { value: "1", label: "1" },
-  { value: "2-5", label: "2–5" },
-  { value: "6-15", label: "6–15" },
-  { value: "16-50", label: "16–50" },
-  { value: ">50", label: ">50" },
-];
-
-const A6_OPTIONS = [
-  { value: "täglich", label: "täglich" },
-  { value: "wöchentlich", label: "wöchentlich" },
-  { value: "monatlich", label: "monatlich" },
-  { value: "seltener", label: "seltener" },
-];
-
-const B1_OPTIONS = [
-  { value: "nie", label: "nie" },
-  { value: "selten", label: "selten" },
-  { value: "gelegentlich", label: "gelegentlich" },
-  { value: "wöchentlich", label: "wöchentlich" },
-  { value: "täglich", label: "täglich" },
-];
-
 export function Fragebogen1Form({
+  locale,
   action,
   t,
   initialData,
@@ -95,6 +58,8 @@ export function Fragebogen1Form({
   assistantEmbed,
 }: Fragebogen1FormProps) {
   const shouldHideSubmitButton = Boolean(hideSubmitButton);
+  const { A1: A1_OPTIONS, A2: A2_OPTIONS, A3: A3_OPTIONS, A6: A6_OPTIONS, B1: B1_OPTIONS } =
+    getFragebogen1SelectOptions(locale);
 
   const a = (initialData?.a ?? {}) as Record<string, string | number>;
   const b = (initialData?.b ?? {}) as Record<string, string | number>;

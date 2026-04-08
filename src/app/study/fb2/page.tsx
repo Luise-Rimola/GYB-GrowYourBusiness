@@ -10,7 +10,7 @@ import {
 import { getServerLocale } from "@/lib/locale";
 import { getTranslations } from "@/lib/i18n";
 import { Fragebogen2Form } from "@/components/Fragebogen2Form";
-import { WORKFLOW_NAMES } from "@/lib/planningFramework";
+import { workflowDisplayName } from "@/lib/planningFramework";
 import { AssistantSubmitBridge } from "@/components/AssistantSubmitBridge";
 import { dashboardUrlAfterFb2Assistant } from "@/lib/studyAssistantEmbed";
 import { getStudyCategoryContext, type StudyCategoryKey } from "@/lib/studyCategoryContext";
@@ -82,7 +82,7 @@ export default async function Fragebogen2Page({
   const catCtx = getStudyCategoryContext(locale);
   const context = category && catCtx[category as StudyCategoryKey] ? catCtx[category as StudyCategoryKey] : null;
   const workflowList = context
-    ? context.fb2WorkflowKeys.map((k) => WORKFLOW_NAMES[k] ?? k).join(", ")
+    ? context.fb2WorkflowKeys.map((k) => workflowDisplayName(locale, k)).join(", ")
     : t.study.fb2PickCategoryFirst;
 
   return (

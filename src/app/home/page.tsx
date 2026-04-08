@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { Section } from "@/components/Section";
 import { StatCard } from "@/components/StatCard";
 import { Badge } from "@/components/Badge";
 import { getOrCreateDemoCompany } from "@/lib/demo";
@@ -9,7 +8,7 @@ import { getTranslations } from "@/lib/i18n";
 import { getOrCreateStudyParticipant } from "@/lib/study";
 import { loadAssistantSteps } from "@/lib/assistantSteps";
 import { AssistantStepsList } from "@/components/AssistantStepsList";
-import { STUDY_CATEGORY_LABELS, type StudyCategoryKey } from "@/lib/studyCategoryContext";
+import { getStudyCategoryLabels, type StudyCategoryKey } from "@/lib/studyCategoryContext";
 import { HomeExportPackageButton } from "@/components/HomeExportPackageButton";
 
 async function safeDb<T>(query: () => Promise<T>, fallback: T): Promise<T> {
@@ -28,6 +27,7 @@ export default async function Home({
   const params = await searchParams;
   const locale = await getServerLocale();
   const t = getTranslations(locale);
+  const categoryLabels = getStudyCategoryLabels(locale);
   const company = await getOrCreateDemoCompany();
   const latestProfile = await safeDb(
     () =>
@@ -141,7 +141,7 @@ export default async function Home({
           {t.study.fb2Saved}
           {params.category && (
             <span className="ml-1 text-[var(--muted)]">
-              ({STUDY_CATEGORY_LABELS[params.category as StudyCategoryKey] ?? params.category})
+              ({categoryLabels[params.category as StudyCategoryKey] ?? params.category})
             </span>
           )}
         </div>
@@ -151,7 +151,7 @@ export default async function Home({
           {t.study.fb3Saved}
           {params.category && (
             <span className="ml-1 text-[var(--muted)]">
-              ({STUDY_CATEGORY_LABELS[params.category as StudyCategoryKey] ?? params.category})
+              ({categoryLabels[params.category as StudyCategoryKey] ?? params.category})
             </span>
           )}
         </div>
@@ -186,22 +186,46 @@ export default async function Home({
         </div>
       </div>
 
-      <Section
-        title={t.common.nextSteps}
-        description={t.home.guidedPath}
-      >
-        <div className="mb-4 rounded-xl border border-teal-200 bg-teal-50/60 p-4 dark:border-teal-900/60 dark:bg-teal-950/25">
-          <p className="text-sm font-semibold text-[var(--foreground)]">{t.home.studyInfoTitle}</p>
-          <p className="mt-1 text-sm text-[var(--muted)]">{t.home.studyInfoBody}</p>
-          <Link
-            href="/manual"
-            className="mt-3 inline-flex items-center rounded-lg border border-teal-300 px-3 py-1.5 text-xs font-semibold text-teal-700 transition hover:bg-teal-100/70 dark:border-teal-700 dark:text-teal-300 dark:hover:bg-teal-900/40"
-          >
-            {t.home.openGuide}
-          </Link>
-        </div>
-        <AssistantStepsList steps={nextSteps} />
-      </Section>
+      <section className="rounded-2xl border border-[var(--card-border)] bg-[var(--card)] shadow-lg shadow-zinc-200/50 dark:shadow-zinc-950/50 p-6">
+        <details className="group">
+          <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+            <div className="flex w-full items-start gap-3">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                aria-hidden
+                className="mt-0.5 h-5 w-5 shrink-0 text-teal-600 transition-transform duration-200 group-open:rotate-90 dark:text-teal-400"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M8.22 5.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L11.94 10 8.22 6.28a.75.75 0 0 1 0-1.06Z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              <div className="min-w-0 flex-1 space-y-2">
+                <h2 className="text-xl font-semibold tracking-tight text-[var(--foreground)]">
+                  {t.common.nextSteps}
+                </h2>
+                <p className="text-sm text-[var(--muted)]">{t.home.guidedPath}</p>
+              </div>
+            </div>
+          </summary>
+          <div className="mt-5 space-y-4 border-t border-[var(--card-border)] pt-5">
+            <div className="rounded-xl border border-teal-200 bg-teal-50/60 p-4 dark:border-teal-900/60 dark:bg-teal-950/25">
+              <p className="text-sm font-semibold text-[var(--foreground)]">{t.home.studyInfoTitle}</p>
+              <p className="mt-1 text-sm text-[var(--muted)]">{t.home.studyInfoBody}</p>
+              <Link
+                href="/manual"
+                className="mt-3 inline-flex items-center rounded-lg border border-teal-300 px-3 py-1.5 text-xs font-semibold text-teal-700 transition hover:bg-teal-100/70 dark:border-teal-700 dark:text-teal-300 dark:hover:bg-teal-900/40"
+              >
+                {t.home.openGuide}
+              </Link>
+            </div>
+            <AssistantStepsList steps={nextSteps} />
+          </div>
+        </details>
+      </section>
 
       <Link
         href="/chat?new=1"

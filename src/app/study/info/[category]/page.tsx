@@ -2,8 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getServerLocale } from "@/lib/locale";
 import { getTranslations } from "@/lib/i18n";
-import { WORKFLOW_NAMES } from "@/lib/planningFramework";
-import { getStudyCategoryContext, STUDY_CATEGORY_LABELS, VALID_STUDY_CATEGORIES, type StudyCategoryKey } from "@/lib/studyCategoryContext";
+import { workflowDisplayName } from "@/lib/planningFramework";
+import { getStudyCategoryContext, getStudyCategoryLabels, VALID_STUDY_CATEGORIES, type StudyCategoryKey } from "@/lib/studyCategoryContext";
 
 export default async function StudyCategoryInfoPage({
   params,
@@ -20,9 +20,8 @@ export default async function StudyCategoryInfoPage({
   const locale = await getServerLocale();
   const t = getTranslations(locale);
   const cat = category as StudyCategoryKey;
-  const categoryLabel = STUDY_CATEGORY_LABELS[cat];
+  const categoryLabel = getStudyCategoryLabels(locale)[cat];
   const ctx = getStudyCategoryContext(locale)[cat];
-  const workflowNames = ctx.workflowKeys.map((k) => WORKFLOW_NAMES[k] ?? k);
 
   return (
     <div className="space-y-8">
@@ -40,8 +39,8 @@ export default async function StudyCategoryInfoPage({
         <p className="mt-3 text-sm text-[var(--muted)]">{ctx.description}</p>
         <p className="mt-4 text-sm font-semibold text-[var(--foreground)]">{t.study.studyInfoWhatDone}</p>
         <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-[var(--muted)]">
-          {workflowNames.map((w) => (
-            <li key={w}>{w}</li>
+          {ctx.workflowKeys.map((k) => (
+            <li key={k}>{workflowDisplayName(locale, k)}</li>
           ))}
         </ul>
         <p className="mt-4 text-sm text-[var(--muted)]">{t.study.studyInfoDocs}</p>

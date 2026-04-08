@@ -106,6 +106,7 @@ export default async function Fragebogen1Page({
       </header>
 
       <Fragebogen1Form
+        locale={locale}
         action={saveFb1}
         t={t.study}
         assistantEmbed={isEmbed}

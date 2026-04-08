@@ -10,8 +10,8 @@ import { getOrCreateStudyParticipant, updateStudyParticipantById } from "@/lib/s
 import { getServerLocale } from "@/lib/locale";
 import { getTranslations } from "@/lib/i18n";
 import { Fragebogen2Form } from "@/components/Fragebogen2Form";
-import { WORKFLOW_NAMES } from "@/lib/planningFramework";
-import { getStudyCategoryContext, STUDY_CATEGORY_LABELS, VALID_STUDY_CATEGORIES, type StudyCategoryKey } from "@/lib/studyCategoryContext";
+import { workflowDisplayName } from "@/lib/planningFramework";
+import { getStudyCategoryContext, getStudyCategoryLabels, VALID_STUDY_CATEGORIES, type StudyCategoryKey } from "@/lib/studyCategoryContext";
 import { AssistantSubmitBridge } from "@/components/AssistantSubmitBridge";
 import { dashboardUrlAfterFb2Assistant } from "@/lib/studyAssistantEmbed";
 
@@ -72,9 +72,9 @@ export default async function Fragebogen2CategoryPage({
   const initialValues = fb2ResponsesJsonToFormDefaults(savedJson);
   const locale = await getServerLocale();
   const t = getTranslations(locale);
-  const categoryLabel = STUDY_CATEGORY_LABELS[category as StudyCategoryKey];
+  const categoryLabel = getStudyCategoryLabels(locale)[category as StudyCategoryKey];
   const context = getStudyCategoryContext(locale)[category as StudyCategoryKey];
-  const workflowNames = context.workflowKeys.map((k) => WORKFLOW_NAMES[k] ?? k).join(", ");
+  const workflowNames = context.workflowKeys.map((k) => workflowDisplayName(locale, k)).join(", ");
 
   return (
     <div className="space-y-8">

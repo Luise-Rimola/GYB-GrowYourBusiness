@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { getIntakeFormCopy } from "@/lib/intakeFormLocale";
 
@@ -11,6 +12,9 @@ export type TeamRow = { name: string; role: string; skills: string; hoursPerWeek
 const inputClass =
   "w-full rounded-xl border border-zinc-200 px-4 py-2 text-sm dark:border-zinc-800 dark:bg-zinc-950";
 const labelClass = "block text-sm font-semibold text-zinc-700 dark:text-zinc-200";
+
+/** Später auf `true`: Ziele (GOALS) + KI-Hinweis-Checkboxen zwischen Feldern. */
+const SHOW_INTAKE_GOALS_AND_AI_REQUEST_CHECKBOXES = false;
 
 function FieldCheckboxes({
   options,
@@ -51,6 +55,10 @@ export function IntakeForm({
 }) {
   const { locale } = useLanguage();
   const c = getIntakeFormCopy(locale);
+  const router = useRouter();
+  const formRef = useRef<HTMLFormElement>(null);
+  const [enrichBusy, setEnrichBusy] = useState(false);
+  const [enrichErr, setEnrichErr] = useState<string | null>(null);
   const [mobileEdit, setMobileEdit] = useState<
     null | { kind: "product" | "supplier" | "team"; index: number }
   >(null);
@@ -98,6 +106,7 @@ export function IntakeForm({
 
   return (
     <form
+      ref={formRef}
       action={async (fd) => {
         fd.set("products_json", JSON.stringify(products.filter((p) => p.name || p.price)));
         fd.set("suppliers_json", JSON.stringify(suppliers.filter((s) => s.material || s.pricePerUnit)));
@@ -115,76 +124,83 @@ export function IntakeForm({
         Object.entries(hiddenFields).map(([name, value]) => (
           <input key={name} type="hidden" name={name} value={value} />
         ))}
-      {/* Section 0: Business state & goals */}
-      <section className="space-y-4 rounded-2xl border border-zinc-200 p-6 dark:border-zinc-800">
-        <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-50">{c.businessStateGoals}</h2>
-        <div>
-          <label className={labelClass}>{c.whereBusiness}</label>
-          <select name="business_state" defaultValue={String(existing.business_state ?? "")} className={`mt-2 ${inputClass}`}>
-            <option value="">{c.selectPlaceholder}</option>
-            {c.BUSINESS_STATES.map((s) => (
-              <option key={s.value} value={s.value}>{s.label}</option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className={labelClass}>{c.goalsLabel}</label>
-          <div className="mt-2 flex flex-wrap gap-3">
-            {c.GOALS.map((g) => {
-              const goalsArr = Array.isArray(existing.goals) ? existing.goals : typeof existing.goals === "string" ? [existing.goals] : [];
-              return (
-                <label key={g.value} className="flex items-center gap-2 rounded-lg border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-700">
-                  <input type="checkbox" name="goals" value={g.value} defaultChecked={goalsArr.includes(g.value)} className="rounded" />
-                  <span>{g.label}</span>
-                </label>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* Section 1: Basics */}
-      <section className="space-y-4 rounded-2xl border border-zinc-200 p-6 dark:border-zinc-800">
-        <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-50">{c.companyBasics}</h2>
+      <section className="space-y-4 rounded-2xl border border-teal-200 bg-teal-50/30 p-6 dark:border-teal-900 dark:bg-teal-950/20">
         <div>
           <label className={labelClass}>{c.companyName}</label>
-          <input name="company_name" defaultValue={String(existing.company_name ?? "")} className={`mt-2 ${inputClass}`} placeholder="Acme Inc" />
+          <input name="company_name" defaultValue={String(existing.company_name ?? "")} className={`mt-2 ${inputClass}`} />
         </div>
         <div>
           <label className={labelClass}>{c.location}</label>
-          <input name="location" defaultValue={String(existing.location ?? "")} className={`mt-2 ${inputClass}`} placeholder="Berlin, Germany" />
-          <FieldCheckboxes options={[{ name: "find_real_estate", label: c.findRealEstate }]} existing={existing} />
+          <input name="location" defaultValue={String(existing.location ?? "")} className={`mt-2 ${inputClass}`} />
+          {SHOW_INTAKE_GOALS_AND_AI_REQUEST_CHECKBOXES ? (
+            <FieldCheckboxes options={[{ name: "find_real_estate", label: c.findRealEstate }]} existing={existing} />
+          ) : null}
         </div>
         <div>
           <label className={labelClass}>{c.website}</label>
           <input name="website" type="url" defaultValue={String(existing.website ?? "")} className={`mt-2 ${inputClass}`} placeholder="https://example.com" />
         </div>
+        <h3 className="mt-6 text-base font-bold text-zinc-900 dark:text-zinc-50">{c.businessStateGoals}</h3>
+        <div>
+          <label className={labelClass}>{c.whereBusiness}</label>
+          <select name="business_state" defaultValue={String(existing.business_state ?? "")} className={`mt-2 ${inputClass}`}>
+            <option value="">{c.selectPlaceholder}</option>
+            {c.BUSINESS_STATES.map((s) => (
+              <option key={s.value} value={s.value}>
+                {s.label}
+              </option>
+            ))}
+          </select>
+        </div>
+        {SHOW_INTAKE_GOALS_AND_AI_REQUEST_CHECKBOXES ? (
+          <div>
+            <label className={labelClass}>{c.goalsLabel}</label>
+            <div className="mt-2 flex flex-wrap gap-3">
+              {c.GOALS.map((g) => {
+                const goalsArr = Array.isArray(existing.goals) ? existing.goals : typeof existing.goals === "string" ? [existing.goals] : [];
+                return (
+                  <label key={g.value} className="flex items-center gap-2 rounded-lg border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-700">
+                    <input type="checkbox" name="goals" value={g.value} defaultChecked={goalsArr.includes(g.value)} className="rounded" />
+                    <span>{g.label}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
+        <h3 className="mt-6 text-base font-bold text-zinc-900 dark:text-zinc-50">{c.companyBasics}</h3>
         <div>
           <label className={labelClass}>{c.offer}</label>
           <textarea name="offer" rows={3} defaultValue={String(existing.offer ?? "")} className={`mt-2 ${inputClass}`} placeholder="Product/service description" />
-          <FieldCheckboxes
-            options={[
-              { name: "research_market_pricing", label: c.researchMarketPricing },
-              { name: "find_best_positioning", label: c.findBestPositioning },
-            ]}
-            existing={existing}
-          />
+          {SHOW_INTAKE_GOALS_AND_AI_REQUEST_CHECKBOXES ? (
+            <FieldCheckboxes
+              options={[
+                { name: "research_market_pricing", label: c.researchMarketPricing },
+                { name: "find_best_positioning", label: c.findBestPositioning },
+              ]}
+              existing={existing}
+            />
+          ) : null}
         </div>
         <div>
           <label className={labelClass}>{c.usp}</label>
           <textarea name="usp" rows={2} defaultValue={String(existing.usp ?? "")} className={`mt-2 ${inputClass}`} placeholder="What makes you different from competitors?" />
-          <FieldCheckboxes
-            options={[
-              { name: "research_competitor_usps", label: c.researchCompetitorUsps },
-              { name: "find_best_usp", label: c.findBestUsp },
-            ]}
-            existing={existing}
-          />
+          {SHOW_INTAKE_GOALS_AND_AI_REQUEST_CHECKBOXES ? (
+            <FieldCheckboxes
+              options={[
+                { name: "research_competitor_usps", label: c.researchCompetitorUsps },
+                { name: "find_best_usp", label: c.findBestUsp },
+              ]}
+              existing={existing}
+            />
+          ) : null}
         </div>
         <div>
           <label className={labelClass}>{c.customers}</label>
           <input name="customers" defaultValue={String(existing.customers ?? "")} className={`mt-2 ${inputClass}`} placeholder="B2B SaaS, SMBs, etc." />
-          <FieldCheckboxes options={[{ name: "research_target_demographics", label: c.researchTargetDemographics }]} existing={existing} />
+          {SHOW_INTAKE_GOALS_AND_AI_REQUEST_CHECKBOXES ? (
+            <FieldCheckboxes options={[{ name: "research_target_demographics", label: c.researchTargetDemographics }]} existing={existing} />
+          ) : null}
         </div>
         <div>
           <label className={labelClass}>{c.marketReach}</label>
@@ -194,18 +210,61 @@ export function IntakeForm({
             <option value="international">{c.localNatIntl.international}</option>
           </select>
         </div>
+        <button
+          type="button"
+          disabled={enrichBusy}
+          onClick={async () => {
+            setEnrichErr(null);
+            const el = formRef.current;
+            if (!el) return;
+            const fd = new FormData(el);
+            const company_name = String(fd.get("company_name") || "").trim();
+            const website = String(fd.get("website") || "").trim();
+            const location = String(fd.get("location") || "").trim();
+            if (!company_name) {
+              setEnrichErr(locale === "de" ? "Bitte Firmenname angeben." : "Please enter a company name.");
+              return;
+            }
+            setEnrichBusy(true);
+            try {
+              const res = await fetch("/api/profile/enrich-company", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ company_name, website, location }),
+              });
+              const data = (await res.json()) as { error?: string };
+              if (!res.ok) throw new Error(data.error || "Enrichment failed");
+              router.refresh();
+            } catch (e) {
+              setEnrichErr(e instanceof Error ? e.message : String(e));
+            } finally {
+              setEnrichBusy(false);
+            }
+          }}
+          className="rounded-full bg-teal-600 px-6 py-3 text-sm font-semibold text-white hover:bg-teal-700 disabled:opacity-60"
+        >
+          {enrichBusy ? c.enrichLoading : c.enrichContinue}
+        </button>
+        {enrichErr ? <p className="text-sm text-red-600 dark:text-red-400">{enrichErr}</p> : null}
       </section>
 
-      {/* Section 2: Product catalogue */}
+      <details className="rounded-2xl border border-zinc-200 dark:border-zinc-800">
+        <summary className="cursor-pointer list-none px-6 py-4 text-lg font-bold text-zinc-900 dark:text-zinc-50 [&::-webkit-details-marker]:hidden">
+          {c.optionalManualTitle}
+        </summary>
+        <div className="space-y-10 border-t border-zinc-200 px-6 pb-6 pt-4 dark:border-zinc-800">
+      {/* Section 1 in manual: Product catalogue */}
       <section className="space-y-4 rounded-2xl border border-zinc-200 p-6 dark:border-zinc-800">
         <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-50">{c.productCatalog}</h2>
-        <FieldCheckboxes
-          options={[
-            { name: "find_best_product_mix", label: c.findBestProductMix },
-            { name: "research_product_pricing", label: c.researchProductPricing },
-          ]}
-          existing={existing}
-        />
+        {SHOW_INTAKE_GOALS_AND_AI_REQUEST_CHECKBOXES ? (
+          <FieldCheckboxes
+            options={[
+              { name: "find_best_product_mix", label: c.findBestProductMix },
+              { name: "research_product_pricing", label: c.researchProductPricing },
+            ]}
+            existing={existing}
+          />
+        ) : null}
         <div className="space-y-2 md:hidden">
           {products.map((p, i) => (
             <button
@@ -266,16 +325,18 @@ export function IntakeForm({
         </button>
       </section>
 
-      {/* Section 3: Suppliers & materials */}
+      {/* Section 2 in manual: Suppliers & materials */}
       <section className="space-y-4 rounded-2xl border border-zinc-200 p-6 dark:border-zinc-800">
         <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-50">{c.suppliers}</h2>
-        <FieldCheckboxes
-          options={[
-            { name: "find_supplier_whitelabel", label: c.findSupplierWhitelabel },
-            { name: "find_supplier_ingredients", label: c.findSupplierIngredients },
-          ]}
-          existing={existing}
-        />
+        {SHOW_INTAKE_GOALS_AND_AI_REQUEST_CHECKBOXES ? (
+          <FieldCheckboxes
+            options={[
+              { name: "find_supplier_whitelabel", label: c.findSupplierWhitelabel },
+              { name: "find_supplier_ingredients", label: c.findSupplierIngredients },
+            ]}
+            existing={existing}
+          />
+        ) : null}
         <p className="text-xs text-zinc-500 dark:text-zinc-400">{c.suppliersHint}</p>
         <div className="space-y-2 md:hidden">
           {suppliers.map((s, i) => (
@@ -344,10 +405,12 @@ export function IntakeForm({
         </button>
       </section>
 
-      {/* Section 4: Production steps */}
+      {/* Section 3 in manual: Production steps */}
       <section className="space-y-4 rounded-2xl border border-zinc-200 p-6 dark:border-zinc-800">
         <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-50">{c.productionSteps}</h2>
-        <FieldCheckboxes options={[{ name: "suggest_production_workflow", label: c.suggestProductionWorkflow }]} existing={existing} />
+        {SHOW_INTAKE_GOALS_AND_AI_REQUEST_CHECKBOXES ? (
+          <FieldCheckboxes options={[{ name: "suggest_production_workflow", label: c.suggestProductionWorkflow }]} existing={existing} />
+        ) : null}
         <textarea
           value={productionSteps}
           onChange={(e) => setProductionSteps(e.target.value)}
@@ -358,10 +421,12 @@ export function IntakeForm({
         />
       </section>
 
-      {/* Section 5: Team & skills */}
+      {/* Section 4 in manual: Team & skills */}
       <section className="space-y-4 rounded-2xl border border-zinc-200 p-6 dark:border-zinc-800">
         <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-50">{c.team}</h2>
-        <FieldCheckboxes options={[{ name: "suggest_roles_salaries", label: c.suggestRolesSalaries }]} existing={existing} />
+        {SHOW_INTAKE_GOALS_AND_AI_REQUEST_CHECKBOXES ? (
+          <FieldCheckboxes options={[{ name: "suggest_roles_salaries", label: c.suggestRolesSalaries }]} existing={existing} />
+        ) : null}
         <p className="text-xs text-zinc-500 dark:text-zinc-400">{c.suggestRolesSalariesHint}</p>
         <div className="space-y-2 md:hidden">
           {team.map((tm, i) => (
@@ -421,10 +486,12 @@ export function IntakeForm({
         </button>
       </section>
 
-      {/* Section 6: Financials & cost factors */}
+      {/* Section 5 in manual: Financials & cost factors */}
       <section className="space-y-4 rounded-2xl border border-zinc-200 p-6 dark:border-zinc-800">
         <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-50">{c.financials}</h2>
-        <FieldCheckboxes options={[{ name: "benchmark_industry", label: c.benchmarkIndustry }]} existing={existing} />
+        {SHOW_INTAKE_GOALS_AND_AI_REQUEST_CHECKBOXES ? (
+          <FieldCheckboxes options={[{ name: "benchmark_industry", label: c.benchmarkIndustry }]} existing={existing} />
+        ) : null}
         <div className="grid gap-4 md:grid-cols-2">
           <div>
             <label className={labelClass}>{c.revenueLastMonth}</label>
@@ -450,7 +517,7 @@ export function IntakeForm({
         </div>
       </section>
 
-      {/* Section 7: Operations & more */}
+      {/* Section 6 in manual: Operations & more */}
       <section className="space-y-4 rounded-2xl border border-zinc-200 p-6 dark:border-zinc-800">
         <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-50">{c.operations}</h2>
         <div className="grid gap-4 md:grid-cols-2">
@@ -471,7 +538,9 @@ export function IntakeForm({
         <div>
           <label className={labelClass}>{c.competitors}</label>
           <textarea name="competitors" rows={2} defaultValue={String(existing.competitors ?? "")} className={`mt-2 ${inputClass}`} placeholder={c.competitorsPh} />
-          <FieldCheckboxes options={[{ name: "find_main_competitors", label: c.findMainCompetitors }]} existing={existing} />
+          {SHOW_INTAKE_GOALS_AND_AI_REQUEST_CHECKBOXES ? (
+            <FieldCheckboxes options={[{ name: "find_main_competitors", label: c.findMainCompetitors }]} existing={existing} />
+          ) : null}
         </div>
         <div>
           <label className={labelClass}>{c.growthChallenge}</label>
@@ -495,7 +564,7 @@ export function IntakeForm({
         </div>
       </section>
 
-      {/* Section 8: Additional context */}
+      {/* Section 7 in manual: Additional context */}
       <section className="space-y-4 rounded-2xl border border-zinc-200 p-6 dark:border-zinc-800">
         <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-50">{c.additional}</h2>
         <div>
@@ -520,12 +589,16 @@ export function IntakeForm({
         <div>
           <label className={labelClass}>{c.targetMarket}</label>
           <input name="target_market" defaultValue={String(existing.target_market ?? "")} className={`mt-2 ${inputClass}`} placeholder={c.targetMarketPh} />
-          <FieldCheckboxes options={[{ name: "research_tam_sam_som", label: c.researchTamSamSom }]} existing={existing} />
+          {SHOW_INTAKE_GOALS_AND_AI_REQUEST_CHECKBOXES ? (
+            <FieldCheckboxes options={[{ name: "research_tam_sam_som", label: c.researchTamSamSom }]} existing={existing} />
+          ) : null}
         </div>
         <div>
           <label className={labelClass}>{c.acquisition}</label>
           <input name="acquisition_channels" defaultValue={String(existing.acquisition_channels ?? "")} className={`mt-2 ${inputClass}`} placeholder={c.acquisitionPh} />
-          <FieldCheckboxes options={[{ name: "find_best_acquisition_channels", label: c.findBestAcquisitionChannels }]} existing={existing} />
+          {SHOW_INTAKE_GOALS_AND_AI_REQUEST_CHECKBOXES ? (
+            <FieldCheckboxes options={[{ name: "find_best_acquisition_channels", label: c.findBestAcquisitionChannels }]} existing={existing} />
+          ) : null}
         </div>
         <div>
           <label className={labelClass}>{c.socialMediaChannels}</label>
@@ -557,6 +630,9 @@ export function IntakeForm({
           <textarea name="additional_notes" rows={4} defaultValue={String(existing.additional_notes ?? "")} className={`mt-2 ${inputClass}`} placeholder={c.additionalNotesPh} />
         </div>
       </section>
+
+        </div>
+      </details>
 
       {mobileEdit ? (
         <div className="fixed inset-0 z-50 md:hidden" role="dialog" aria-modal aria-labelledby="intake-mobile-edit-title">

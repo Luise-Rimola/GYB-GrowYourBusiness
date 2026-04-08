@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { CollapsibleDetails } from "@/components/CollapsibleDetails";
 
 type Props = {
   locale: "de" | "en";
@@ -101,29 +102,41 @@ export function HomeExportPackageButton({ locale, autoOpen = false, showButton =
                 ? "Questionnaires, document evaluation, use-case evaluation, advisor evaluation (each as SPSS/PDF/Excel), plus all created documents as PDF ZIP."
                 : "Fragebögen, Dokumente-Evaluation, Use-Case-Evaluation, Berater-Evaluation (jeweils SPSS/PDF/Excel) plus alle erstellten Dokumente als PDF-ZIP."}
             </p>
-            <div className="mt-4 space-y-3">
-              {entries.map((entry) => (
-                <div key={entry.label} className="rounded-xl border border-[var(--card-border)] bg-[var(--background)]/40 p-3">
-                  <div className="text-sm font-semibold text-[var(--foreground)]">{entry.label}</div>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    <a href={entry.spss} className="rounded-lg border border-teal-300 px-3 py-1 text-xs font-semibold text-teal-700 hover:bg-teal-50">SPSS</a>
-                    <a href={entry.pdf} className="rounded-lg border border-teal-300 px-3 py-1 text-xs font-semibold text-teal-700 hover:bg-teal-50">PDF</a>
-                    <a href={entry.excel} className="rounded-lg border border-teal-300 px-3 py-1 text-xs font-semibold text-teal-700 hover:bg-teal-50">Excel</a>
+            <CollapsibleDetails
+              defaultOpen={false}
+              className="mt-4 rounded-xl border border-[var(--card-border)] bg-[var(--background)]/30"
+              summaryClassName="cursor-pointer select-none px-4 py-3 text-sm font-semibold text-[var(--foreground)] [&::-webkit-details-marker]:hidden"
+              contentClassName="border-t border-[var(--card-border)] px-4 pb-4 pt-3"
+              label={isEn ? "Download individual evaluations" : "Einzelne Evaluationen herunterladen"}
+            >
+              <div className="space-y-3">
+                {entries.map((entry) => (
+                  <div key={entry.label} className="rounded-xl border border-[var(--card-border)] bg-[var(--background)]/40 p-3">
+                    <div className="text-sm font-semibold text-[var(--foreground)]">{entry.label}</div>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <a href={entry.spss} className="rounded-lg border border-teal-300 px-3 py-1 text-xs font-semibold text-teal-700 hover:bg-teal-50">SPSS</a>
+                      <a href={entry.pdf} className="rounded-lg border border-teal-300 px-3 py-1 text-xs font-semibold text-teal-700 hover:bg-teal-50">PDF</a>
+                      <a href={entry.excel} className="rounded-lg border border-teal-300 px-3 py-1 text-xs font-semibold text-teal-700 hover:bg-teal-50">Excel</a>
+                    </div>
+                  </div>
+                ))}
+                <div className="rounded-xl border border-[var(--card-border)] bg-[var(--background)]/40 p-3">
+                  <div className="text-sm font-semibold text-[var(--foreground)]">
+                    {isEn ? "All created documents as PDF ZIP" : "Alle erstellten Dokumente als PDF-ZIP"}
+                  </div>
+                  <div className="mt-2">
+                    <a href={docsZipLink} className="rounded-lg border border-teal-300 px-3 py-1 text-xs font-semibold text-teal-700 hover:bg-teal-50">ZIP</a>
                   </div>
                 </div>
-              ))}
-              <div className="rounded-xl border border-[var(--card-border)] bg-[var(--background)]/40 p-3">
-                <div className="text-sm font-semibold text-[var(--foreground)]">
-                  {isEn ? "All created documents as PDF ZIP" : "Alle erstellten Dokumente als PDF-ZIP"}
-                </div>
-                <div className="mt-2">
-                  <a href={docsZipLink} className="rounded-lg border border-teal-300 px-3 py-1 text-xs font-semibold text-teal-700 hover:bg-teal-50">ZIP</a>
-                </div>
               </div>
-            </div>
+            </CollapsibleDetails>
             <div className="mt-5 flex flex-wrap gap-2">
               <button type="button" onClick={sendViaResend} disabled={sending} className="rounded-xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-700 disabled:opacity-60">
-                {sending ? (isEn ? "Sending..." : "Wird gesendet...") : (isEn ? "Send via Resend" : "Per Resend senden")}
+                {sending
+                  ? (isEn ? "Sending..." : "Wird gesendet...")
+                  : isEn
+                    ? "Send directly via Resend now"
+                    : "Jetzt direkt per Resend senden"}
               </button>
               <button type="button" onClick={openMailDraft} className="rounded-xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-700">
                 {isEn ? "Open mail draft" : "Mail-Entwurf öffnen"}

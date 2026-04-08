@@ -10,7 +10,7 @@ import {
 import { getServerLocale } from "@/lib/locale";
 import { getTranslations } from "@/lib/i18n";
 import { Fragebogen3Form } from "@/components/Fragebogen3Form";
-import { WORKFLOW_NAMES } from "@/lib/planningFramework";
+import { workflowDisplayName } from "@/lib/planningFramework";
 import { AssistantSubmitBridge } from "@/components/AssistantSubmitBridge";
 import { artifactsUrlAfterFb3Assistant } from "@/lib/studyAssistantEmbed";
 import { getStudyCategoryContext, type StudyCategoryKey } from "@/lib/studyCategoryContext";
@@ -81,8 +81,8 @@ export default async function Fragebogen3Page({
   const categoryContext = getStudyCategoryContext(locale);
   const context = category && categoryContext[category] ? categoryContext[category] : null;
   const workflowList = context
-    ? context.workflowKeys.map((k) => WORKFLOW_NAMES[k] ?? k).join(", ")
-    : `${WORKFLOW_NAMES.WF_VALUE_PROPOSITION}, ${WORKFLOW_NAMES.WF_CUSTOMER_VALIDATION}, ${WORKFLOW_NAMES.WF_GO_TO_MARKET}`;
+    ? context.workflowKeys.map((k) => workflowDisplayName(locale, k)).join(", ")
+    : `${workflowDisplayName(locale, "WF_VALUE_PROPOSITION")}, ${workflowDisplayName(locale, "WF_CUSTOMER_VALIDATION")}, ${workflowDisplayName(locale, "WF_GO_TO_MARKET")}`;
 
   return (
     <div className="space-y-8">
@@ -93,14 +93,13 @@ export default async function Fragebogen3Page({
         <p className="mt-2 text-[var(--muted)]">{t.study.fb3Desc}</p>
       </header>
       <div className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-4 text-sm">
-        <p><span className="font-semibold">Aktuelle Phase:</span> {context?.phase ?? "Ausgewählte Kategorie/Phase"}</p>
+        <p>
+          <span className="font-semibold">{t.study.fb3CurrentPhaseLabel}</span> {context?.phase ?? t.study.fb3PhaseNotSet}
+        </p>
         <p className="mt-2">
-          <span className="font-semibold">Bewertungsgrundlage:</span>{" "}
-          Dokumente, Entscheidungen, Run-Outputs der Phase ({workflowList}).
+          <span className="font-semibold">{t.study.fb3EvaluatedWorkflowsLabel}</span> {workflowList}
         </p>
-        <p className="mt-2 text-[var(--muted)]">
-          Bitte beantworte auf Basis der tatsächlich erzeugten Ergebnisse. FB3 dient als Nachher-Bewertung im Vergleich zu FB2.
-        </p>
+        <p className="mt-2 text-[var(--muted)]">{t.study.fb3StandaloneInstruction}</p>
       </div>
       <Fragebogen3Form
         action={saveFb3}
@@ -108,7 +107,7 @@ export default async function Fragebogen3Page({
         category={category ?? null}
         initialValues={initialValues}
         assistantEmbed={isEmbed}
-        submitLabel={isEmbed ? "Erledigt & weiter" : undefined}
+        submitLabel={isEmbed ? t.study.embedSubmitDone : undefined}
         hideSubmitButton={isEmbed}
       />
       <AssistantSubmitBridge />
