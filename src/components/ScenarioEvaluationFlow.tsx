@@ -120,7 +120,9 @@ export function ScenarioEvaluationFlow({
   const [evaluationId, setEvaluationId] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [aiRunError, setAiRunError] = useState("");
   const [promptText, setPromptText] = useState<string>("");
+  const [promptNotes, setPromptNotes] = useState("");
   const [manualResponse, setManualResponse] = useState("");
   const isEn = locale === "en";
   const categoryLabels = getScenarioCategories(isEn ? "en" : "de");
@@ -146,7 +148,9 @@ export function ScenarioEvaluationFlow({
       quellenqualitaet: 3,
     });
     setEvaluationId("");
+    setAiRunError("");
     setPromptText("");
+    setPromptNotes("");
     setManualResponse("");
   };
 
@@ -169,6 +173,7 @@ export function ScenarioEvaluationFlow({
     if (!selectedScenario) return;
     setLoading(true);
     setMessage(null);
+    setAiRunError("");
     try {
       const res = await fetch("/api/evaluation/scenario-answer", {
         method: "POST",
@@ -176,6 +181,7 @@ export function ScenarioEvaluationFlow({
         body: JSON.stringify({
           scenarioId: selectedScenario.id,
           userAnswer: userAnswer.trim(),
+          userNotes: promptNotes.trim(),
         }),
       });
       const data = await res.json();
@@ -188,9 +194,11 @@ export function ScenarioEvaluationFlow({
       }
       setStep("compare");
     } catch (e) {
+      const errText = e instanceof Error ? e.message : t.error;
+      setAiRunError(errText);
       setMessage({
         type: "error",
-        text: e instanceof Error ? e.message : t.error,
+        text: errText,
       });
     } finally {
       setLoading(false);
@@ -207,6 +215,7 @@ export function ScenarioEvaluationFlow({
         body: JSON.stringify({
           scenarioId: selectedScenario.id,
           userAnswer: userAnswer.trim(),
+          userNotes: promptNotes.trim(),
         }),
       });
       const data = await res.json();
@@ -220,10 +229,13 @@ export function ScenarioEvaluationFlow({
   };
 
   useEffect(() => {
-    // Auto-load prompt when entering step 2 so manual users can copy immediately.
-    if (step !== "ai" || !selectedScenario || promptText.trim()) return;
-    void handleFetchPrompt();
-  }, [step, selectedScenario, promptText]);
+    // Keep prompt in sync automatically (like workflow runs with live notes/prompt context).
+    if (step !== "ai" || !selectedScenario) return;
+    const timer = window.setTimeout(() => {
+      void handleFetchPrompt();
+    }, 250);
+    return () => window.clearTimeout(timer);
+  }, [step, selectedScenario, userAnswer, promptNotes]);
 
   function parseManualResponse(raw: string): { answer: string; confidence: number; sources: { title: string; type?: string; url?: string }[] } {
     let answer = raw;
@@ -417,82 +429,95 @@ export function ScenarioEvaluationFlow({
 
       {step === "ai" && (
         <Section title={t.scenarioStep2Title} description={t.scenarioStep2Desc}>
-          <p className="mb-4 text-sm text-[var(--muted)]">
-            {t.scenarioStep2Desc}
-          </p>
-          <div className="mb-6">
-            <button
-              type="button"
-              onClick={handleGetAiAnswer}
-              disabled={loading}
-              className="rounded-xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-700 disabled:opacity-50"
-            >
-              {loading ? t.loading : t.getAiAnswer}
-            </button>
-          </div>
-          <div className="border-t border-[var(--card-border)] pt-6">
-            <p className="mb-3 text-sm font-medium text-[var(--foreground)]">
-              {t.copyPromptPasteResponse}
-            </p>
-            <div className="space-y-3">
+          <details className="group rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-4" open>
+            <summary className="mb-4 cursor-pointer list-none text-base font-semibold text-[var(--foreground)] [&::-webkit-details-marker]:hidden">
+              <span className="inline-flex items-center gap-2">
+                <span className="text-[var(--muted)] transition group-open:rotate-90">▸</span>
+                {isEn ? "AI Process" : "KI-Prozess"}
+              </span>
+            </summary>
+            <div className="space-y-4">
               <div>
-                <div className="flex items-center justify-between gap-2 mb-1">
-                  <label className="text-xs font-medium text-[var(--muted)]">{t.copyPrompt}</label>
-                  <button
-                    type="button"
-                    onClick={handleFetchPrompt}
-                    disabled={loading}
-                    className="rounded-lg border border-[var(--card-border)] px-2 py-1 text-xs font-medium hover:bg-[var(--background)] disabled:opacity-50"
-                  >
-                    {promptText ? (isEn ? "Refresh" : "Aktualisieren") : (isEn ? "Load prompt" : "Prompt laden")}
-                  </button>
-                </div>
-                <textarea
-                  readOnly
-                  value={promptText}
-                  rows={6}
-                  className="w-full rounded-xl border border-[var(--card-border)] bg-slate-50 p-3 text-xs font-mono text-[var(--foreground)] dark:bg-slate-900/30 resize-none"
-                  placeholder={isEn ? "Click 'Load prompt', then copy the prompt." : "Klicken Sie auf 'Prompt laden', dann können Sie den Prompt kopieren."}
-                />
-                {promptText && (
-                  <button
-                    type="button"
-                    onClick={() => navigator.clipboard.writeText(promptText)}
-                    className="mt-1 rounded-lg border border-teal-600 px-3 py-1.5 text-xs font-medium text-teal-700 transition hover:bg-teal-50 dark:border-teal-500 dark:text-teal-300 dark:hover:bg-teal-950/30"
-                  >
-                    {isEn ? "📋 Copy to clipboard" : "📋 In Zwischenablage kopieren"}
-                  </button>
-                )}
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-[var(--muted)]">
-                  {t.pasteResponse}
+                <label className="mb-2 block text-sm font-semibold text-[var(--foreground)]">
+                  {isEn ? "What should the AI know about this topic?" : "Was sollte die KI zu diesem Thema wissen?"}
                 </label>
-                <p className="mb-1 text-xs text-amber-600 dark:text-amber-400">
-                  {isEn ? <>Paste only the <strong>answer</strong> from ChatGPT/Claude - not the prompt.</> : <>Nur die <strong>Antwort</strong> aus ChatGPT/Claude einfügen – nicht den Prompt.</>}
-                </p>
+                <textarea
+                  value={promptNotes}
+                  onChange={(e) => setPromptNotes(e.target.value)}
+                  rows={2}
+                  placeholder={isEn ? "e.g. Focus on profitability, lower personnel costs..." : "z.B. Fokus auf Rentabilität, Personalkosten niedriger ansetzen..."}
+                  className="w-full rounded-xl border border-[var(--card-border)] bg-[var(--background)] p-3 text-sm text-[var(--foreground)] placeholder:text-[var(--muted)] resize-none"
+                />
+              </div>
+
+              <details className="group rounded-xl border border-[var(--card-border)] bg-slate-50/50 dark:bg-slate-900/20">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-3 py-2.5 text-sm font-semibold text-[var(--foreground)] [&::-webkit-details-marker]:hidden">
+                  <span className="inline-flex min-w-0 items-center gap-2">
+                    <span className="shrink-0 text-[var(--muted)] transition group-open:rotate-90">▸</span>
+                    Prompt
+                  </span>
+                  <div className="flex shrink-0 items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                    <button
+                      type="button"
+                      onClick={() => navigator.clipboard.writeText(promptText)}
+                      disabled={!promptText.trim()}
+                      className="rounded-lg border border-[var(--card-border)] px-4 py-1.5 text-sm font-medium text-[var(--foreground)] transition hover:bg-[var(--background)] disabled:opacity-50"
+                    >
+                      {isEn ? "Copy" : "Kopieren"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleGetAiAnswer}
+                      disabled={loading}
+                      className="rounded-lg bg-blue-600 px-4 py-1.5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-50"
+                    >
+                      {loading ? t.loading : (isEn ? "Run AI Process" : "Ausführen des KI-Prozesses")}
+                    </button>
+                  </div>
+                </summary>
+                <div className="border-t border-[var(--card-border)] p-3">
+                  <textarea
+                    readOnly
+                    value={promptText}
+                    rows={8}
+                    className="max-h-[min(50vh,24rem)] w-full resize-none overflow-y-auto rounded-xl border border-[var(--card-border)] bg-slate-50 p-3 text-xs font-mono text-[var(--foreground)] dark:bg-slate-900/30"
+                    placeholder={isEn ? "Prompt is generated automatically..." : "Prompt wird automatisch geladen..."}
+                  />
+                  {aiRunError ? (
+                    <p className="mt-2 rounded-lg border border-rose-300 bg-rose-50 px-3 py-2 text-xs text-rose-800 dark:border-rose-800 dark:bg-rose-950/30 dark:text-rose-200">
+                      {aiRunError}
+                    </p>
+                  ) : null}
+                </div>
+              </details>
+
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-[var(--foreground)]">
+                  {isEn ? "Answer" : "Antwort"}
+                </label>
                 <textarea
                   value={manualResponse}
                   onChange={(e) => setManualResponse(e.target.value)}
                   rows={6}
                   placeholder={
                     isEn
-                      ? "Paste the AI recommendation here (including confidence: X% and sources as JSON at the end)."
-                      : "Empfehlung der KI hier einfügen (inkl. Konfidenz: X% und Quellen als JSON am Ende)."
+                      ? "1) Copy prompt above -> 2) Paste in ChatGPT/Claude -> 3) Copy JSON output -> 4) Paste here"
+                      : "1) Prompt oben kopieren → 2) In ChatGPT/Claude einfügen → 3) JSON-Ausgabe kopieren → 4) Hier einfügen"
                   }
                   className="w-full rounded-xl border border-[var(--card-border)] bg-[var(--background)] p-3 text-sm text-[var(--foreground)] placeholder:text-[var(--muted)] resize-none"
                 />
               </div>
+
               <button
                 type="button"
                 onClick={handleManualContinue}
                 disabled={!manualResponse.trim() || loading}
-                className="rounded-xl border border-teal-600 px-4 py-2 text-sm font-semibold text-teal-700 transition hover:bg-teal-50 dark:border-teal-500 dark:text-teal-300 dark:hover:bg-teal-950/30 disabled:opacity-50"
+                className="rounded-xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-700 disabled:opacity-50"
               >
-                {loading ? t.loading : t.continueManual}
+                {loading ? t.loading : (isEn ? "Save Step" : "Schritt speichern")}
               </button>
             </div>
-          </div>
+          </details>
         </Section>
       )}
 

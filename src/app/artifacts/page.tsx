@@ -249,43 +249,9 @@ export default async function ArtifactsPage({
               {t.artifacts.createdCount.replace("{count}", String(createdCount))}
             </p>
           )}
-          {activeTab === "evaluations" && (
-            <div className="flex flex-wrap gap-3">
-              <a
-                href={`/api/export?scope=artifacts&format=spss&lang=${locale}`}
-                download="artifact-evaluations.csv"
-                className="inline-flex items-center justify-center rounded-xl border border-[var(--card-border)] px-4 py-2 text-sm font-medium transition hover:bg-[var(--background)]"
-              >
-                {copy.exportSpss}
-              </a>
-              {isEn ? (
-                <a
-                  href="/api/export?scope=artifacts&format=pdf&lang=en"
-                  download="artifact-evaluations-en.pdf"
-                  className="inline-flex items-center justify-center rounded-xl border border-[var(--card-border)] px-4 py-2 text-sm font-medium transition hover:bg-[var(--background)]"
-                >
-                  PDF Download (EN)
-                </a>
-              ) : (
-                <a
-                  href="/api/export?scope=artifacts&format=pdf&lang=de"
-                  download="artifact-evaluations-de.pdf"
-                  className="inline-flex items-center justify-center rounded-xl border border-[var(--card-border)] px-4 py-2 text-sm font-medium transition hover:bg-[var(--background)]"
-                >
-                  PDF Download (DE)
-                </a>
-              )}
-              <a
-                href={`/api/export?scope=artifacts&format=excel&lang=${locale}`}
-                download="artifact-evaluations.xls"
-                className="inline-flex items-center justify-center rounded-xl border border-[var(--card-border)] px-4 py-2 text-sm font-medium transition hover:bg-[var(--background)]"
-              >
-                {copy.exportExcel}
-              </a>
-            </div>
-          )}
           {activeTab === "evaluations" ? (
-            artifacts.length === 0 ? (
+            <>
+            {artifacts.length === 0 ? (
               <div className="overflow-x-auto rounded-xl border border-[var(--card-border)]">
                 <table className="w-full text-sm">
                   <thead>
@@ -424,7 +390,41 @@ export default async function ArtifactsPage({
                   </div>
                 )}
               </div>
-            )
+            )}
+            <div className="mt-6 flex flex-wrap gap-3">
+              <a
+                href={`/api/export?scope=artifacts&format=spss&lang=${locale}`}
+                download="artifact-evaluations.csv"
+                className="inline-flex items-center justify-center rounded-xl border border-[var(--card-border)] px-4 py-2 text-sm font-medium transition hover:bg-[var(--background)]"
+              >
+                {copy.exportSpss}
+              </a>
+              {isEn ? (
+                <a
+                  href="/api/export?scope=artifacts&format=pdf&lang=en"
+                  download="artifact-evaluations-en.pdf"
+                  className="inline-flex items-center justify-center rounded-xl border border-[var(--card-border)] px-4 py-2 text-sm font-medium transition hover:bg-[var(--background)]"
+                >
+                  PDF Download (EN)
+                </a>
+              ) : (
+                <a
+                  href="/api/export?scope=artifacts&format=pdf&lang=de"
+                  download="artifact-evaluations-de.pdf"
+                  className="inline-flex items-center justify-center rounded-xl border border-[var(--card-border)] px-4 py-2 text-sm font-medium transition hover:bg-[var(--background)]"
+                >
+                  PDF Download (DE)
+                </a>
+              )}
+              <a
+                href={`/api/export?scope=artifacts&format=excel&lang=${locale}`}
+                download="artifact-evaluations.xls"
+                className="inline-flex items-center justify-center rounded-xl border border-[var(--card-border)] px-4 py-2 text-sm font-medium transition hover:bg-[var(--background)]"
+              >
+                {copy.exportExcel}
+              </a>
+            </div>
+            </>
           ) : (
             <>
               <div className="rounded-2xl border border-[var(--card-border)] bg-[var(--card)] p-5">

@@ -243,6 +243,7 @@ import {
   workProcessesSchema,
   strategicPlanningSchema,
   trendAnalysisSchema,
+  pestelAnalysisSchema,
   competitorAnalysisSchema,
   kpiEstimationSchema,
 } from "@/types/schemas";
@@ -1141,6 +1142,19 @@ export const WorkflowService = {
                 contentJson: parsed.data as object,
                 exportHtml: this.renderTrendAnalysisHtml(parsed.data),
               },
+            });
+            await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
+          }
+        } else if (params.stepKey === "pestel_analysis") {
+          const parsed = pestelAnalysisSchema.safeParse(validation.data);
+          if (parsed.success) {
+            await createArtifactWithEnumFallback({
+              companyId: run.companyId,
+              runId: run.id,
+              type: "pestel_analysis",
+              title: "PESTEL-Analyse",
+              contentJson: parsed.data as object,
+              exportHtml: null,
             });
             await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
           }
@@ -2241,6 +2255,19 @@ export const WorkflowService = {
           });
           await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
         }
+      } else if (step.stepKey === "pestel_analysis") {
+        const parsed = pestelAnalysisSchema.safeParse(validation.data);
+        if (parsed.success) {
+          await createArtifactWithEnumFallback({
+            companyId: run.companyId,
+            runId: run.id,
+            type: "pestel_analysis",
+            title: "PESTEL-Analyse",
+            contentJson: parsed.data as object,
+            exportHtml: null,
+          });
+          await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
+        }
       } else if (step.stepKey === "tech_digitalization") {
         const { techDigitalizationSchema } = await import("@/types/schemas");
         const parsed = techDigitalizationSchema.safeParse(validation.data);
@@ -3159,6 +3186,10 @@ export const WorkflowService = {
       { stepKey: "best_practices", type: "best_practices" },
       { stepKey: "failure_reasons", type: "failure_analysis" },
     ];
+    const wfTrendSteps: Array<{ stepKey: string; type: "trend_analysis" | "pestel_analysis" }> = [
+      { stepKey: "trend_analysis", type: "trend_analysis" },
+      { stepKey: "pestel_analysis", type: "pestel_analysis" },
+    ];
 
     const wfFinancialSteps: Array<{ stepKey: string; type: "work_processes" | "personnel_plan" | "financial_planning" }> = [
       { stepKey: "work_processes", type: "work_processes" },
@@ -3382,6 +3413,48 @@ export const WorkflowService = {
               },
             });
             created.push("industry_research");
+          }
+        }
+      }
+      if (created.length > 0) await prisma.run.update({ where: { id: runId }, data: { status: "complete" } });
+      return { created };
+    }
+
+    if (run.workflowKey === "WF_TREND_ANALYSIS") {
+      for (const { stepKey, type } of wfTrendSteps) {
+        const hasArtifact = run.artifacts.some((a) => a.type === type);
+        if (hasArtifact) continue;
+        const step = run.steps.find((s) => s.stepKey === stepKey);
+        if (!step?.schemaValidationPassed || !step.parsedOutputJson) continue;
+        const data = step.parsedOutputJson as Record<string, unknown>;
+        if (type === "trend_analysis") {
+          const parsed = trendAnalysisSchema.safeParse(data);
+          if (parsed.success) {
+            await prisma.artifact.create({
+              data: {
+                companyId: run.companyId,
+                runId: run.id,
+                type: "trend_analysis",
+                title: "Trendanalyse",
+                version: 1,
+                contentJson: parsed.data as object,
+                exportHtml: this.renderTrendAnalysisHtml(parsed.data),
+              },
+            });
+            created.push("trend_analysis");
+          }
+        } else {
+          const parsed = pestelAnalysisSchema.safeParse(data);
+          if (parsed.success) {
+            await createArtifactWithEnumFallback({
+              companyId: run.companyId,
+              runId: run.id,
+              type: "pestel_analysis",
+              title: "PESTEL-Analyse",
+              contentJson: parsed.data as object,
+              exportHtml: null,
+            });
+            created.push("pestel_analysis");
           }
         }
       }

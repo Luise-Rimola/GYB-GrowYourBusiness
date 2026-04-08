@@ -7,65 +7,7 @@ import { getServerLocale } from "@/lib/locale";
 import { getTranslations } from "@/lib/i18n";
 import { ScenarioEvaluationFlow } from "@/components/ScenarioEvaluationFlow";
 import { EvaluationOverviewTable } from "@/components/EvaluationOverviewTable";
-import { getScenarioById } from "@/lib/scenarios";
 import { getSessionFromCookies } from "@/lib/session";
-
-async function saveUseCase(formData: FormData) {
-  "use server";
-  const session = await getSessionFromCookies();
-  const useCaseDescription = String(formData.get("useCaseDescription") || "").trim();
-  const userDecisionApproach = String(formData.get("userDecisionApproach") || "").trim();
-  if (!useCaseDescription || !userDecisionApproach) return;
-  const company = await getOrCreateDemoCompany();
-  await prisma.useCaseEvaluation.create({
-    data: {
-      companyId: company.id,
-      createdBy: session?.sub ?? null,
-      useCaseDescription,
-      userDecisionApproach,
-    },
-  });
-  redirect("/evaluation?tab=usecase&saved=1");
-}
-
-async function saveQuestionnaire(formData: FormData) {
-  "use server";
-  const id = String(formData.get("id") || "").trim();
-  const helpful = Number(formData.get("helpful")) || 0;
-  const fit = Number(formData.get("fit")) || 0;
-  const userOneWord = String(formData.get("userOneWord") || "").trim();
-  const userOneWordConfidenceRaw = String(formData.get("userOneWordConfidence") || "").trim();
-  const aiOneWord = String(formData.get("aiOneWord") || "").trim();
-  const aiOneWordConfidenceRaw = String(formData.get("aiOneWordConfidence") || "").trim();
-  const userConfidenceInAiRaw = String(formData.get("userConfidenceInAi") || "").trim();
-  const notes = String(formData.get("notes") || "").trim();
-  if (!id) return;
-  const parsePct = (raw: string) => {
-    if (!raw) return undefined;
-    const n = Number(raw);
-    if (!Number.isFinite(n)) return undefined;
-    return Math.max(0, Math.min(100, Math.round(n)));
-  };
-  const userOneWordConfidence = parsePct(userOneWordConfidenceRaw);
-  const aiOneWordConfidence = parsePct(aiOneWordConfidenceRaw);
-  const userConfidenceInAi = parsePct(userConfidenceInAiRaw);
-  await prisma.useCaseEvaluation.update({
-    where: { id },
-    data: {
-      questionnaireJson: {
-        helpful,
-        fit,
-        userOneWord,
-        userOneWordConfidence,
-        aiOneWord,
-        aiOneWordConfidence,
-        userConfidenceInAi,
-        notes,
-      },
-    },
-  });
-  redirect("/evaluation?feedback=1");
-}
 
 async function saveScenarioStep1(
   scenarioId: number,
@@ -161,20 +103,16 @@ export default async function EvaluationPage({
     exportSpss: isEn ? "SPSS Download" : "SPSS-Download",
     exportPdf: isEn ? "PDF (Questions/Answers + Table)" : "PDF (Fragen/Antworten + Tabelle)",
     exportExcel: isEn ? "Excel (Analysis + Logs)" : "Excel (Auswertung + Logs)",
-    goToPlans: isEn ? "Plans" : "Pläne",
-    goToRuns: isEn ? "Runs" : "Läufe",
-    userOneWord: isEn ? "User answer (1 word)" : "User-Antwort (1 Wort)",
-    userConfidence: isEn ? "User confidence (%)" : "User-Konfidenz (%)",
-    aiOneWord: isEn ? "AI answer (1 word)" : "KI-Antwort (1 Wort)",
-    aiConfidence: isEn ? "AI confidence (%)" : "KI-Konfidenz (%)",
-    confidenceInAi: isEn ? "Confidence in AI answer (%)" : "Konfidenz in KI-Antwort (%)",
-    exYes: isEn ? "e.g. Yes" : "z. B. Ja",
-    exNo: isEn ? "e.g. No" : "z. B. Nein",
-    ex82: isEn ? "e.g. 82" : "z. B. 82",
-    ex64: isEn ? "e.g. 64" : "z. B. 64",
-    ex40: isEn ? "e.g. 40" : "z. B. 40",
   } as const;
   const params = await searchParams;
+  if (params.tab === "usecase") {
+    const sp = new URLSearchParams();
+    sp.set("tab", "scenario");
+    if (params.saved) sp.set("saved", params.saved);
+    if (params.feedback) sp.set("feedback", params.feedback);
+    if (params.category) sp.set("category", params.category);
+    redirect(`/evaluation?${sp.toString()}`);
+  }
   const category = params.category as import("@/lib/scenarios").ScenarioCategory | undefined;
   const company = await getOrCreateDemoCompany();
   const [useCaseEvals, scenarioEvals] = await Promise.all([
@@ -191,8 +129,7 @@ export default async function EvaluationPage({
     }),
   ]);
 
-  const evaluations = useCaseEvals;
-  const activeTab = params.tab === "usecase" ? "usecase" : params.tab === "overview" ? "overview" : "scenario";
+  const activeTab = params.tab === "overview" ? "overview" : "scenario";
   const catParam = category ? `&category=${category}` : "";
 
   const scenarioT = {
@@ -259,39 +196,6 @@ export default async function EvaluationPage({
           {t.evaluation.title}
         </h1>
         <p className="mt-2 text-[var(--muted)]">{t.evaluation.description}</p>
-        <div className="mt-4 flex flex-wrap gap-3">
-          <a
-            href={`/api/export?scope=evaluation&format=spss&lang=${locale}`}
-            download="use-case-evaluation.csv"
-            className="inline-flex items-center justify-center rounded-xl border border-[var(--card-border)] px-4 py-2 text-sm font-medium transition hover:bg-[var(--background)]"
-          >
-            {ui.exportSpss}
-          </a>
-          {isEn ? (
-            <a
-              href="/api/export?scope=evaluation&format=pdf&lang=en"
-              download="use-case-evaluation-en.pdf"
-              className="inline-flex items-center justify-center rounded-xl border border-[var(--card-border)] px-4 py-2 text-sm font-medium transition hover:bg-[var(--background)]"
-            >
-              PDF Download (EN)
-            </a>
-          ) : (
-            <a
-              href="/api/export?scope=evaluation&format=pdf&lang=de"
-              download="use-case-evaluation-de.pdf"
-              className="inline-flex items-center justify-center rounded-xl border border-[var(--card-border)] px-4 py-2 text-sm font-medium transition hover:bg-[var(--background)]"
-            >
-              PDF Download (DE)
-            </a>
-          )}
-          <a
-            href={`/api/export?scope=evaluation&format=excel&lang=${locale}`}
-            download="use-case-evaluation.xls"
-            className="inline-flex items-center justify-center rounded-xl border border-[var(--card-border)] px-4 py-2 text-sm font-medium transition hover:bg-[var(--background)]"
-          >
-            {ui.exportExcel}
-          </a>
-        </div>
       </header>
 
       <div className="flex gap-2 border-b border-[var(--card-border)]">
@@ -305,17 +209,6 @@ export default async function EvaluationPage({
           }`}
         >
           {t.evaluation.scenarioTab}
-        </Link>
-        <Link
-          href={`/evaluation?tab=usecase${catParam}`}
-          prefetch={false}
-          className={`border-b-2 px-4 py-2 text-sm font-medium transition ${
-            activeTab === "usecase"
-              ? "border-teal-600 text-teal-600"
-              : "border-transparent text-[var(--muted)] hover:text-[var(--foreground)]"
-          }`}
-        >
-          {t.evaluation.useCaseTab}
         </Link>
         <Link
           href={`/evaluation?tab=overview${catParam}`}
@@ -377,8 +270,41 @@ export default async function EvaluationPage({
               onDeleteUseCase={deleteUseCaseEvaluation}
             />
           )}
+          <div className="mt-6 flex flex-wrap gap-3">
+            <a
+              href={`/api/export?scope=evaluation&format=spss&lang=${locale}`}
+              download="use-case-evaluation.csv"
+              className="inline-flex items-center justify-center rounded-xl border border-[var(--card-border)] px-4 py-2 text-sm font-medium transition hover:bg-[var(--background)]"
+            >
+              {ui.exportSpss}
+            </a>
+            {isEn ? (
+              <a
+                href="/api/export?scope=evaluation&format=pdf&lang=en"
+                download="use-case-evaluation-en.pdf"
+                className="inline-flex items-center justify-center rounded-xl border border-[var(--card-border)] px-4 py-2 text-sm font-medium transition hover:bg-[var(--background)]"
+              >
+                PDF Download (EN)
+              </a>
+            ) : (
+              <a
+                href="/api/export?scope=evaluation&format=pdf&lang=de"
+                download="use-case-evaluation-de.pdf"
+                className="inline-flex items-center justify-center rounded-xl border border-[var(--card-border)] px-4 py-2 text-sm font-medium transition hover:bg-[var(--background)]"
+              >
+                PDF Download (DE)
+              </a>
+            )}
+            <a
+              href={`/api/export?scope=evaluation&format=excel&lang=${locale}`}
+              download="use-case-evaluation.xls"
+              className="inline-flex items-center justify-center rounded-xl border border-[var(--card-border)] px-4 py-2 text-sm font-medium transition hover:bg-[var(--background)]"
+            >
+              {ui.exportExcel}
+            </a>
+          </div>
         </Section>
-      ) : activeTab === "scenario" ? (
+      ) : (
         <ScenarioEvaluationFlow
           locale={locale}
           t={scenarioT}
@@ -387,202 +313,6 @@ export default async function EvaluationPage({
           onSaveStep3={saveScenarioStep3}
           initialCategory={category}
         />
-      ) : (
-        <>
-          <Section
-            title={t.evaluation.step1Title}
-            description={t.evaluation.step1Desc}
-          >
-            <form action={saveUseCase} className="space-y-4">
-              <div>
-                <label className="mb-1 block text-sm font-medium text-[var(--foreground)]">
-                  {t.evaluation.useCaseLabel}
-                </label>
-                <textarea
-                  name="useCaseDescription"
-                  rows={3}
-                  placeholder={t.evaluation.useCasePlaceholder}
-                  className="w-full rounded-xl border border-[var(--card-border)] bg-[var(--background)] p-3 text-sm placeholder:text-[var(--muted)]"
-                  required
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium text-[var(--foreground)]">
-                  {t.evaluation.decisionApproachLabel}
-                </label>
-                <textarea
-                  name="userDecisionApproach"
-                  rows={4}
-                  placeholder={t.evaluation.decisionApproachPlaceholder}
-                  className="w-full rounded-xl border border-[var(--card-border)] bg-[var(--background)] p-3 text-sm placeholder:text-[var(--muted)]"
-                  required
-                />
-              </div>
-              <button
-                type="submit"
-                className="rounded-xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-700"
-              >
-                {t.evaluation.save}
-              </button>
-            </form>
-          </Section>
-
-          <Section
-            title={t.evaluation.step2Title}
-            description={t.evaluation.runScenarioDesc}
-          >
-            <div className="flex flex-wrap gap-3">
-              <Link
-                href="/dashboard"
-                className="rounded-xl border border-teal-600 px-4 py-2 text-sm font-medium text-teal-700 transition hover:bg-teal-50 dark:border-teal-500 dark:text-teal-300 dark:hover:bg-teal-950/50"
-              >
-                → {ui.goToPlans}
-              </Link>
-              <Link
-                href="/runs"
-                className="rounded-xl border border-teal-600 px-4 py-2 text-sm font-medium text-teal-700 transition hover:bg-teal-50 dark:border-teal-500 dark:text-teal-300 dark:hover:bg-teal-950/50"
-              >
-                → {ui.goToRuns}
-              </Link>
-            </div>
-          </Section>
-
-          <Section
-            title={t.evaluation.step3Title}
-            description={t.evaluation.step3Desc}
-          >
-            {evaluations.length === 0 ? (
-              <p className="text-sm text-[var(--muted)]">
-                {t.evaluation.saveFirstHint}
-              </p>
-            ) : (
-              <div className="space-y-4">
-                {evaluations.map((ev) => (
-                  <div
-                    key={ev.id}
-                    className="rounded-xl border border-[var(--card-border)] bg-[var(--background)] p-4"
-                  >
-                    <p className="text-sm font-medium text-[var(--foreground)]">
-                      {ev.useCaseDescription.slice(0, 80)}…
-                    </p>
-                    <form action={saveQuestionnaire} className="mt-4 space-y-3">
-                      <input type="hidden" name="id" value={ev.id} />
-                      <div className="grid gap-3 md:grid-cols-2">
-                        <div>
-                          <label className="mb-1 block text-xs font-medium text-[var(--muted)]">
-                            {ui.userOneWord}
-                          </label>
-                          <input
-                            name="userOneWord"
-                            maxLength={30}
-                            placeholder={ui.exYes}
-                            className="w-full rounded-lg border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm"
-                          />
-                        </div>
-                        <div>
-                          <label className="mb-1 block text-xs font-medium text-[var(--muted)]">
-                            {ui.userConfidence}
-                          </label>
-                          <input
-                            type="number"
-                            name="userOneWordConfidence"
-                            min={0}
-                            max={100}
-                            placeholder={ui.ex82}
-                            className="w-full rounded-lg border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm"
-                          />
-                        </div>
-                        <div>
-                          <label className="mb-1 block text-xs font-medium text-[var(--muted)]">
-                            {ui.aiOneWord}
-                          </label>
-                          <input
-                            name="aiOneWord"
-                            maxLength={30}
-                            placeholder={ui.exNo}
-                            className="w-full rounded-lg border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm"
-                          />
-                        </div>
-                        <div>
-                          <label className="mb-1 block text-xs font-medium text-[var(--muted)]">
-                            {ui.aiConfidence}
-                          </label>
-                          <input
-                            type="number"
-                            name="aiOneWordConfidence"
-                            min={0}
-                            max={100}
-                            placeholder={ui.ex64}
-                            className="w-full rounded-lg border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm"
-                          />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="mb-1 block text-xs font-medium text-[var(--muted)]">
-                            {ui.confidenceInAi}
-                        </label>
-                        <input
-                          type="number"
-                          name="userConfidenceInAi"
-                          min={0}
-                          max={100}
-                          placeholder={ui.ex40}
-                          className="w-full rounded-lg border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm md:w-56"
-                        />
-                      </div>
-                      <div>
-                        <label className="mb-1 block text-xs font-medium text-[var(--muted)]">
-                          {t.evaluation.questionnaireHelpful}
-                        </label>
-                        <select
-                          name="helpful"
-                          className="rounded-lg border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm"
-                        >
-                          {[1, 2, 3, 4, 5].map((n) => (
-                            <option key={n} value={n}>
-                              {n}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="mb-1 block text-xs font-medium text-[var(--muted)]">
-                          {t.evaluation.questionnaireFit}
-                        </label>
-                        <select
-                          name="fit"
-                          className="rounded-lg border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm"
-                        >
-                          {[1, 2, 3, 4, 5].map((n) => (
-                            <option key={n} value={n}>
-                              {n}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="mb-1 block text-xs font-medium text-[var(--muted)]">
-                          {t.evaluation.questionnaireNotes}
-                        </label>
-                        <textarea
-                          name="notes"
-                          rows={2}
-                          className="w-full rounded-lg border border-[var(--card-border)] bg-[var(--background)] p-2 text-sm"
-                        />
-                      </div>
-                      <button
-                        type="submit"
-                        className="rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-teal-700"
-                      >
-                        {t.evaluation.save}
-                      </button>
-                    </form>
-                  </div>
-                ))}
-              </div>
-            )}
-          </Section>
-        </>
       )}
     </div>
   );

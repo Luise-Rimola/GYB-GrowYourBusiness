@@ -165,7 +165,10 @@ export const workflowSteps: Record<
     { stepKey: "barriers_to_entry", schemaKey: "barriers_to_entry", label: "Barriers to Entry" },
     { stepKey: "moat_assessment", schemaKey: "moat_assessment", label: "Moat Assessment" },
   ],
-  WF_TREND_ANALYSIS: [{ stepKey: "trend_analysis", schemaKey: "trend_analysis", label: "Trendanalyse" }],
+  WF_TREND_ANALYSIS: [
+    { stepKey: "trend_analysis", schemaKey: "trend_analysis", label: "Trendanalyse" },
+    { stepKey: "pestel_analysis", schemaKey: "pestel_analysis", label: "PESTEL-Analyse" },
+  ],
   WF_TECH_DIGITALIZATION: [{ stepKey: "tech_digitalization", schemaKey: "tech_digitalization", label: "Technologie & Digitalisierung" }],
   WF_AUTOMATION_ROI: [{ stepKey: "automation_roi", schemaKey: "automation_roi", label: "Computer-Automatisierung & ROI" }],
   WF_PHYSICAL_AUTOMATION: [{ stepKey: "physical_automation", schemaKey: "physical_automation", label: "Physische Prozess-Automatisierung" }],

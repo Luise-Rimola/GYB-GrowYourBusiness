@@ -1271,6 +1271,23 @@ Output schema:
 { "macro_trends": [ { "trend": "...", "impact": "...", "time_horizon": "..." } ], "industry_trends": ["..."], "technology_trends": ["..."], "regulatory_trends": ["..."], "implications_for_business": ["..."], "recommendations": ["..."], "sources_used": ["Title (URL)", "..."] }`,
   },
   {
+    key: "P28B",
+    workflowKey: "WF_TREND_ANALYSIS",
+    stepKey: "pestel_analysis",
+    version: 1,
+    outputSchemaKey: "pestel_analysis",
+    templateText: `You are a strategic macro-environment analyst. Create a PESTEL analysis adapted to company_profile.industry and local market context.
+${ARTIFACT_INSTRUCTION}
+Use company_profile, market_snapshot, industry_research from CONTEXT_JSON – use their actual data.
+Return ONLY valid JSON, no prose.
+${JSON_STRICT}
+${SOURCE_REFERENCE_INSTRUCTION}
+CONTEXT_JSON:
+{{CONTEXT_JSON}}
+Output schema:
+{ "political": [ { "factor": "...", "impact": "...", "risk_level": "low|medium|high" } ], "economic": [ { "factor": "...", "impact": "...", "risk_level": "low|medium|high" } ], "social": [ { "factor": "...", "impact": "...", "risk_level": "low|medium|high" } ], "technological": [ { "factor": "...", "impact": "...", "risk_level": "low|medium|high" } ], "environmental": [ { "factor": "...", "impact": "...", "risk_level": "low|medium|high" } ], "legal": [ { "factor": "...", "impact": "...", "risk_level": "low|medium|high" } ], "key_implications": ["..."], "recommendations": ["..."], "sources_used": ["Title (URL)", "..."] }`,
+  },
+  {
     key: "P24",
     workflowKey: "WF_OPERATIVE_PLAN",
     stepKey: "operative_plan",

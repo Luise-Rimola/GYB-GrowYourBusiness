@@ -1,71 +1,14 @@
 import { prisma } from "@/lib/prisma";
 import { WIZARD_WORKFLOW_ORDER } from "@/lib/planningFramework";
 import { unlockAllWorkflowsFromEnv } from "@/lib/workflowUnlock";
+import { workflowSteps } from "@/lib/workflowSteps";
 
-const WORKFLOW_STEPS: Record<string, { stepKey: string; label: string }[]> = {
-  WF_BUSINESS_FORM: [{ stepKey: "business_form", label: "Unternehmensprofil" }],
-  WF_BASELINE: [
-    { stepKey: "business_model_inference", label: "Geschäftsmodell" },
-    { stepKey: "kpi_set_selection", label: "KPI-Set" },
-    { stepKey: "kpi_computation_plan", label: "KPI-Fragenplan" },
-    { stepKey: "kpi_questions_answer", label: "KPI-Antworten" },
-    { stepKey: "kpi_gap_scan", label: "KPI-Lückenanalyse" },
-    { stepKey: "industry_research", label: "Branchenrecherche" },
-  ],
-  WF_MARKET: [{ stepKey: "market_snapshot", label: "Marktüberblick" }],
-  WF_RESEARCH: [
-    { stepKey: "market_research", label: "Marktforschung" },
-    { stepKey: "best_practices", label: "Bewährte Vorgehensweisen" },
-    { stepKey: "failure_reasons", label: "Misserfolgsgründe" },
-  ],
-  WF_VALUE_PROPOSITION: [{ stepKey: "value_proposition", label: "Wertversprechen" }],
-  WF_COMPETITOR_ANALYSIS: [{ stepKey: "competitor_analysis", label: "Wettbewerbsanalyse" }],
-  WF_SWOT: [{ stepKey: "swot_analysis", label: "SWOT-Analyse" }],
-  WF_TREND_ANALYSIS: [{ stepKey: "trend_analysis", label: "Trendanalyse" }],
-  WF_CUSTOMER_VALIDATION: [{ stepKey: "customer_validation", label: "Kundenvalidierung" }],
-  WF_MENU_CARD: [{ stepKey: "menu_card", label: "Angebotskatalog" }],
-  WF_SUPPLIER_LIST: [{ stepKey: "supplier_list", label: "Lieferantenliste" }],
-  WF_MENU_COST: [{ stepKey: "menu_cost", label: "Warenkosten" }],
-  WF_MENU_PRICING: [
-    { stepKey: "menu_card", label: "Menü" },
-    { stepKey: "supplier_list", label: "Lieferanten" },
-    { stepKey: "menu_cost", label: "Warenkosten" },
-    { stepKey: "menu_preiskalkulation", label: "Preiskalkulation" },
-  ],
-  WF_REAL_ESTATE: [{ stepKey: "real_estate", label: "Standortoptionen" }],
-  WF_BUSINESS_PLAN: [
-    { stepKey: "business_plan_executive", label: "Zusammenfassung" },
-    { stepKey: "business_plan_market", label: "Marktanalyse" },
-    { stepKey: "business_plan_marketing", label: "Marketingplan" },
-    { stepKey: "business_plan_financial", label: "Finanzszenarien" },
-    { stepKey: "business_plan_risk", label: "Risikoanalyse" },
-  ],
-  WF_STARTUP_CONSULTING: [{ stepKey: "startup_consulting", label: "Finanzierung & Gründung" }],
-  WF_GO_TO_MARKET: [{ stepKey: "go_to_market", label: "Markteintritt & Preisstrategie" }],
-  WF_FINANCIAL_PLANNING: [
-    { stepKey: "work_processes", label: "Arbeitsprozesse (Planung → Einkauf → Endkunde)" },
-    { stepKey: "personnel_plan", label: "Personalplan & Personalkosten" },
-    { stepKey: "financial_liquidity", label: "Liquiditätsplan" },
-    { stepKey: "financial_profitability", label: "Rentabilitätsplan" },
-    { stepKey: "financial_capital", label: "Kapitalbedarf" },
-    { stepKey: "financial_break_even", label: "Break-Even-Analyse" },
-    { stepKey: "financial_monthly_h1", label: "Monatsprognose 1–6" },
-    { stepKey: "financial_monthly_h2", label: "Monatsprognose 7–12" },
-  ],
-  WF_DIAGNOSTIC: [{ stepKey: "root_cause_trees", label: "Ursachenbäume" }],
-  WF_NEXT_BEST_ACTIONS: [{ stepKey: "decision_engine", label: "Entscheidungslogik" }],
-  WF_MARKETING_STRATEGY: [{ stepKey: "marketing_strategy", label: "Marketing Strategie" }],
-  WF_SCALING_STRATEGY: [{ stepKey: "scaling_strategy", label: "Skalierungsstrategie" }],
-  WF_GROWTH_MARGIN_OPTIMIZATION: [{ stepKey: "growth_margin_optimization", label: "Marge, Angebot & Kostenoptimierung" }],
-  WF_PROCESS_OPTIMIZATION: [{ stepKey: "process_optimization", label: "Prozessoptimierung" }],
-  WF_PORTFOLIO_MANAGEMENT: [{ stepKey: "portfolio_management", label: "Portfolio & Marke" }],
-  WF_STRATEGIC_OPTIONS: [{ stepKey: "strategic_options", label: "Strategische Optionen" }],
-  WF_KPI_ESTIMATION: [{ stepKey: "kpi_estimation", label: "KPI-Schätzung" }],
-  WF_DATA_COLLECTION_PLAN: [{ stepKey: "kpi_computation_plan", label: "Datenerhebungsplan" }],
-  WF_STRATEGIC_PLANNING: [{ stepKey: "strategic_planning", label: "Strategische Planung" }],
-  WF_SCENARIO_ANALYSIS: [{ stepKey: "scenario_analysis", label: "Szenario- & Risikoanalyse" }],
-  WF_OPERATIVE_PLAN: [{ stepKey: "operative_plan", label: "Operative plan" }],
-};
+const WORKFLOW_STEPS: Record<string, { stepKey: string; label: string }[]> = Object.fromEntries(
+  Object.entries(workflowSteps).map(([workflowKey, steps]) => [
+    workflowKey,
+    steps.map((step) => ({ stepKey: step.stepKey, label: step.label })),
+  ])
+);
 
 export type ProgressStep = {
   id: string;

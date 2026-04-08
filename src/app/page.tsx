@@ -7,7 +7,6 @@ const landingCopy = {
     heroSubtitle:
       "AI-Powered Growth System für Strategie, Priorisierung und Umsetzung. Du bekommst klare Phasen, verständliche Workflows und belastbare Ergebnisse.",
     ctaPrimary: "Kostenlos starten",
-    ctaLogin: "Login",
     ctaContinue: "Weiter zur App",
     trust1: "Strukturierte Entscheidungsvorlagen",
     trust2: "Transparente KPI- und Quellenlogik",
@@ -17,7 +16,7 @@ const landingCopy = {
     whyTitle: "Warum Grow Your Business",
     whySubtitle:
       "Entwickelt für Teams, die schnell entscheiden müssen und trotzdem Qualität brauchen.",
-    securityTitle: "Data Security",
+    securityTitle: "Datensicherheit",
     securitySubtitle:
       "Deine Daten werden geschützt verarbeitet. Du kontrollierst jederzeit, was verwendet wird.",
     securityPoints: [
@@ -30,7 +29,6 @@ const landingCopy = {
     finalSubtitle:
       "Melde dich an und starte direkt im internen Home-Bereich mit Workflows, Entscheidungen und Dokumenten.",
     finalPrimary: "Jetzt registrieren",
-    finalSecondary: "Zum Login",
     langSwitch: "Sprache",
     phases: [
       {
@@ -70,7 +68,6 @@ const landingCopy = {
     heroSubtitle:
       "AI-Powered Growth System for strategy, prioritization, and execution. Get clear phases, understandable workflows, and actionable outputs.",
     ctaPrimary: "Start free",
-    ctaLogin: "Login",
     ctaContinue: "Continue to app",
     trust1: "Structured decision templates",
     trust2: "Transparent KPI and source logic",
@@ -92,7 +89,6 @@ const landingCopy = {
     finalSubtitle:
       "Sign in and continue in your internal home area with workflows, decisions, and artifacts.",
     finalPrimary: "Create account",
-    finalSecondary: "Go to login",
     langSwitch: "Language",
     phases: [
       {
@@ -173,20 +169,12 @@ export default async function LandingPage({
                 {c.ctaContinue}
               </Link>
             ) : (
-              <>
-                <Link
-                  href="/register"
-                  className="rounded-xl bg-teal-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-teal-700"
-                >
-                  {c.ctaPrimary}
-                </Link>
-                <Link
-                  href="/login"
-                  className="rounded-xl border border-[var(--card-border)] bg-white/90 px-5 py-2.5 text-sm font-semibold text-[var(--foreground)] transition hover:border-teal-300 hover:text-teal-700 dark:bg-[var(--card)] dark:hover:text-teal-300"
-                >
-                  {c.ctaLogin}
-                </Link>
-              </>
+              <Link
+                href="/register"
+                className="rounded-xl bg-teal-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-teal-700"
+              >
+                {c.ctaPrimary}
+              </Link>
             )}
           </div>
           <div className="mt-7 grid gap-3 md:grid-cols-3">
@@ -278,20 +266,12 @@ export default async function LandingPage({
                 {c.ctaContinue}
               </Link>
             ) : (
-              <>
-                <Link
-                  href="/register"
-                  className="rounded-xl bg-teal-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-700"
-                >
-                  {c.finalPrimary}
-                </Link>
-                <Link
-                  href="/login"
-                  className="rounded-xl border border-[var(--card-border)] px-5 py-2.5 text-sm font-semibold text-[var(--foreground)] transition hover:border-teal-300 hover:text-teal-700 dark:hover:text-teal-300"
-                >
-                  {c.finalSecondary}
-                </Link>
-              </>
+              <Link
+                href="/register"
+                className="rounded-xl bg-teal-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-700"
+              >
+                {c.finalPrimary}
+              </Link>
             )}
           </div>
         </div>

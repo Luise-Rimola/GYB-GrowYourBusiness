@@ -1252,6 +1252,44 @@ export const trendAnalysisSchema = z
   })
   .strict();
 
+export const pestelAnalysisSchema = z
+  .object({
+    political: z.array(z.object({
+      factor: z.string(),
+      impact: z.string(),
+      risk_level: z.enum(["low", "medium", "high"]).optional(),
+    })),
+    economic: z.array(z.object({
+      factor: z.string(),
+      impact: z.string(),
+      risk_level: z.enum(["low", "medium", "high"]).optional(),
+    })),
+    social: z.array(z.object({
+      factor: z.string(),
+      impact: z.string(),
+      risk_level: z.enum(["low", "medium", "high"]).optional(),
+    })),
+    technological: z.array(z.object({
+      factor: z.string(),
+      impact: z.string(),
+      risk_level: z.enum(["low", "medium", "high"]).optional(),
+    })),
+    environmental: z.array(z.object({
+      factor: z.string(),
+      impact: z.string(),
+      risk_level: z.enum(["low", "medium", "high"]).optional(),
+    })),
+    legal: z.array(z.object({
+      factor: z.string(),
+      impact: z.string(),
+      risk_level: z.enum(["low", "medium", "high"]).optional(),
+    })),
+    key_implications: z.array(z.string()).optional(),
+    recommendations: z.array(z.string()).optional(),
+    sources_used: z.array(z.string()).optional(),
+  })
+  .strict();
+
 /** Normalize LLM output: kpi_estimation (object) → kpi_estimates (array); legacy value → value_month_1/value_month_12 */
 function preprocessKpiEstimation(raw: unknown): unknown {
   const o = typeof raw === "object" && raw != null ? (raw as Record<string, unknown>) : {};
@@ -1563,6 +1601,7 @@ export const schemaRegistry = {
   work_processes: workProcessesSchema,
   strategic_planning: strategicPlanningSchema,
   trend_analysis: trendAnalysisSchema,
+  pestel_analysis: pestelAnalysisSchema,
   kpi_estimation: kpiEstimationSchema,
   tech_digitalization: techDigitalizationSchema,
   automation_roi: automationRoiSchema,

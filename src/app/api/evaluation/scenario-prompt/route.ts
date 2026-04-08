@@ -11,6 +11,7 @@ export async function POST(req: Request) {
     const { company } = auth;
     const body = await req.json();
     const scenarioId = typeof body.scenarioId === "number" ? body.scenarioId : Number(body.scenarioId);
+    const userNotes = typeof body.userNotes === "string" ? body.userNotes.trim() : "";
 
     const scenario = getScenarioById(scenarioId);
     if (!scenario) {
@@ -33,6 +34,8 @@ Am Ende gibst du deine Konfidenz in Prozent (0–100) und Quellen an.`;
 ${companyContext}
 
 ---
+
+${userNotes ? `## Zusätzliche Notizen des Nutzers\n${userNotes}\n\n---\n` : ""}
 
 Beantworte die Frage mit:
 1. Kurzantwort (genau 1 Wort, z.B. "Ja", "Nein", "Unsicher") als eigene Zeile: "Kurzantwort: X"

@@ -142,13 +142,6 @@ export default function Nav({ userEmail }: { userEmail?: string | null }) {
                 {dashboardTabLabel}
               </Link>
             </div>
-            <Link
-              href="/login"
-              prefetch={false}
-              className="rounded-lg bg-teal-600 px-3 py-2 text-white transition hover:bg-teal-700"
-            >
-              {t.auth.submitLogin}
-            </Link>
           </div>
         )}
 
@@ -204,18 +197,6 @@ export default function Nav({ userEmail }: { userEmail?: string | null }) {
               ✕
             </button>
           </div>
-          {!isAuthed && (
-            <div className="mb-3 flex flex-col gap-2 border-b border-[var(--card-border)] pb-3">
-              <Link
-                href="/login"
-                prefetch={false}
-                onClick={() => setOpen(false)}
-                className="rounded-lg bg-teal-600 px-3 py-2 text-center text-sm font-semibold text-white transition hover:bg-teal-700"
-              >
-                {t.auth.submitLogin}
-              </Link>
-            </div>
-          )}
           <div className="flex flex-col gap-2">
             {isAuthed ? (
               <>

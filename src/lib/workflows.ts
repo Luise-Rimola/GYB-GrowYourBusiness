@@ -206,8 +206,8 @@ export const WORKFLOWS = [
   {
     key: "WF_TREND_ANALYSIS",
     name: "Trendanalyse",
-    description: "Makrotrends, Branchentrends, Technologietrends.",
-    explanation: "Erklärung: Trendanalyse für strategische Entscheidungen. Basiert auf: Company Profile, Market Snapshot, Industry Research. Zu Untersuchen: Makrotrends, Branchentrends, Technologietrends, Regulierung. Output: macro_trends, industry_trends, implications_for_business (JSON).",
+    description: "Makrotrends, Branchentrends, Technologietrends plus strukturierte PESTEL-Analyse.",
+    explanation: "Erklärung: Trendanalyse für strategische Entscheidungen. Basiert auf: Company Profile, Market Snapshot, Industry Research. Zu Untersuchen: Makrotrends, Branchentrends, Technologietrends, Regulierung sowie politische, wirtschaftliche, soziale, technologische, ökologische und rechtliche Faktoren (PESTEL). Output: trend_analysis, pestel_analysis (JSON).",
   },
   {
     key: "WF_TECH_DIGITALIZATION",

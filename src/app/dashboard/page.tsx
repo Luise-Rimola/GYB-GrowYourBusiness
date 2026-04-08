@@ -139,7 +139,7 @@ export default async function DashboardPage({
     WF_PATENT_CHECK: ["Patentability & source review"],
     WF_LEGAL_FOUNDATION: ["Legal framework & legal form"],
     WF_STRATEGIC_PLANNING: ["Strategic planning"],
-    WF_TREND_ANALYSIS: ["Trend analysis"],
+    WF_TREND_ANALYSIS: ["Trend analysis", "PESTEL analysis"],
     WF_TECH_DIGITALIZATION: ["POS system", "Document archiving", "Accounting", "CRM", "Additional tools"],
     WF_AUTOMATION_ROI: ["Automatable processes", "Cost & ROI"],
     WF_PHYSICAL_AUTOMATION: ["Dough machine", "Thermomix", "Conveyor systems", "Cost & ROI"],

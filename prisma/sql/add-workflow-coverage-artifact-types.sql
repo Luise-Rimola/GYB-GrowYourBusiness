@@ -106,5 +106,13 @@ BEGIN
   ) THEN
     ALTER TYPE "ArtifactType" ADD VALUE 'moat_assessment';
   END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_enum e
+    JOIN pg_type t ON e.enumtypid = t.oid
+    WHERE t.typname = 'ArtifactType' AND e.enumlabel = 'pestel_analysis'
+  ) THEN
+    ALTER TYPE "ArtifactType" ADD VALUE 'pestel_analysis';
+  END IF;
 END
 $$;

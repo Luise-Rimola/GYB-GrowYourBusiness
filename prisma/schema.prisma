@@ -126,6 +126,7 @@ enum ArtifactType {
   barriers_to_entry
   moat_assessment
   trend_analysis
+  pestel_analysis
   competitor_analysis
   kpi_estimation
   work_processes

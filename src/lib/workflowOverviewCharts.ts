@@ -216,7 +216,6 @@ flowchart LR
     GTM --> N
     FP --> N
     CV --> N
-    N --> BP
 `,
   en: `
 flowchart LR
@@ -243,7 +242,6 @@ flowchart LR
     GTM --> N
     FP --> N
     CV --> N
-    N --> BP
 `,
 };
 
