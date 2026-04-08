@@ -228,7 +228,8 @@ export const translations = {
       fb1D2:
         "What would you want to watch regularly to spot problems early? (e.g. sales, cash, customer feedback — in your own words)",
       fb1D3: "Which processes or areas should be analysed in depth in your view (e.g. sales, ops, finance)?",
-      fb1D4: "Which indicators or KPIs are especially relevant for your decisions?",
+      fb1D4:
+        "Which indicators or KPIs (key performance indicators — measurable numbers such as revenue, costs, or customer counts) are especially relevant for your decisions?",
       fb1Scale1: "strongly disagree",
       fb1Scale7: "strongly agree",
       studyStart: "Study start",
@@ -1106,7 +1107,8 @@ export const translations = {
       fb1D2:
         "Worauf möchten Sie regelmäßig achten, um Probleme früh zu merken? (z. B. Umsatz, Liquidität, Kundenfeedback — kurz in eigenen Worten)",
       fb1D3: "Welche Prozesse oder Bereiche sollten aus Ihrer Sicht konkret analysiert werden (z. B. Vertrieb, Ops, Finanzen)?",
-      fb1D4: "Welche Indikatoren oder KPIs sind für Ihre Entscheidungen besonders relevant?",
+      fb1D4:
+        "Welche Indikatoren oder KPIs (Kennzahlen zum Messen von Erfolg und Fortschritt, z. B. Umsatz, Kosten, Kundenquote) sind für Ihre Entscheidungen besonders relevant?",
       fb1Scale1: "stimme gar nicht zu",
       fb1Scale7: "stimme voll zu",
       studyStart: "Studienstart",

@@ -1291,7 +1291,8 @@ const QUESTION_TEXT_BY_KEY: Record<string, string> = {
   fb1D2:
     "Worauf regelmaessig achten um Probleme frueh zu merken (z.B. Umsatz Liquiditaet Kundenfeedback)",
   fb1D3: "Welche Prozesse/Bereiche sollten konkret analysiert werden?",
-  fb1D4: "Welche Indikatoren oder KPIs sind besonders relevant?",
+  fb1D4:
+    "Welche Indikatoren oder KPIs (Kennzahlen zum Messen von Erfolg und Fortschritt, z.B. Umsatz Kosten Kundenquote) sind besonders relevant?",
   fb5X1: "Insgesamt wuerde der Einsatz einer solchen Loesung Sinn ergeben.",
   fb5X2: "Ich kann mir vorstellen, den Ansatz dauerhaft zu integrieren.",
   fb5X3: "Die Nutzbarkeit im Alltag waere ausreichend.",
