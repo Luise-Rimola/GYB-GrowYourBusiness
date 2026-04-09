@@ -955,7 +955,7 @@ export default async function DashboardPage({
                 ) : (
                   <p className="text-sm text-[var(--muted)]">{isDe ? "Noch keine Prozesse für diese Phase." : "No workflows in this phase yet."}</p>
                 )}
-                {(phaseArtifacts.length > 0 || decisionPackInPhase) && (
+                {/*{(phaseArtifacts.length > 0 || decisionPackInPhase) && (
                   <PhaseArtifactsReleaseBlock
                     phaseId={phase.id}
                     phaseName={isDe ? phase.name : (phaseNamesEn[phase.id] ?? phase.name)}
@@ -990,7 +990,7 @@ export default async function DashboardPage({
                       )}
                     </>
                   </PhaseArtifactsReleaseBlock>
-                )}
+                )}*/}
               </div>
             );
           })}

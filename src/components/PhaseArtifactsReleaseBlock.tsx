@@ -58,23 +58,7 @@ export function PhaseArtifactsReleaseBlock({
         </summary>
         <div className="mt-3 flex flex-wrap gap-2">{children}</div>
         <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-[var(--card-border)] pt-3">
-          {!released ? (
-            <button
-              type="button"
-              onClick={() => setModal("release")}
-              className="rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-amber-700"
-            >
-              {labels.releaseBtn}
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setModal("revoke")}
-              className="rounded-lg border border-[var(--card-border)] bg-[var(--card)] px-3 py-1.5 text-xs font-medium text-[var(--foreground)] transition hover:bg-[var(--background)]"
-            >
-              {labels.revokeBtn}
-            </button>
-          )}
+          
           {released && (
             <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-200">
               ✓ {phaseName}
