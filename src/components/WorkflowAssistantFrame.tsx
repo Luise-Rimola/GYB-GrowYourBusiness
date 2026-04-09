@@ -7,6 +7,7 @@ import { iframeShowsStepCompletion } from "@/lib/assistantIframeCompletion";
 import { SUBMIT_BUTTON_PENDING_CLASS } from "@/lib/submitButtonStyle";
 
 const ASSISTANT_DONE_HREFS_KEY = "gyb-assistant-done-hrefs-v1";
+const ASSISTANT_INDEX_KEY = "gyb-assistant-index-v1";
 
 function parseRunIdFromAssistantHref(href: string): string | null {
   const path = href.split("#")[0]?.split("?")[0] ?? "";
@@ -23,6 +24,241 @@ type AssistantStep = {
   label: string;
   completed: boolean;
 };
+
+type StepInfoContent = {
+  title: string;
+  whatToDo: string;
+  whyItMatters: string;
+  resultHint: string;
+};
+
+function phaseInfoById(phaseId: string): StepInfoContent | null {
+  const byPhase: Record<string, StepInfoContent> = {
+    ideation: {
+      title: "Prozess: Ideen- und Konzeptphase",
+      whatToDo:
+        "Prüfen Sie Problem, Zielgruppe, Wertversprechen und Wettbewerb strukturiert. Öffnen Sie einzelne Prozesse und arbeiten Sie die Schritte sauber durch.",
+      whyItMatters:
+        "Diese Phase legt das strategische Fundament. Fehler in Annahmen oder Positionierung wirken sich auf alle Folgephasen aus.",
+      resultHint:
+        "Nutzen Sie Notizen für Hypothesen, offene Fragen und Belege, damit spätere Entscheidungen nachvollziehbar bleiben.",
+    },
+    validation: {
+      title: "Prozess: Validierungsphase",
+      whatToDo:
+        "Validieren Sie Machbarkeit, USP und Kundenakzeptanz. Fokussieren Sie auf belastbare Nachweise statt auf reine Annahmen.",
+      whyItMatters:
+        "Hier entscheidet sich, ob die Idee real tragfähig ist. Gute Validierung senkt Risiko vor Investitionen und Rollout.",
+      resultHint:
+        "Dokumentieren Sie Unsicherheiten und Gegenargumente im Notizfeld pro Schritt.",
+    },
+    launch: {
+      title: "Prozess: Gründungs- / Launchphase",
+      whatToDo:
+        "Arbeiten Sie die Kernprozesse für Markteintritt, Finanzierung und operative Vorbereitung nacheinander ab.",
+      whyItMatters:
+        "Diese Phase verbindet Strategie mit Umsetzung. Qualität hier beeinflusst Geschwindigkeit und Stabilität des Starts.",
+      resultHint:
+        "Halten Sie in Notizen fest, welche Voraussetzungen erfüllt sind und was noch fehlt.",
+    },
+    scaling: {
+      title: "Prozess: Wachstumsphase",
+      whatToDo:
+        "Bewerten Sie Skalierungshebel, Margen und operative Engpässe. Priorisieren Sie Maßnahmen mit klarer Wirkung.",
+      whyItMatters:
+        "Im Wachstum steigen Komplexität und Kosten. Strukturierte Priorisierung verhindert ineffizientes Skalieren.",
+      resultHint:
+        "Notieren Sie Abhängigkeiten zwischen Teams, KPIs und Ressourcen im jeweiligen Schritt.",
+    },
+    tech_digital: {
+      title: "Prozess: Technologie & Digitalisierung",
+      whatToDo:
+        "Prüfen Sie passende Tools, Automatisierungspotenziale und Implementierungsaufwand pro Anwendungsfall.",
+      whyItMatters:
+        "Technikentscheidungen beeinflussen Effizienz, Qualität und Skalierbarkeit langfristig.",
+      resultHint:
+        "Erfassen Sie in Notizen Integrationsrisiken, Datenanforderungen und Betriebsauswirkungen.",
+    },
+    maturity: {
+      title: "Prozess: Reifephase",
+      whatToDo:
+        "Optimieren Sie Prozesse, Portfolio und Steuerungslogik auf Stabilität, Profitabilität und Resilienz.",
+      whyItMatters:
+        "In der Reifephase entstehen Wettbewerbsvorteile vor allem durch konsequente Exzellenz in der Ausführung.",
+      resultHint:
+        "Notieren Sie Verbesserungsideen mit direktem Bezug zu Effizienz, Kosten und Kundennutzen.",
+    },
+    renewal: {
+      title: "Prozess: Erneuerung / Exit / Transformation",
+      whatToDo:
+        "Analysieren Sie strategische Optionen, Risiken und Szenarien für Erneuerung, Transformation oder Exit.",
+      whyItMatters:
+        "Diese Phase entscheidet über langfristige Zukunftsfähigkeit und die Qualität großer Richtungsentscheidungen.",
+      resultHint:
+        "Dokumentieren Sie in Notizen Annahmen, Trigger und Entscheidungsgrenzen transparent.",
+    },
+  };
+  return byPhase[phaseId] ?? null;
+}
+
+function normalizeStepPath(href: string): string {
+  try {
+    if (href.startsWith("http://") || href.startsWith("https://")) {
+      const u = new URL(href);
+      return `${u.pathname}${u.search}${u.hash}`;
+    }
+  } catch {
+    /* ignore and use raw href */
+  }
+  return href;
+}
+
+function stepInfoFromHref(href: string): StepInfoContent {
+  const path = normalizeStepPath(href);
+  let phaseId = "";
+  try {
+    const u = new URL(path, "https://assistant.local");
+    phaseId = u.searchParams.get("assistant_phase") ?? u.searchParams.get("phase") ?? "";
+    if (!phaseId && u.hash.startsWith("#phase-")) {
+      phaseId = u.hash.slice("#phase-".length);
+    }
+  } catch {
+    phaseId = "";
+  }
+
+  if (path.startsWith("/profile")) {
+    return {
+      title: "Unternehmensprofil ausfüllen",
+      whatToDo:
+        "Pflegen Sie Stammdaten, Angebot, Zielgruppe, Standort und Rahmenbedingungen möglichst konkret ein. Nutzen Sie den Web-Enrich-Button, wenn passende öffentliche Infos vorhanden sind.",
+      whyItMatters:
+        "Diese Angaben steuern die Qualität aller folgenden KI-Auswertungen. Unscharfe Profilangaben führen später zu generischen oder unpassenden Empfehlungen.",
+      resultHint:
+        "Gut ausgefülltes Profil = bessere Baseline, bessere Runs und belastbarere Entscheidungen.",
+    };
+  }
+  if (path.startsWith("/study/fb1")) {
+    return {
+      title: "Fragebogen: Ausgangslage",
+      whatToDo:
+        "Bewerten Sie den Ist-Zustand Ihres Unternehmens vor dem KI-Einsatz ehrlich und konsistent.",
+      whyItMatters:
+        "FB1 ist die Ausgangsbasis für den Vorher-Nachher-Vergleich. Nur mit einer sauberen Baseline ist der spätere KI-Nutzen nachvollziehbar.",
+      resultHint:
+        "Die Werte aus FB1 sind Ihr Referenzpunkt für die späteren Verbesserungen.",
+    };
+  }
+  if (path.startsWith("/study/info/")) {
+    return {
+      title: "Kontext vor Fragebogen",
+      whatToDo:
+        "Lesen Sie den Phasen- und Bereichskontext aufmerksam, bevor Sie den nächsten Fragebogen ausfüllen.",
+      whyItMatters:
+        "So verstehen Sie, welche Prozesse und Kriterien in dieser Kategorie wirklich gemeint sind. Das reduziert Missverständnisse bei der Bewertung.",
+      resultHint:
+        "Ein klarer Kontext führt zu vergleichbareren und valideren Fragebogenantworten.",
+    };
+  }
+  if (path.startsWith("/study/fb2")) {
+    return {
+      title: "Fragebogen: Ausgangssituation ohne KI-Tool",
+      whatToDo:
+        "Bewerten Sie den ausgewählten Bereich so, wie er in Ihrer Praxis aktuell ohne KI-Unterstützung funktioniert.",
+      whyItMatters:
+        "Hier wird die reale Ausgangssituation praxisnah festgehalten. Diese Einschätzung dient als Vorher-Stand für den späteren Vergleich.",
+      resultHint:
+        "Je realistischer diese Bewertung ist, desto aussagekräftiger ist später die Evaluation des Tool-Nutzens.",
+    };
+  }
+  if (path.startsWith("/runs/")) {
+    return {
+      title: "KI-Prozess ausführen",
+      whatToDo:
+        "Bearbeiten Sie alle Prozessschritte vollständig, prüfen Sie die Antworten und speichern Sie gültige Ergebnisse pro Schritt.",
+      whyItMatters:
+        "Die KI-Analyse-Ergebnisse sind die operative Grundlage für Artefakte, Folgeentscheidungen und die Nachher-Bewertung im Fragebogen.",
+      resultHint:
+        "Nutzen Sie in einzelnen Schritten auch das Notizfeld für zusätzliche Informationen, Annahmen oder Kontext, die für die jeweilige Analyse wichtig sein können.",
+    };
+  }
+  if (path.includes("/dashboard")) {
+    const phaseInfo = phaseId ? phaseInfoById(phaseId) : null;
+    if (phaseInfo) return phaseInfo;
+    return {
+      title: "Prozesse in Planungsphasen",
+      whatToDo:
+        "Wählen Sie pro Phase die relevanten Prozesse aus, öffnen Sie einzelne Prozesse und führen Sie die Schritte nacheinander aus.",
+      whyItMatters:
+        "Die Prozessausführung bildet die Grundlage für belastbare KI-Analyse-Ergebnisse und spätere Bewertung.",
+      resultHint:
+        "Wenn keine konkrete Phase aktiv ist, wählen Sie zuerst die passende Phase und starten dann den jeweiligen Prozess.",
+    };
+  }
+  if (path.startsWith("/artifacts")) {
+    return {
+      title: "Artefakte prüfen",
+      whatToDo:
+        "Prüfen Sie die erzeugten Dokumente auf Verständlichkeit, inhaltliche Qualität und praktische Nutzbarkeit.",
+      whyItMatters:
+        "Nur brauchbare Artefakte sollten in Entscheidungen und Bewertungen einfließen. Schlechte Artefakte verfälschen den Gesamteindruck.",
+      resultHint:
+        "Wenn nötig, Runs nachschärfen und Artefakte erneut erzeugen.",
+    };
+  }
+  if (path.startsWith("/study/fb3")) {
+    return {
+      title: "Fragebogen: Situation mit KI-Tool",
+      whatToDo:
+        "Bewerten Sie denselben Bereich erneut, diesmal auf Basis der Arbeit mit KI-Tool und den daraus entstandenen Ergebnissen.",
+      whyItMatters:
+        "So wird sichtbar, wie sich die Situation mit Tool-Unterstützung verändert hat. Der Vergleich mit der Ausgangssituation zeigt Verbesserungen und verbleibende Lücken.",
+      resultHint:
+        "Zusammen mit dem Fragebogen \"Situation ohne KI Tool\" entsteht eine belastbare Vorher-/Nachher-Bewertung zur praktischen Evaluation.",
+    };
+  }
+  if (path.startsWith("/study/fb4")) {
+    return {
+      title: "Fragebogen: Gesamtbewertung",
+      whatToDo:
+        "Bewerten Sie übergreifend Nutzbarkeit, Technologieakzeptanz, Vergleich sowie organisatorische Einbettung.",
+      whyItMatters:
+        "FB4 verdichtet die Erfahrungen aus allen Kategorien zu einer Managementsicht auf Einführung, Skalierung und Governance.",
+      resultHint:
+        "Hier entsteht die Grundlage für Rollout-Entscheidungen im Unternehmen.",
+    };
+  }
+  if (path.startsWith("/study/fb5")) {
+    return {
+      title: "Fragebogen: Abschluss",
+      whatToDo:
+        "Geben Sie Ihre abschließende Gesamteinschätzung, offene Punkte und nächste Prioritäten ein.",
+      whyItMatters:
+        "FB5 schließt die Evaluation methodisch ab und verdichtet die wichtigsten Erkenntnisse für die Nachsteuerung.",
+      resultHint:
+        "Die Antworten aus FB5 helfen, konkrete Folgeaktionen für den Betrieb festzulegen.",
+    };
+  }
+  if (path.startsWith("/knowledge")) {
+    return {
+      title: "Wissensquellen verwalten",
+      whatToDo:
+        "Laden Sie relevante interne und externe Quellen hoch und halten Sie die Wissensbasis aktuell.",
+      whyItMatters:
+        "Die Qualität der Quellen beeinflusst direkt die Genauigkeit und Nachvollziehbarkeit der KI-Antworten.",
+      resultHint:
+        "Bessere Quellen = weniger Halluzinationen, bessere Begründungen und stabilere Ergebnisse.",
+    };
+  }
+  return {
+    title: "Schrittinformationen",
+    whatToDo:
+      "Bearbeiten Sie den aktuellen Schritt vollständig und speichern Sie Ihre Eingaben.",
+    whyItMatters:
+      "Jeder Schritt baut auf dem vorherigen auf und beeinflusst die Qualität der Folgeergebnisse.",
+    resultHint:
+      "Wenn verfügbar, nutzen Sie das Notizfeld im Schritt für zusätzliche Hinweise, die für die Analyse wichtig sein können.",
+  };
+}
 
 function dispatchAssistantPulse(phase: "start" | "end") {
   if (typeof window === "undefined") return;
@@ -54,71 +290,98 @@ export function WorkflowAssistantFrame({
 }: {
   steps: AssistantStep[];
 }) {
-  const persistedDone = useMemo(() => {
-    if (typeof window === "undefined") return new Set<string>();
-    return readPersistedDoneHrefs();
-  }, []);
-
-  const firstOpen = steps.findIndex(
-    (s) => !s.completed && !persistedDone.has(s.href),
-  );
-  const initialIndex = firstOpen >= 0 ? firstOpen : Math.max(steps.length - 1, 0);
-  const [index, setIndex] = useState(initialIndex);
-  const indexRef = useRef(initialIndex);
+  const firstOpen = steps.findIndex((s) => !s.completed);
+  const fallbackIndex = firstOpen >= 0 ? firstOpen : Math.max(steps.length - 1, 0);
+  const [index, setIndex] = useState(fallbackIndex);
+  const indexRef = useRef(fallbackIndex);
   indexRef.current = index;
   const [locallyDone, setLocallyDone] = useState<Record<number, boolean>>({});
-  const [doneTick, setDoneTick] = useState(0);
+  const [persistedDone, setPersistedDone] = useState<Set<string>>(new Set());
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const hydratedFromStorage = useRef(false);
 
   const [pendingSubmit, setPendingSubmit] = useState(false);
+  const [resolvedIframeHref, setResolvedIframeHref] = useState<string | null>(null);
   const [runProcessUnlocked, setRunProcessUnlocked] = useState<Record<number, boolean>>({});
   const [processCompleteModalOpen, setProcessCompleteModalOpen] = useState(false);
   const pendingNextIndexRef = useRef<number | null>(null);
   const pendingTimeoutRef = useRef<number | null>(null);
   const lastCompletionUrlRef = useRef<string | null>(null);
+  const lastManualNavAtRef = useRef<number>(0);
+  const suppressAutoAdvanceUntilRef = useRef<number>(0);
   const stepsRef = useRef(steps);
   stepsRef.current = steps;
+  const isProfileStep = (steps[index]?.href ?? "").startsWith("/profile");
 
   useEffect(() => {
     if (hydratedFromStorage.current) return;
     hydratedFromStorage.current = true;
     try {
       const done = readPersistedDoneHrefs();
-      const i = steps.findIndex((s) => !s.completed && !done.has(s.href));
-      if (i >= 0) setIndex(i);
+      setPersistedDone(done);
+      const raw = window.localStorage.getItem(ASSISTANT_INDEX_KEY);
+      const n = raw != null ? Number(raw) : NaN;
+      const url = new URL(window.location.href);
+      const forceNextOpenOnStart = url.searchParams.get("start") === "1";
+      const firstIncompleteFromPersisted = steps.findIndex(
+        (s) => !s.completed && !done.has(s.href),
+      );
+      const fallbackFromPersisted =
+        firstIncompleteFromPersisted >= 0
+          ? firstIncompleteFromPersisted
+          : Math.max(steps.length - 1, 0);
+
+      if (forceNextOpenOnStart) {
+        url.searchParams.delete("start");
+        const cleaned = `${url.pathname}${url.search}${url.hash}`;
+        window.history.replaceState(window.history.state, "", cleaned || "/assistant");
+      }
+
+      if (forceNextOpenOnStart || !Number.isFinite(n)) {
+        setIndex(fallbackFromPersisted);
+        return;
+      }
+
+      const clamped = Math.max(0, Math.min(Math.floor(n), Math.max(steps.length - 1, 0)));
+      // Preserve exact step on reload/back-forward navigation.
+      setIndex(clamped);
     } catch {
       /* ignore */
     }
   }, [steps]);
 
   useEffect(() => {
+    try {
+      window.localStorage.setItem(ASSISTANT_INDEX_KEY, String(index));
+    } catch {
+      /* ignore */
+    }
+  }, [index]);
+
+  useEffect(() => {
     lastCompletionUrlRef.current = null;
+    setResolvedIframeHref(null);
   }, [index]);
 
   const current = steps[index];
   const completedCount = useMemo(() => {
-    const doneHref = readPersistedDoneHrefs();
     return steps.filter(
-      (s, i) => s.completed || locallyDone[i] || doneHref.has(s.href),
+      (s, i) => s.completed || locallyDone[i] || persistedDone.has(s.href),
     ).length;
-  }, [steps, locallyDone, doneTick]);
+  }, [steps, locallyDone, persistedDone]);
 
-  function isDoneAt(i: number, doneMap: Record<number, boolean>) {
-    const st = stepsRef.current;
-    const href = st[i]?.href;
-    if (!href) return true;
-    return Boolean(
-      st[i]?.completed || doneMap[i] || readPersistedDoneHrefs().has(href),
-    );
+  function markDoneHref(href: string) {
+    persistDoneHref(href);
+    setPersistedDone((prev) => {
+      const next = new Set(prev);
+      next.add(href);
+      return next;
+    });
   }
 
-  function findNextOpenIndex(fromIndex: number, doneMap: Record<number, boolean>) {
+  function nextSequentialIndex(fromIndex: number) {
     const st = stepsRef.current;
-    for (let i = Math.max(0, fromIndex); i < st.length; i++) {
-      if (!isDoneAt(i, doneMap)) return i;
-    }
-    return Math.max(st.length - 1, 0);
+    return Math.min(fromIndex + 1, Math.max(st.length - 1, 0));
   }
 
   function getIframeHref() {
@@ -147,6 +410,8 @@ export function WorkflowAssistantFrame({
   }
 
   function tryCompleteFromIframe() {
+    // Do not auto-advance right after a manual navigation (back/open step).
+    if (!pendingSubmit && Date.now() < suppressAutoAdvanceUntilRef.current) return;
     const href = getIframeHref();
     if (!href) return;
     const idx = indexRef.current;
@@ -159,12 +424,11 @@ export function WorkflowAssistantFrame({
     const savedPendingNext = pendingNextIndexRef.current;
     pendingNextIndexRef.current = null;
     setPendingSubmit(false);
-    persistDoneHref(stepHref);
-    setDoneTick((t) => t + 1);
+    markDoneHref(stepHref);
 
     setLocallyDone((d) => {
       const nextDone = { ...d, [idx]: true };
-      const nextIndex = savedPendingNext ?? findNextOpenIndex(idx + 1, nextDone);
+      const nextIndex = savedPendingNext ?? nextSequentialIndex(idx);
       queueMicrotask(() => {
         setIndex(nextIndex);
         dispatchAssistantPulse("end");
@@ -173,33 +437,23 @@ export function WorkflowAssistantFrame({
     });
   }
 
-  function goNext(markDone: boolean) {
+  function goNext() {
     if (pendingSubmit) return;
     setProcessCompleteModalOpen(false);
     dispatchAssistantPulse("start");
 
-    let nextDone = locallyDone;
-    if (markDone) {
-      nextDone = { ...locallyDone, [index]: true };
-      setLocallyDone(nextDone);
-      if (current.href.startsWith("/knowledge")) {
-        document.cookie = "docs_step_done=1; path=/; max-age=31536000; samesite=lax";
-      }
+    const nextDone = { ...locallyDone, [index]: true };
+    setLocallyDone(nextDone);
+    if (current.href.startsWith("/knowledge")) {
+      document.cookie = "docs_step_done=1; path=/; max-age=31536000; samesite=lax";
     }
 
-    const nextIndex = findNextOpenIndex(index + 1, nextDone);
-
-    if (!markDone) {
-      setIndex(nextIndex);
-      requestAnimationFrame(() => dispatchAssistantPulse("end"));
-      return;
-    }
+    const nextIndex = nextSequentialIndex(index);
 
     const iframeHref = getIframeHref();
     const shouldSubmit = iframeAppearsToBeFbForm(iframeHref);
     if (!shouldSubmit) {
-      persistDoneHref(current.href);
-      setDoneTick((t) => t + 1);
+      markDoneHref(current.href);
       setIndex(nextIndex);
       requestAnimationFrame(() => dispatchAssistantPulse("end"));
       return;
@@ -232,9 +486,19 @@ export function WorkflowAssistantFrame({
   }, []);
 
   useEffect(() => {
+    const id = window.setInterval(() => {
+      const href = getIframeHref();
+      if (!href) return;
+      setResolvedIframeHref((prev) => (prev === href ? prev : href));
+    }, 700);
+    return () => window.clearInterval(id);
+  }, []);
+
+  useEffect(() => {
     function onMsg(e: MessageEvent) {
       const d = e.data as { type?: string; runId?: string } | null;
       if (d?.type === "assistant-iframe-done") {
+        if (!pendingSubmit && !isProfileStep) return;
         lastCompletionUrlRef.current = null;
         tryCompleteRef.current();
         return;
@@ -252,19 +516,22 @@ export function WorkflowAssistantFrame({
     }
     window.addEventListener("message", onMsg);
     return () => window.removeEventListener("message", onMsg);
-  }, []);
+  }, [pendingSubmit, isProfileStep]);
 
   function onIframeLoad() {
-    if (pendingSubmit) {
+    const iframeHref = getIframeHref();
+    if (iframeHref) setResolvedIframeHref(iframeHref);
+    if (pendingSubmit || isProfileStep) {
       tryCompleteFromIframe();
       return;
     }
-    tryCompleteFromIframe();
     requestAnimationFrame(() => dispatchAssistantPulse("end"));
   }
 
   if (!current) return null;
   const iframeSrc = toEmbedHref(current.href);
+  const liveIframeHref = getIframeHref();
+  const stepInfo = stepInfoFromHref(liveIframeHref ?? resolvedIframeHref ?? current.href);
 
   const canUseErledigtWeiter = (() => {
     if (!isRunAssistantStepHref(current.href)) return true;
@@ -275,37 +542,63 @@ export function WorkflowAssistantFrame({
     pendingSubmit || index >= steps.length - 1 || !canUseErledigtWeiter;
 
   return (
-    <div className="flex h-[calc(100dvh-8rem)] flex-col gap-3 overflow-hidden sm:h-[calc(100vh-8.5rem)] sm:gap-5">
+    <div className="mx-auto flex h-[calc(100dvh-9.5rem)] w-full max-w-[1240px] flex-col gap-3 overflow-hidden rounded-2xl border border-slate-200/80 bg-slate-100/75 p-3 sm:h-[calc(100vh-10rem)] sm:gap-4 sm:p-4 dark:border-slate-700/60 dark:bg-slate-900/35">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
-          <h1 className="text-2xl font-bold tracking-tight text-[var(--foreground)] sm:text-3xl">
-            Workflow-Assistent
-          </h1>
+          <div className="inline-flex items-center rounded-full border border-teal-300 bg-teal-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.08em] text-teal-700 dark:border-teal-700/70 dark:bg-teal-950/40 dark:text-teal-200">
+            Studiendurchführungs Assistent
+          </div>
+          <p className="mt-1 text-base font-semibold text-[var(--foreground)] sm:text-lg">{current.label}</p>
           <p className="mt-1 text-sm text-[var(--muted)]">
             Schritt {index + 1} von {steps.length} — {completedCount} erledigt
           </p>
         </div>
-        <Link
-          href="/home"
-          prefetch={false}
-          className="shrink-0 self-start rounded-xl border border-[var(--card-border)] bg-[var(--card)] px-3 py-2 text-sm font-medium text-[var(--foreground)] transition hover:bg-[var(--background)] sm:self-auto"
-        >
-          Assistent beenden
-        </Link>
+        <div className="flex shrink-0 items-center gap-2 self-start sm:self-auto">
+          <div className="group relative">
+            <button
+              type="button"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-amber-300 bg-amber-100 text-base font-bold text-amber-900 shadow-sm transition hover:bg-amber-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
+              aria-label="Informationen zu diesem Schritt anzeigen"
+              title="Infos zu diesem Schritt"
+            >
+              i
+            </button>
+            <div className="pointer-events-none absolute right-0 top-11 z-20 hidden w-[min(34rem,88vw)] rounded-xl border border-amber-300 bg-amber-50 p-3 text-left shadow-lg group-hover:block group-focus-within:block">
+              <p className="text-sm font-semibold text-amber-900">{stepInfo.title}</p>
+              <p className="mt-1 text-sm text-amber-950">
+                <span className="font-semibold">Was tun:</span> {stepInfo.whatToDo}
+              </p>
+              <p className="mt-1 text-sm text-amber-950">
+                <span className="font-semibold">Warum:</span> {stepInfo.whyItMatters}
+              </p>
+              <p className="mt-1 text-sm text-amber-900">
+                <span className="font-semibold">Nutzen:</span> {stepInfo.resultHint}
+              </p>
+              <span
+                aria-hidden
+                className="absolute -top-2 right-3 h-3 w-3 rotate-45 border-l border-t border-amber-300 bg-amber-50"
+              />
+            </div>
+          </div>
+          <Link
+            href="/home"
+            prefetch={false}
+            className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] px-3 py-2 text-sm font-medium text-[var(--foreground)] transition hover:bg-[var(--background)]"
+          >
+            Assistent beenden
+          </Link>
+        </div>
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col rounded-lg border-[0.5px] border-[var(--card-border)] bg-[var(--card)] p-[3px] sm:rounded-2xl sm:border sm:p-4">
-        <p className="mb-[3px] text-sm font-medium text-[var(--foreground)] sm:mb-3">{current.label}</p>
-        <div className="min-h-0 flex-1 overflow-hidden rounded-md border-[0.5px] border-[var(--card-border)] bg-white sm:rounded-xl sm:border">
-          <iframe
-            key={`${index}-${iframeSrc}`}
-            ref={iframeRef}
-            title={current.label}
-            src={iframeSrc}
-            onLoad={onIframeLoad}
-            className="h-full w-full"
-          />
-        </div>
+      <div className="min-h-0 flex-1 overflow-hidden">
+        <iframe
+          key={`${index}-${iframeSrc}`}
+          ref={iframeRef}
+          title={current.label}
+          src={iframeSrc}
+          onLoad={onIframeLoad}
+          className="h-full w-full"
+        />
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -313,6 +606,11 @@ export function WorkflowAssistantFrame({
           type="button"
           onClick={() => {
             dispatchAssistantPulse("start");
+            lastManualNavAtRef.current = Date.now();
+            suppressAutoAdvanceUntilRef.current = Date.now() + 5000;
+            pendingNextIndexRef.current = null;
+            setPendingSubmit(false);
+            clearPendingTimers();
             setIndex((i) => Math.max(i - 1, 0));
             requestAnimationFrame(() => dispatchAssistantPulse("end"));
           }}
@@ -321,30 +619,28 @@ export function WorkflowAssistantFrame({
         >
           Zurück
         </button>
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => goNext(false)}
-            disabled={pendingSubmit || index >= steps.length - 1}
-            className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-800 shadow-sm transition hover:bg-amber-100 disabled:opacity-50"
-          >
-            Überspringen
-          </button>
-          <button
-            type="button"
-            onClick={() => goNext(true)}
-            disabled={erledigtDisabled}
-            aria-busy={pendingSubmit}
-            title={
-              !canUseErledigtWeiter && isRunAssistantStepHref(current.href)
-                ? "Speichern Sie zuerst alle Schritte dieses KI-Prozesses (gültiges JSON)."
-                : undefined
-            }
-            className={`rounded-xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-45 ${pendingSubmit ? SUBMIT_BUTTON_PENDING_CLASS : ""}`}
-          >
-            Erledigt & weiter
-          </button>
-        </div>
+        {isProfileStep ? (
+          <p className="text-xs text-[var(--muted)]">
+            Weiter im Formular unten wählen: mit Web-Infos oder nur manuell.
+          </p>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={goNext}
+              disabled={erledigtDisabled}
+              aria-busy={pendingSubmit}
+              title={
+                !canUseErledigtWeiter && isRunAssistantStepHref(current.href)
+                  ? "Speichern Sie zuerst alle Schritte dieses KI-Prozesses (gültiges JSON)."
+                  : undefined
+              }
+              className={`rounded-xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-45 ${pendingSubmit ? SUBMIT_BUTTON_PENDING_CLASS : ""}`}
+            >
+              Erledigt & weiter
+            </button>
+          </div>
+        )}
       </div>
 
       {processCompleteModalOpen ? (
@@ -377,7 +673,24 @@ export function WorkflowAssistantFrame({
 
 function toEmbedHref(href: string): string {
   const [baseWithQuery, hash] = href.split("#", 2);
-  const base = baseWithQuery || "/";
+  let base = baseWithQuery || "/";
+  const phaseFromHash = hash?.startsWith("artifacts-phase-")
+    ? hash.slice("artifacts-phase-".length)
+    : null;
+  if (base.startsWith("/assistant/workflows")) {
+    try {
+      const q = base.includes("?") ? base.split("?")[1] ?? "" : "";
+      const sp = new URLSearchParams(q);
+      const phase = sp.get("phase");
+      base = phase ? `/dashboard?assistant_phase=${encodeURIComponent(phase)}#phase-${encodeURIComponent(phase)}` : "/dashboard?view=execution";
+    } catch {
+      base = "/dashboard?view=execution";
+    }
+  }
+  if (base.startsWith("/artifacts") && phaseFromHash) {
+    const sep = base.includes("?") ? "&" : "?";
+    base = `${base}${sep}phase=${encodeURIComponent(phaseFromHash)}`;
+  }
   const withEmbed = base.includes("?") ? `${base}&embed=1` : `${base}?embed=1`;
   return hash ? `${withEmbed}#${hash}` : withEmbed;
 }

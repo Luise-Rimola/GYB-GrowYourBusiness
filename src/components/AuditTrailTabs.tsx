@@ -87,22 +87,15 @@ export function AuditTrailTabs({
       </div>
       {active && (
         <div className="p-5">
-          <div className="mb-4 flex flex-wrap items-center gap-3">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-2">
-              <span
-                className={`text-xs font-medium ${
-                  active.schemaValidationPassed
-                    ? "text-teal-600 dark:text-teal-400"
-                    : "text-rose-600 dark:text-rose-400"
-                }`}
-              >
-                {active.schemaValidationPassed ? "gültig" : "ungültig"}
-              </span>
               {active.verifiedByUser && (
                 <span className="text-xs font-medium text-teal-600 dark:text-teal-400">
                   ✓ Verifiziert
                 </span>
               )}
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
               {!active.verifiedByUser && active.schemaValidationPassed && (
                 <form action={verifyStep} className="inline">
                   <input type="hidden" name="step_id" value={active.id} />
@@ -111,7 +104,7 @@ export function AuditTrailTabs({
                   <input type="hidden" name="notes" value="" />
                   <button
                     type="submit"
-                    className="rounded-lg border border-teal-600 px-2.5 py-1 text-xs font-medium text-teal-700 transition hover:bg-teal-50 dark:border-teal-500 dark:text-teal-300 dark:hover:bg-teal-950/50"
+                    className="rounded-lg bg-teal-600 px-2.5 py-1 text-xs font-semibold text-white transition hover:bg-teal-700"
                   >
                     Verifizieren
                   </button>
@@ -203,20 +196,6 @@ export function AuditTrailTabs({
             }
             collapsible={false}
           />
-          {!active.verifiedByUser && active.schemaValidationPassed && (
-            <form action={verifyStep} className="mt-4 inline">
-              <input type="hidden" name="step_id" value={active.id} />
-              <input type="hidden" name="run_id" value={runId} />
-              <input type="hidden" name="step" value={String(Math.max(0, active.stepNum - 1))} />
-              <input type="hidden" name="notes" value="" />
-              <button
-                type="submit"
-                className="rounded-xl border border-teal-600 px-3 py-1.5 text-xs font-medium text-teal-700 transition hover:bg-teal-50 dark:border-teal-500 dark:text-teal-300 dark:hover:bg-teal-950/50"
-              >
-                Verifizieren
-              </button>
-            </form>
-          )}
         </div>
       )}
     </div>

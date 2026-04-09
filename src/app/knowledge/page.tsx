@@ -256,7 +256,7 @@ const ARTIFACT_TYPE_LABELS: Record<string, string> = {
 export default async function KnowledgePage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; updated?: string; batch?: string; applied?: string; needsRerun?: string; workflows?: string; tab?: string }>;
+  searchParams: Promise<{ error?: string; updated?: string; batch?: string; applied?: string; needsRerun?: string; workflows?: string; tab?: string; embed?: string }>;
 }) {
   const locale = await getServerLocale();
   const t = getTranslations(locale);
@@ -273,6 +273,7 @@ export default async function KnowledgePage({
     /* ignore */
   }
   const needsRerun = params.needsRerun === "1";
+  const isEmbed = params.embed === "1";
   const workflowKeys = params.workflows ? params.workflows.split(",").filter(Boolean) : [];
   const allowedTabs = ["sources", "objects", "kpis", "measures", "contradictions", "extractions"] as const;
   const activeTab = allowedTabs.includes((params.tab ?? "objects") as (typeof allowedTabs)[number])
@@ -353,7 +354,7 @@ export default async function KnowledgePage({
           )}
         </div>
       )}
-      <details className="group rounded-2xl border border-[var(--card-border)] bg-[var(--card)] p-4">
+      <details className="group rounded-2xl border border-[var(--card-border)] bg-[var(--card)] p-4" open={isEmbed}>
         <summary className="flex cursor-pointer list-none items-center justify-between rounded-xl border border-[var(--card-border)] bg-[var(--background)] px-4 py-3 text-sm font-semibold text-[var(--foreground)] transition hover:bg-zinc-50 dark:hover:bg-zinc-900/40">
           <span>{t.knowledge.sourcesQueue}</span>
           <span className="text-[var(--muted)] transition-transform group-open:rotate-90">▸</span>

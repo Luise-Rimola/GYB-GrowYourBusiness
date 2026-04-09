@@ -75,7 +75,7 @@ function displayArtifactName(
 export default async function ArtifactsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ created?: string; tab?: string }>;
+  searchParams: Promise<{ created?: string; tab?: string; embed?: string; phase?: string }>;
 }) {
   const locale = await getServerLocale();
   const t = getTranslations(locale);
@@ -138,6 +138,15 @@ export default async function ArtifactsPage({
   const params = await searchParams;
   const createdCount = params.created ? Number(params.created) : 0;
   const activeTab = params.tab === "evaluations" ? "evaluations" : "library";
+  const isEmbed = params.embed === "1";
+  const requestedPhase = String(params.phase ?? "").trim();
+  const currentReturnTo = `/artifacts${params.tab || params.embed || params.phase ? `?${new URLSearchParams(
+    Object.entries({
+      tab: params.tab,
+      embed: params.embed,
+      phase: params.phase,
+    }).filter(([, v]) => Boolean(v)) as Array<[string, string]>
+  ).toString()}` : ""}`;
 
   // Show newest artifact per workflow+type (keeps validation artifacts separate)
   const seenWorkflowType = new Set<string>();
@@ -157,6 +166,10 @@ export default async function ArtifactsPage({
     });
     return { id: phase.id, name: isEn ? (phaseNamesEn[phase.id] ?? phase.name) : phase.name, artifacts: phaseArtifacts };
   });
+  const visiblePhaseSections =
+    isEmbed && requestedPhase
+      ? phaseSections.filter((section) => section.id === requestedPhase)
+      : phaseSections;
   const phaseArtifactTypeSet = new Set(phaseSections.flatMap((section) => section.artifacts.map((a) => a.type)));
   const unassignedArtifacts = artifacts.filter((a) => !phaseArtifactTypeSet.has(a.type));
   const decisionPackArtifact = artifacts.find((a) => a.type === "decision_pack");
@@ -190,7 +203,7 @@ export default async function ArtifactsPage({
           : "hover:border-sky-300 hover:shadow-md dark:border-sky-900/60 dark:bg-sky-950/25 dark:hover:border-sky-700"
       }`}
     >
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex items-center justify-between gap-3">
         <Link href={`/artifacts/${artifact.id}`} className="min-w-0 flex-1">
           <p className="font-semibold text-[var(--foreground)]">{displayArtifactName(artifact, locale)}</p>
         </Link>
@@ -204,10 +217,14 @@ export default async function ArtifactsPage({
             />
           )}
           <Link
-            href={isEvaluated ? `/artifacts/${artifact.id}` : `/artifacts/${artifact.id}/evaluate`}
-            className="rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-teal-700"
+            href={`/artifacts/${artifact.id}?${new URLSearchParams({
+              return_to: currentReturnTo,
+              ...(isEmbed ? { embed: "1" } : {}),
+            }).toString()}`}
+            aria-label={isEn ? "Open document" : "Dokument öffnen"}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[var(--card-border)] bg-white text-[var(--muted)] transition hover:bg-[var(--background)] hover:text-[var(--foreground)] dark:bg-[var(--card)]"
           >
-            {isEvaluated ? t.artifacts.viewDocument : t.artifacts.evaluateArtifact}
+            <span aria-hidden className="text-base leading-none">→</span>
           </Link>
         </div>
       </div>
@@ -218,32 +235,34 @@ export default async function ArtifactsPage({
   return (
     <div className="space-y-8">
       <Section
-        title={copy.pageTitle}
-        description={t.artifacts.description}
+        title={isEmbed ? "" : copy.pageTitle}
+        description={isEmbed ? undefined : t.artifacts.description}
       >
         <div className="space-y-6">
-          <div className="flex gap-2 border-b border-[var(--card-border)]">
-            <Link
-              href="/artifacts"
-              className={`border-b-2 px-4 py-2 text-sm font-medium transition ${
-                activeTab === "library"
-                  ? "border-teal-600 text-teal-600"
-                  : "border-transparent text-[var(--muted)] hover:text-[var(--foreground)]"
-              }`}
-            >
-              {copy.tabLibrary}
-            </Link>
-            <Link
-              href="/artifacts?tab=evaluations"
-              className={`border-b-2 px-4 py-2 text-sm font-medium transition ${
-                activeTab === "evaluations"
-                  ? "border-teal-600 text-teal-600"
-                  : "border-transparent text-[var(--muted)] hover:text-[var(--foreground)]"
-              }`}
-            >
-              {copy.tabEvaluations}
-            </Link>
-          </div>
+          {!isEmbed ? (
+            <div className="flex gap-2 border-b border-[var(--card-border)]">
+              <Link
+                href="/artifacts"
+                className={`border-b-2 px-4 py-2 text-sm font-medium transition ${
+                  activeTab === "library"
+                    ? "border-teal-600 text-teal-600"
+                    : "border-transparent text-[var(--muted)] hover:text-[var(--foreground)]"
+                }`}
+              >
+                {copy.tabLibrary}
+              </Link>
+              <Link
+                href="/artifacts?tab=evaluations"
+                className={`border-b-2 px-4 py-2 text-sm font-medium transition ${
+                  activeTab === "evaluations"
+                    ? "border-teal-600 text-teal-600"
+                    : "border-transparent text-[var(--muted)] hover:text-[var(--foreground)]"
+                }`}
+              >
+                {copy.tabEvaluations}
+              </Link>
+            </div>
+          ) : null}
           {createdCount > 0 && (
             <p className="rounded-xl border border-teal-200 bg-teal-50 px-4 py-3 text-sm font-medium text-teal-800 dark:border-teal-800 dark:bg-teal-950/30 dark:text-teal-200">
               {t.artifacts.createdCount.replace("{count}", String(createdCount))}
@@ -427,24 +446,26 @@ export default async function ArtifactsPage({
             </>
           ) : (
             <>
-              <div className="rounded-2xl border border-[var(--card-border)] bg-[var(--card)] p-5">
-                <h3 className="mb-3 text-base font-semibold text-[var(--foreground)]">{copy.boardsTitle}</h3>
-                <div className="grid gap-3 md:grid-cols-2">
-                  <Link
-                    href="/checklist"
-                    className="rounded-xl border border-sky-200 bg-sky-50/80 p-4 transition hover:border-sky-300 hover:shadow-sm dark:border-sky-900/60 dark:bg-sky-950/25 dark:hover:border-sky-700"
-                  >
-                    <p className="font-semibold text-[var(--foreground)]">{copy.checklistTitle}</p>
-                  </Link>
-                  <Link
-                    href="/decisions"
-                    className="rounded-xl border border-sky-200 bg-sky-50/80 p-4 transition hover:border-sky-300 hover:shadow-sm dark:border-sky-900/60 dark:bg-sky-950/25 dark:hover:border-sky-700"
-                  >
-                    <p className="font-semibold text-[var(--foreground)]">{copy.decisionTitle}</p>
-                  </Link>
+              {!isEmbed ? (
+                <div className="rounded-2xl border border-[var(--card-border)] bg-[var(--card)] p-5">
+                  <h3 className="mb-3 text-base font-semibold text-[var(--foreground)]">{copy.boardsTitle}</h3>
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <Link
+                      href="/checklist"
+                      className="rounded-xl border border-sky-200 bg-sky-50/80 p-4 transition hover:border-sky-300 hover:shadow-sm dark:border-sky-900/60 dark:bg-sky-950/25 dark:hover:border-sky-700"
+                    >
+                      <p className="font-semibold text-[var(--foreground)]">{copy.checklistTitle}</p>
+                    </Link>
+                    <Link
+                      href="/decisions"
+                      className="rounded-xl border border-sky-200 bg-sky-50/80 p-4 transition hover:border-sky-300 hover:shadow-sm dark:border-sky-900/60 dark:bg-sky-950/25 dark:hover:border-sky-700"
+                    >
+                      <p className="font-semibold text-[var(--foreground)]">{copy.decisionTitle}</p>
+                    </Link>
+                  </div>
                 </div>
-              </div>
-              {phaseSections.map((section) => (
+              ) : null}
+              {visiblePhaseSections.map((section) => (
                 <div key={section.id}>
                   <h3 className="mb-3 text-base font-semibold text-[var(--foreground)]">{section.name}</h3>
                   {section.artifacts.length > 0 ? (
@@ -460,7 +481,7 @@ export default async function ArtifactsPage({
                   )}
                 </div>
               ))}
-              {unassignedArtifacts.length > 0 && (
+              {!isEmbed && unassignedArtifacts.length > 0 && (
                 <div>
                   <h3 className="mb-3 text-base font-semibold text-[var(--foreground)]">{copy.moreArtifacts}</h3>
                   <div className="space-y-3">

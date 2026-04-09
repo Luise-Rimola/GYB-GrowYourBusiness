@@ -36,7 +36,7 @@ export default async function RootLayout({
   const embedFrame = hdrs.get("x-app-embed") === "1";
 
   const mainClass = embedFrame
-    ? "mx-auto w-full max-w-none px-[3px] py-3 sm:px-4 sm:py-5 md:px-5 md:py-8"
+    ? "mx-auto w-full max-w-none p-0"
     : "mx-auto w-full max-w-6xl px-6 py-10";
 
   return (
@@ -45,7 +45,7 @@ export default async function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <Providers>
-          <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)] bg-grid-pattern">
+          <div className="min-h-screen bg-[var(--background)] bg-grid-pattern text-[var(--foreground)]">
             <Nav userEmail={session?.email ?? null} />
             <main className={mainClass}>{children}</main>
           </div>

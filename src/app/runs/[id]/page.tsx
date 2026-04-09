@@ -19,6 +19,8 @@ import { filterContextForStep } from "@/services/contextPack";
 import { getServerLocale } from "@/lib/locale";
 import { getTranslations } from "@/lib/i18n";
 import { getWorkflowStepStatus } from "@/lib/workflowStepStatus";
+import { HistoryBackLink } from "@/components/HistoryBackLink";
+import { RunCompletionAdvanceButton } from "@/components/RunCompletionAdvanceButton";
 
 async function verifyStep(formData: FormData) {
   "use server";
@@ -283,6 +285,9 @@ export default async function RunDetailPage({
   const steps = workflowSteps[run.workflowKey] ?? [];
   const stepParam = Math.max(0, Number(String(sp.step ?? "0")) || 0);
   const stepIndex = steps.length ? Math.min(stepParam, steps.length - 1) : 0;
+  const nextStepHref = stepIndex < steps.length - 1
+    ? `/runs/${run.id}?step=${stepIndex + 1}${embedAssistant ? "&embed=1" : ""}`
+    : null;
   const hasBusinessFormStep = steps.some((s) => s.stepKey === "business_form");
 
   let businessFormStep: { existing: Record<string, unknown>; submitAction: (fd: FormData) => Promise<void>; isComplete: boolean } | undefined;
@@ -358,14 +363,12 @@ export default async function RunDetailPage({
         <AssistantRunEmbedBridge embed={embedAssistant} runId={run.id} allComplete={allProcessStepsValid} />
       ) : null}
       <div className="flex justify-start">
-        <Link
-          href="/dashboard"
-          prefetch={false}
-          {...(embedAssistant ? ({ target: "_top", rel: "noopener noreferrer" } as const) : {})}
+        <HistoryBackLink
+          fallbackHref="/dashboard"
           className="text-sm font-medium text-blue-600 transition hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
         >
-          ← {t.nav.plans}
-        </Link>
+          ← Zurück
+        </HistoryBackLink>
       </div>
       <Section
         compact
@@ -416,7 +419,7 @@ export default async function RunDetailPage({
           </>
         }
         descriptionCollapsible
-        descriptionDefaultOpen
+        descriptionDefaultOpen={false}
         descriptionToggleLabel="Workflow-Details anzeigen"
         actions={
           <div className="flex flex-wrap items-center gap-3 text-sm">
@@ -424,9 +427,6 @@ export default async function RunDetailPage({
               <>
                 <span className="rounded-lg border border-[var(--card-border)] bg-slate-50 px-2.5 py-1 text-xs font-medium dark:bg-slate-900/50">
                   Schritte: {runStepsLatest.length}/{steps.length}
-                </span>
-                <span className="rounded-lg border border-[var(--card-border)] bg-slate-50 px-2.5 py-1 text-xs font-medium dark:bg-slate-900/50">
-                  Verifiziert: {verifiedCount}/{runStepsLatest.length}
                 </span>
               </>
             )}
@@ -492,6 +492,7 @@ export default async function RunDetailPage({
             kpiQuestionsStep={kpiQuestionsStep}
             appDevelopmentConfig={appDevelopmentConfig}
             showStepList={false}
+            hideNextButton
           />
         </Suspense>
       </Section>
@@ -529,6 +530,21 @@ export default async function RunDetailPage({
           </Section>
         </div>
       )}
+      {nextStepHref ? (
+        <div className="flex justify-end">
+          <Link
+            href={nextStepHref}
+            prefetch={false}
+            className="rounded-xl bg-teal-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-teal-700"
+          >
+            Weiter →
+          </Link>
+        </div>
+      ) : allProcessStepsValid ? (
+        <div className="flex justify-end">
+          <RunCompletionAdvanceButton embed={embedAssistant} runId={run.id} />
+        </div>
+      ) : null}
     </div>
   );
 }

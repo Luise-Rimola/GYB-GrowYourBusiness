@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Section } from "@/components/Section";
@@ -15,13 +16,21 @@ import { getEarlyWarningDetails, getEarlyWarningPrimaryRiskText, hasEarlyWarning
 import { EarlyWarningPopover } from "@/components/EarlyWarningPopover";
 import { getArtifactDocumentIntroDe } from "@/lib/artifactDocumentIntroDe";
 import { getServerLocale } from "@/lib/locale";
+import { HistoryBackLink } from "@/components/HistoryBackLink";
 
 export default async function ArtifactDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ return_to?: string; embed?: string }>;
 }) {
   const { id } = await params;
+  const sp = await searchParams;
+  const hdrs = await headers();
+  const embedFrame = hdrs.get("x-app-embed") === "1";
+  const returnTo = String(sp.return_to ?? "").trim();
+  const isEmbed = sp.embed === "1" || embedFrame;
   const locale = await getServerLocale();
   const isDe = locale === "de";
   const artifact = await prisma.artifact.findUnique({
@@ -73,8 +82,18 @@ export default async function ArtifactDetailPage({
     <div className="space-y-8">
       <Section
         title={artifact.title}
+        className={isEmbed ? "rounded-none border-0 bg-transparent p-0 shadow-none" : undefined}
         actions={
           <div className="flex flex-wrap items-center gap-2">
+            {isEmbed ? (
+              <HistoryBackLink
+                fallbackHref={returnTo || "/artifacts?embed=1"}
+                className="inline-flex items-center gap-2 rounded-xl border border-[var(--card-border)] bg-[var(--card)] px-4 py-2 text-sm font-medium text-[var(--foreground)] shadow-sm transition hover:bg-[var(--background)]"
+              >
+                <span aria-hidden>←</span>
+                {isDe ? "Zurück" : "Back"}
+              </HistoryBackLink>
+            ) : null}
             {hasEarlyWarningSignal(artifact) && (
               <EarlyWarningPopover
                 size="default"
@@ -84,7 +103,11 @@ export default async function ArtifactDetailPage({
               />
             )}
             <Link
-              href={`/artifacts/${artifact.id}/evaluate`}
+              href={
+                returnTo
+                  ? `/artifacts/${artifact.id}/evaluate?return_to=${encodeURIComponent(returnTo)}`
+                  : `/artifacts/${artifact.id}/evaluate`
+              }
               className="rounded-xl bg-teal-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-teal-700"
             >
               {isDe ? "Dokument evaluieren" : "Evaluate document"}
@@ -157,29 +180,31 @@ export default async function ArtifactDetailPage({
 
       {kpiAnswersSection}
 
-      <Section title={isDe ? "Erweitert" : "Advanced"} description={isDe ? "Rohdaten (JSON) - nur Anzeige." : "Raw data (JSON) - read only."}>
-        <details className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-4">
-          <summary className="cursor-pointer text-sm font-semibold text-[var(--foreground)]">{isDe ? "Dokument bearbeiten" : "Edit document"}</summary>
-          <p className="mt-2 text-xs text-[var(--muted)]">
-            {isDe
-              ? "Formular für strukturierte Bearbeitung oder Raw JSON. Nach dem Speichern abhängige Workflows ggf. neu starten (siehe Daten-Seite)."
-              : "Use the form for structured editing or raw JSON. After saving, restart dependent workflows if needed (see Data page)."}
-          </p>
-          <div className="mt-4">
-            <ArtifactEditor
-              artifactType={artifact.type}
-              content={(artifact.contentJson ?? {}) as Record<string, unknown>}
-              submitAction={updateArtifactAction}
-              artifactId={artifact.id}
-              redirectTo={`/artifacts/${artifact.id}`}
-            />
-          </div>
-          <p className="mt-4 text-xs text-[var(--muted)]">
-            <Link href="/data" className="text-teal-600 hover:text-teal-700 dark:text-teal-400">{isDe ? "Daten-Seite" : "Data page"}</Link> {isDe ? "- dort alle Dokumente bearbeiten und Workflows neu starten." : "- edit all documents and restart workflows."}
-          </p>
-        </details>
-        <AdvancedJson data={artifact.contentJson} title={isDe ? "Erweitert" : "Advanced"} summary={isDe ? "Rohdaten (JSON)" : "Raw data (JSON)"} />
-      </Section>
+      {!isEmbed ? (
+        <Section title={isDe ? "Erweitert" : "Advanced"} description={isDe ? "Rohdaten (JSON) - nur Anzeige." : "Raw data (JSON) - read only."}>
+          <details className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-4">
+            <summary className="cursor-pointer text-sm font-semibold text-[var(--foreground)]">{isDe ? "Dokument bearbeiten" : "Edit document"}</summary>
+            <p className="mt-2 text-xs text-[var(--muted)]">
+              {isDe
+                ? "Formular für strukturierte Bearbeitung oder Raw JSON. Nach dem Speichern abhängige Workflows ggf. neu starten (siehe Daten-Seite)."
+                : "Use the form for structured editing or raw JSON. After saving, restart dependent workflows if needed (see Data page)."}
+            </p>
+            <div className="mt-4">
+              <ArtifactEditor
+                artifactType={artifact.type}
+                content={(artifact.contentJson ?? {}) as Record<string, unknown>}
+                submitAction={updateArtifactAction}
+                artifactId={artifact.id}
+                redirectTo={`/artifacts/${artifact.id}`}
+              />
+            </div>
+            <p className="mt-4 text-xs text-[var(--muted)]">
+              <Link href="/data" className="text-teal-600 hover:text-teal-700 dark:text-teal-400">{isDe ? "Daten-Seite" : "Data page"}</Link> {isDe ? "- dort alle Dokumente bearbeiten und Workflows neu starten." : "- edit all documents and restart workflows."}
+            </p>
+          </details>
+          <AdvancedJson data={artifact.contentJson} title={isDe ? "Erweitert" : "Advanced"} summary={isDe ? "Rohdaten (JSON)" : "Raw data (JSON)"} />
+        </Section>
+      ) : null}
     </div>
   );
 }

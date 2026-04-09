@@ -76,12 +76,14 @@ export default async function Fragebogen3CategoryPage({
 
   return (
     <div className="space-y-8">
-      <header>
-        <h1 className="text-3xl font-bold tracking-tight text-[var(--foreground)]">
-          {t.study.fb3Title}
-        </h1>
-        <p className="mt-2 text-[var(--muted)]">{categoryLabel}</p>
-      </header>
+      {!isEmbed ? (
+        <header>
+          <h1 className="text-3xl font-bold tracking-tight text-[var(--foreground)]">
+            {t.study.fb3Title}
+          </h1>
+          <p className="mt-2 text-[var(--muted)]">{categoryLabel}</p>
+        </header>
+      ) : null}
       <div className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-4 text-sm">
         <p>
           <span className="font-semibold">{t.study.fb3CurrentPhaseLabel}</span> {context.phase}
@@ -89,7 +91,7 @@ export default async function Fragebogen3CategoryPage({
         <p className="mt-2">
           <span className="font-semibold">{t.study.fb3EvaluatedWorkflowsLabel}</span> {workflowNames}
         </p>
-        <p className="mt-2 text-[var(--muted)]">{context.fb3Description}</p>
+        <p className="mt-2 text-[var(--muted)]">{t.study.fb3SameAsFb2Intro}</p>
       </div>
       <Fragebogen3Form
         action={saveFb3Category.bind(null, category)}
@@ -97,6 +99,7 @@ export default async function Fragebogen3CategoryPage({
         category={category}
         initialValues={initialValues}
         assistantEmbed={isEmbed}
+        showIntroText={false}
         submitLabel={isEmbed ? t.study.embedSubmitDone : undefined}
         hideSubmitButton={isEmbed}
       />

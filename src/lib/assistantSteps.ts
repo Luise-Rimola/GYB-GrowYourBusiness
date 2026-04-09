@@ -72,12 +72,22 @@ export async function loadAssistantSteps(params: {
     t,
   } = params;
   // Use sequential access to avoid DB pool spikes on Supabase session poolers.
-  const runs = await safeDb(() => prisma.run.findMany({ where: { companyId }, select: { status: true } }), []);
+  const runs = await safeDb(
+    () => prisma.run.findMany({ where: { companyId }, select: { status: true, workflowKey: true } }),
+    [] as Array<{ status: string; workflowKey: string }>
+  );
   const decisions = await safeDb(
     () => prisma.decision.count({ where: { companyId, status: { in: ["proposed", "approved"] } } }),
     0
   );
-  const artifactsCount = await safeDb(() => prisma.artifact.count({ where: { companyId } }), 0);
+  const artifacts = await safeDb(
+    () =>
+      prisma.artifact.findMany({
+        where: { companyId },
+        select: { type: true, run: { select: { workflowKey: true } } },
+      }),
+    [] as Array<{ type: string; run: { workflowKey: string } | null }>
+  );
   const sourcesCount = await safeDb(() => prisma.source.count({ where: { companyId } }), 0);
   const documentsCount = await safeDb(() => prisma.document.count({ where: { companyId } }), 0);
   const companySettings = await safeDb(
@@ -97,7 +107,7 @@ export async function loadAssistantSteps(params: {
   const completedRuns = runs.filter((r) => ["complete", "approved"].includes(r.status)).length;
   const hasDocsUploaded = sourcesCount > 0 || documentsCount > 0;
   const hasLlmConfigured = Boolean(companySettings?.llmApiUrl?.trim()) || Boolean(companySettings?.llmApiKey?.trim());
-  const hasArtifacts = artifactsCount > 0;
+  const hasArtifacts = artifacts.length > 0;
   const hasCompletedRuns = completedRuns > 0;
   const hasDecisions = decisions > 0;
   const hasEvaluation = scenarioEvaluationCount > 0;
@@ -140,6 +150,14 @@ export async function loadAssistantSteps(params: {
             } as Record<string, string>
           )[phase.id] ?? phase.name;
     const phaseCategories = categoriesByPhase.get(phase.id) ?? [];
+    const phaseWorkflowKeys = new Set(phase.workflowKeys);
+    const phaseHasCompletedRun = runs.some(
+      (r) => ["complete", "approved"].includes(r.status) && phaseWorkflowKeys.has(r.workflowKey)
+    );
+    const phaseHasArtifacts = artifacts.some((a) => {
+      const wfKey = a.run?.workflowKey;
+      return Boolean(wfKey && phaseWorkflowKeys.has(wfKey));
+    });
 
     if (phaseCategories.length === 0) {
       return [
@@ -156,12 +174,12 @@ export async function loadAssistantSteps(params: {
         {
           href: `/dashboard?assistant_phase=${phase.id}#phase-${phase.id}`,
           label: `${t.study.studyWorkflowStep}: ${phaseName}`,
-          completed: hasCompletedRuns,
+          completed: phaseHasCompletedRun,
         },
         {
           href: `/artifacts#artifacts-phase-${phase.id}`,
           label: `${t.common.viewArtifacts}: ${phaseName}`,
-          completed: hasArtifacts,
+          completed: phaseHasArtifacts,
         },
         {
           href: "/study/fb3",
@@ -191,12 +209,12 @@ export async function loadAssistantSteps(params: {
       {
         href: `/dashboard?assistant_phase=${phase.id}#phase-${phase.id}`,
         label: `${t.study.studyWorkflowStep}: ${phaseName}`,
-        completed: hasCompletedRuns,
+        completed: phaseHasCompletedRun,
       },
       {
         href: `/artifacts#artifacts-phase-${phase.id}`,
         label: `${t.common.viewArtifacts}: ${phaseName}`,
-        completed: hasArtifacts,
+        completed: phaseHasArtifacts,
       },
       ...phaseCategories.map((category) => ({
         href: `/study/fb3/${category}`,

@@ -4,6 +4,7 @@ import { CollapsibleDetails } from "./CollapsibleDetails";
 type SectionProps = {
   title: string;
   description?: ReactNode;
+  className?: string;
   /** Actions/badges right-aligned next to title (extensible: add more via flex-wrap) */
   actions?: ReactNode;
   /** When true, description is in a collapsible <details> */
@@ -20,6 +21,7 @@ type SectionProps = {
 export function Section({
   title,
   description,
+  className,
   actions,
   descriptionCollapsible,
   descriptionDefaultOpen,
@@ -29,7 +31,9 @@ export function Section({
 }: SectionProps) {
   const hasHeader = title || description || actions;
   return (
-    <section className={`rounded-2xl border border-[var(--card-border)] bg-[var(--card)] shadow-lg shadow-zinc-200/50 dark:shadow-zinc-950/50 ${compact ? "px-6 py-4" : "p-6"}`}>
+    <section
+      className={`rounded-2xl border border-[var(--card-border)] bg-[var(--card)] shadow-lg shadow-zinc-200/50 dark:shadow-zinc-950/50 ${compact ? "px-6 py-4" : "p-6"} ${className ?? ""}`}
+    >
       {hasHeader ? (
       <div className={compact ? "mb-0 space-y-1" : "mb-5 space-y-2"}>
         <div className="flex flex-wrap items-center justify-between gap-2 gap-y-1">

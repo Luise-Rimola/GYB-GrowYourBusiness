@@ -86,12 +86,14 @@ export default async function Fragebogen3Page({
 
   return (
     <div className="space-y-8">
-      <header>
-        <h1 className="text-3xl font-bold tracking-tight text-[var(--foreground)]">
-          {t.study.fb3Title}
-        </h1>
-        <p className="mt-2 text-[var(--muted)]">{t.study.fb3Desc}</p>
-      </header>
+      {!isEmbed ? (
+        <header>
+          <h1 className="text-3xl font-bold tracking-tight text-[var(--foreground)]">
+            {t.study.fb3Title}
+          </h1>
+          <p className="mt-2 text-[var(--muted)]">{t.study.fb3Desc}</p>
+        </header>
+      ) : null}
       <div className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-4 text-sm">
         <p>
           <span className="font-semibold">{t.study.fb3CurrentPhaseLabel}</span> {context?.phase ?? t.study.fb3PhaseNotSet}

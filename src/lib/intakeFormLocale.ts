@@ -67,6 +67,7 @@ export type IntakeFormCopy = {
   anythingElse: string;
   save: string;
   enrichContinue: string;
+  manualContinue: string;
   enrichLoading: string;
   optionalManualTitle: string;
   confirmRemoveProduct: string;
@@ -201,6 +202,7 @@ const EN: IntakeFormCopy = {
   anythingElse: "Anything else we should know?",
   save: "Save",
   enrichContinue: "Continue — fetch & merge public info",
+  manualContinue: "Use manual data only — continue",
   enrichLoading: "Fetching…",
   optionalManualTitle: "Optional manual entry",
   confirmRemoveProduct: "Remove this product from the list?",
@@ -358,6 +360,7 @@ const DE: IntakeFormCopy = {
   anythingElse: "Was sollten wir noch wissen?",
   save: "Speichern",
   enrichContinue: "Weiter — Infos aus dem Web übernehmen",
+  manualContinue: "Nur manuelle Daten verwenden — weiter",
   enrichLoading: "Wird geladen…",
   optionalManualTitle: "Optionale manuelle Infoeingabe",
   confirmRemoveProduct: "Dieses Produkt aus der Liste entfernen?",

@@ -31,6 +31,23 @@ export default async function ProfilePage({
   const isEmbed = sp.embed === "1";
   const showSavedBanner = isEmbed && sp.profileSaved === "1";
 
+  if (isEmbed) {
+    return (
+      <div className="h-full">
+        <div className="h-full space-y-4">
+          {showSavedBanner ? <ProfileSavedNotifier /> : null}
+          <IntakeForm
+            key={intakeFormKey}
+            existing={existing}
+            submitAction={saveProfile}
+            assistantEmbed={isEmbed}
+            embedFlush
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
       <Section title={t.profile.title} description={t.profile.description}>

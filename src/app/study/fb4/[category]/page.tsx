@@ -102,10 +102,12 @@ export default async function Fragebogen4CategoryPage({
 
   return (
     <div className="space-y-8">
-      <header>
-        <h1 className="text-3xl font-bold tracking-tight text-[var(--foreground)]">{t.study.fb4Title}</h1>
-        <p className="mt-2 text-[var(--muted)]">{categoryLabel}</p>
-      </header>
+      {!isEmbed ? (
+        <header>
+          <h1 className="text-3xl font-bold tracking-tight text-[var(--foreground)]">{t.study.fb4Title}</h1>
+          <p className="mt-2 text-[var(--muted)]">{categoryLabel}</p>
+        </header>
+      ) : null}
       <div className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-4 text-sm">
         <p>
           <span className="font-semibold">{t.study.fb4AreaLabel}</span> {context.phase}
@@ -113,7 +115,6 @@ export default async function Fragebogen4CategoryPage({
         <p className="mt-2">
           <span className="font-semibold">{t.study.fb4WorkflowsLabel}</span> {workflowNames}
         </p>
-        <p className="mt-2 text-[var(--muted)]">{context.description}</p>
         <p className="mt-3 text-[var(--muted)]">{t.study.fb4ContextHint}</p>
       </div>
       <Fragebogen4Form

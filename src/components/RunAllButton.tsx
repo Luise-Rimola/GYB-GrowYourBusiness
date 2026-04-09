@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { workflowSteps, MANUAL_STEP_KEYS } from "@/lib/workflowSteps";
 
 const RETRY_DELAY_SEC = 180; // 3 Minuten
@@ -36,6 +36,8 @@ type RetryState = {
 
 export function RunAllButton({ selectedWorkflowKeys, allWorkflowKeys, labels }: RunAllButtonProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isEmbed = searchParams.get("embed") === "1";
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState<StepItem[]>([]);
   const [showPopup, setShowPopup] = useState(false);
@@ -232,16 +234,18 @@ export function RunAllButton({ selectedWorkflowKeys, allWorkflowKeys, labels }: 
           >
             Alle KI-Prozesse
           </button>
-          <button
-            type="button"
-            onClick={() => {
-              setShowPopup(false);
-              router.push("/assistant/workflows");
-            }}
-            className="block w-full rounded-lg px-3 py-2 text-left text-sm font-medium hover:bg-[var(--background)]"
-          >
-            Manueller Assistent
-          </button>
+          {!isEmbed ? (
+            <button
+              type="button"
+              onClick={() => {
+                setShowPopup(false);
+                router.push("/assistant/workflows");
+              }}
+              className="block w-full rounded-lg px-3 py-2 text-left text-sm font-medium hover:bg-[var(--background)]"
+            >
+              Manueller Assistent
+            </button>
+          ) : null}
         </div>
       )}
       {progress.length > 0 && (

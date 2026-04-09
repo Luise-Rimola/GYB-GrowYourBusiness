@@ -118,8 +118,16 @@ export function ArtifactContentMode({
             type="button"
             onClick={() => void downloadPdf()}
             disabled={pdfBusy}
-            className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-700 disabled:opacity-60"
+            className="inline-flex items-center gap-2 rounded-lg border border-[var(--card-border)] bg-white px-4 py-2 text-sm font-semibold text-[var(--foreground)] shadow-sm transition hover:bg-slate-50 disabled:opacity-60 dark:bg-[var(--card)] dark:hover:bg-slate-900/40"
           >
+            <svg
+              className="h-4 w-4"
+              viewBox="0 0 20 20"
+              fill="none"
+              aria-hidden
+            >
+              <path d="M10 3v8m0 0 3-3m-3 3-3-3M4 13.5v1A1.5 1.5 0 0 0 5.5 16h9A1.5 1.5 0 0 0 16 14.5v-1" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
             {pdfBusy ? (isDe ? "PDF wird erstellt..." : "Generating PDF...") : (isDe ? "PDF herunterladen" : "Download PDF")}
           </button>
         ) : null}

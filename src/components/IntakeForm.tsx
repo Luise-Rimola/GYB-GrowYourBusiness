@@ -47,11 +47,13 @@ export function IntakeForm({
   submitAction,
   hiddenFields,
   assistantEmbed,
+  embedFlush,
 }: {
   existing: Record<string, unknown>;
   submitAction: (formData: FormData) => Promise<void>;
   hiddenFields?: Record<string, string>;
   assistantEmbed?: boolean;
+  embedFlush?: boolean;
 }) {
   const { locale } = useLanguage();
   const c = getIntakeFormCopy(locale);
@@ -104,6 +106,35 @@ export function IntakeForm({
   const updateTeam = (i: number, f: keyof TeamRow, v: string) =>
     setTeam((t) => t.map((row, j) => (j === i ? { ...row, [f]: v } : row)));
 
+  const enrichAndContinue = async () => {
+    setEnrichErr(null);
+    const el = formRef.current;
+    if (!el) return;
+    const fd = new FormData(el);
+    const company_name = String(fd.get("company_name") || "").trim();
+    const website = String(fd.get("website") || "").trim();
+    const location = String(fd.get("location") || "").trim();
+    if (!company_name) {
+      setEnrichErr(locale === "de" ? "Bitte Firmenname angeben." : "Please enter a company name.");
+      return;
+    }
+    setEnrichBusy(true);
+    try {
+      const res = await fetch("/api/profile/enrich-company", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ company_name, website, location }),
+      });
+      const data = (await res.json()) as { error?: string };
+      if (!res.ok) throw new Error(data.error || "Enrichment failed");
+      // Continue flow: submit form after enrichment.
+      el.requestSubmit();
+    } catch (e) {
+      setEnrichErr(e instanceof Error ? e.message : String(e));
+      setEnrichBusy(false);
+    }
+  };
+
   return (
     <form
       ref={formRef}
@@ -117,30 +148,38 @@ export function IntakeForm({
         }
         await submitAction(fd);
       }}
-      className="space-y-10"
+      className={embedFlush ? "h-full space-y-4" : "space-y-10"}
     >
       {assistantEmbed ? <input type="hidden" name="assistant_embed" value="1" /> : null}
       {hiddenFields &&
         Object.entries(hiddenFields).map(([name, value]) => (
           <input key={name} type="hidden" name={name} value={value} />
         ))}
-      <section className="space-y-4 rounded-2xl border border-teal-200 bg-teal-50/30 p-6 dark:border-teal-900 dark:bg-teal-950/20">
-        <div>
-          <label className={labelClass}>{c.companyName}</label>
-          <input name="company_name" defaultValue={String(existing.company_name ?? "")} className={`mt-2 ${inputClass}`} />
-        </div>
-        <div>
-          <label className={labelClass}>{c.location}</label>
-          <input name="location" defaultValue={String(existing.location ?? "")} className={`mt-2 ${inputClass}`} />
-          {SHOW_INTAKE_GOALS_AND_AI_REQUEST_CHECKBOXES ? (
-            <FieldCheckboxes options={[{ name: "find_real_estate", label: c.findRealEstate }]} existing={existing} />
-          ) : null}
+      <section
+        className={[
+          "space-y-4 rounded-2xl border border-teal-200 bg-teal-50/30 p-6 dark:border-teal-900 dark:bg-teal-950/20",
+          embedFlush ? "mt-0" : "",
+        ]
+          .filter(Boolean)
+          .join(" ")}
+      >
+        <div className="grid gap-4 md:grid-cols-2">
+          <div>
+            <label className={labelClass}>{c.companyName}</label>
+            <input name="company_name" defaultValue={String(existing.company_name ?? "")} className={`mt-2 ${inputClass}`} />
+          </div>
+          <div>
+            <label className={labelClass}>{c.location}</label>
+            <input name="location" defaultValue={String(existing.location ?? "")} className={`mt-2 ${inputClass}`} />
+            {SHOW_INTAKE_GOALS_AND_AI_REQUEST_CHECKBOXES ? (
+              <FieldCheckboxes options={[{ name: "find_real_estate", label: c.findRealEstate }]} existing={existing} />
+            ) : null}
+          </div>
         </div>
         <div>
           <label className={labelClass}>{c.website}</label>
           <input name="website" type="url" defaultValue={String(existing.website ?? "")} className={`mt-2 ${inputClass}`} placeholder="https://example.com" />
         </div>
-        <h3 className="mt-6 text-base font-bold text-zinc-900 dark:text-zinc-50">{c.businessStateGoals}</h3>
         <div>
           <label className={labelClass}>{c.whereBusiness}</label>
           <select name="business_state" defaultValue={String(existing.business_state ?? "")} className={`mt-2 ${inputClass}`}>
@@ -168,89 +207,83 @@ export function IntakeForm({
             </div>
           </div>
         ) : null}
-        <h3 className="mt-6 text-base font-bold text-zinc-900 dark:text-zinc-50">{c.companyBasics}</h3>
-        <div>
-          <label className={labelClass}>{c.offer}</label>
-          <textarea name="offer" rows={3} defaultValue={String(existing.offer ?? "")} className={`mt-2 ${inputClass}`} placeholder="Product/service description" />
-          {SHOW_INTAKE_GOALS_AND_AI_REQUEST_CHECKBOXES ? (
-            <FieldCheckboxes
-              options={[
-                { name: "research_market_pricing", label: c.researchMarketPricing },
-                { name: "find_best_positioning", label: c.findBestPositioning },
-              ]}
-              existing={existing}
-            />
-          ) : null}
+        <div className="grid gap-4 md:grid-cols-2">
+          <div>
+            <label className={labelClass}>{c.offer}</label>
+            <textarea name="offer" rows={3} defaultValue={String(existing.offer ?? "")} className={`mt-2 ${inputClass}`} placeholder="Product/service description" />
+            {SHOW_INTAKE_GOALS_AND_AI_REQUEST_CHECKBOXES ? (
+              <FieldCheckboxes
+                options={[
+                  { name: "research_market_pricing", label: c.researchMarketPricing },
+                  { name: "find_best_positioning", label: c.findBestPositioning },
+                ]}
+                existing={existing}
+              />
+            ) : null}
+          </div>
+          <div>
+            <label className={labelClass}>{c.usp}</label>
+            <textarea name="usp" rows={3} defaultValue={String(existing.usp ?? "")} className={`mt-2 ${inputClass}`} placeholder="What makes you different from competitors?" />
+            {SHOW_INTAKE_GOALS_AND_AI_REQUEST_CHECKBOXES ? (
+              <FieldCheckboxes
+                options={[
+                  { name: "research_competitor_usps", label: c.researchCompetitorUsps },
+                  { name: "find_best_usp", label: c.findBestUsp },
+                ]}
+                existing={existing}
+              />
+            ) : null}
+          </div>
         </div>
-        <div>
-          <label className={labelClass}>{c.usp}</label>
-          <textarea name="usp" rows={2} defaultValue={String(existing.usp ?? "")} className={`mt-2 ${inputClass}`} placeholder="What makes you different from competitors?" />
-          {SHOW_INTAKE_GOALS_AND_AI_REQUEST_CHECKBOXES ? (
-            <FieldCheckboxes
-              options={[
-                { name: "research_competitor_usps", label: c.researchCompetitorUsps },
-                { name: "find_best_usp", label: c.findBestUsp },
-              ]}
-              existing={existing}
-            />
-          ) : null}
+        <div className="grid gap-4 md:grid-cols-2">
+          <div>
+            <label className={labelClass}>{c.customers}</label>
+            <input name="customers" defaultValue={String(existing.customers ?? "")} className={`mt-2 ${inputClass}`} placeholder="B2B SaaS, SMBs, etc." />
+            {SHOW_INTAKE_GOALS_AND_AI_REQUEST_CHECKBOXES ? (
+              <FieldCheckboxes options={[{ name: "research_target_demographics", label: c.researchTargetDemographics }]} existing={existing} />
+            ) : null}
+          </div>
+          <div>
+            <label className={labelClass}>{c.marketReach}</label>
+            <select name="market_reach" defaultValue={String(existing.market_reach ?? "national")} className={`mt-2 ${inputClass}`}>
+              <option value="local">{c.localNatIntl.local}</option>
+              <option value="national">{c.localNatIntl.national}</option>
+              <option value="international">{c.localNatIntl.international}</option>
+            </select>
+          </div>
         </div>
-        <div>
-          <label className={labelClass}>{c.customers}</label>
-          <input name="customers" defaultValue={String(existing.customers ?? "")} className={`mt-2 ${inputClass}`} placeholder="B2B SaaS, SMBs, etc." />
-          {SHOW_INTAKE_GOALS_AND_AI_REQUEST_CHECKBOXES ? (
-            <FieldCheckboxes options={[{ name: "research_target_demographics", label: c.researchTargetDemographics }]} existing={existing} />
-          ) : null}
-        </div>
-        <div>
-          <label className={labelClass}>{c.marketReach}</label>
-          <select name="market_reach" defaultValue={String(existing.market_reach ?? "national")} className={`mt-2 ${inputClass}`}>
-            <option value="local">{c.localNatIntl.local}</option>
-            <option value="national">{c.localNatIntl.national}</option>
-            <option value="international">{c.localNatIntl.international}</option>
-          </select>
-        </div>
-        <button
-          type="button"
-          disabled={enrichBusy}
-          onClick={async () => {
-            setEnrichErr(null);
-            const el = formRef.current;
-            if (!el) return;
-            const fd = new FormData(el);
-            const company_name = String(fd.get("company_name") || "").trim();
-            const website = String(fd.get("website") || "").trim();
-            const location = String(fd.get("location") || "").trim();
-            if (!company_name) {
-              setEnrichErr(locale === "de" ? "Bitte Firmenname angeben." : "Please enter a company name.");
-              return;
-            }
-            setEnrichBusy(true);
-            try {
-              const res = await fetch("/api/profile/enrich-company", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ company_name, website, location }),
-              });
-              const data = (await res.json()) as { error?: string };
-              if (!res.ok) throw new Error(data.error || "Enrichment failed");
-              router.refresh();
-            } catch (e) {
-              setEnrichErr(e instanceof Error ? e.message : String(e));
-            } finally {
-              setEnrichBusy(false);
-            }
-          }}
-          className="rounded-full bg-teal-600 px-6 py-3 text-sm font-semibold text-white hover:bg-teal-700 disabled:opacity-60"
-        >
-          {enrichBusy ? c.enrichLoading : c.enrichContinue}
-        </button>
+        {!assistantEmbed ? (
+          <div className="flex flex-wrap gap-3">
+            <button
+              type="button"
+              disabled={enrichBusy}
+              onClick={enrichAndContinue}
+              className="rounded-full bg-teal-600 px-6 py-3 text-sm font-semibold text-white hover:bg-teal-700 disabled:opacity-60"
+            >
+              {enrichBusy ? c.enrichLoading : c.enrichContinue}
+            </button>
+            <button
+              type="submit"
+              className="rounded-full border border-zinc-300 bg-white px-6 py-3 text-sm font-semibold text-zinc-800 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-100 dark:hover:bg-zinc-900"
+            >
+              {c.manualContinue}
+            </button>
+          </div>
+        ) : null}
         {enrichErr ? <p className="text-sm text-red-600 dark:text-red-400">{enrichErr}</p> : null}
       </section>
 
-      <details className="rounded-2xl border border-zinc-200 dark:border-zinc-800">
+      <details className="group rounded-2xl border border-zinc-200 dark:border-zinc-800">
         <summary className="cursor-pointer list-none px-6 py-4 text-lg font-bold text-zinc-900 dark:text-zinc-50 [&::-webkit-details-marker]:hidden">
-          {c.optionalManualTitle}
+          <span className="inline-flex items-center gap-2">
+            <span
+              className="inline-block text-base leading-none text-zinc-600 transition-transform duration-200 group-open:rotate-90 dark:text-zinc-300"
+              aria-hidden
+            >
+              ▸
+            </span>
+            {c.optionalManualTitle}
+          </span>
         </summary>
         <div className="space-y-10 border-t border-zinc-200 px-6 pb-6 pt-4 dark:border-zinc-800">
       {/* Section 1 in manual: Product catalogue */}
@@ -836,9 +869,24 @@ export function IntakeForm({
         </div>
       ) : null}
 
-      <button type="submit" className="rounded-full bg-zinc-900 px-6 py-3 text-sm font-semibold text-white hover:bg-zinc-800">
-        {c.save}
-      </button>
+      {assistantEmbed ? (
+        <div className="flex flex-wrap items-center justify-end gap-3">
+          <button
+            type="button"
+            disabled={enrichBusy}
+            onClick={enrichAndContinue}
+            className="rounded-full bg-teal-600 px-6 py-3 text-sm font-semibold text-white hover:bg-teal-700 disabled:opacity-60"
+          >
+            {enrichBusy ? c.enrichLoading : c.enrichContinue}
+          </button>
+          <button
+            type="submit"
+            className="rounded-full border border-zinc-300 bg-white px-6 py-3 text-sm font-semibold text-zinc-800 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-100 dark:hover:bg-zinc-900"
+          >
+            {c.manualContinue}
+          </button>
+        </div>
+      ) : null}
     </form>
   );
 }

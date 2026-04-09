@@ -78,12 +78,14 @@ export default async function Fragebogen2CategoryPage({
 
   return (
     <div className="space-y-8">
-      <header>
-        <h1 className="text-3xl font-bold tracking-tight text-[var(--foreground)]">
-          {t.study.fb2Title}
-        </h1>
-        <p className="mt-2 text-[var(--muted)]">{categoryLabel}</p>
-      </header>
+      {!isEmbed ? (
+        <header>
+          <h1 className="text-3xl font-bold tracking-tight text-[var(--foreground)]">
+            {t.study.fb2Title}
+          </h1>
+          <p className="mt-2 text-[var(--muted)]">{categoryLabel}</p>
+        </header>
+      ) : null}
       <div className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-4 text-sm">
         <p>
           <span className="font-semibold">{t.study.fb2CurrentPhaseLabel}</span> {context.phase}

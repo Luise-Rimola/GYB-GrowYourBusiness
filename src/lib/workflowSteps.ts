@@ -77,9 +77,6 @@ export const workflowSteps: Record<
   WF_BASELINE: [
     { stepKey: "business_model_inference", schemaKey: "business_model_inference", label: "Geschäftsmodell-Einordnung" },
     { stepKey: "kpi_set_selection", schemaKey: "kpi_set_selection", label: "KPI-Auswahl" },
-    { stepKey: "kpi_computation_plan", schemaKey: "kpi_questions", label: "KPI-Fragenplan" },
-    { stepKey: "kpi_questions_answer", schemaKey: "kpi_answers", label: "KPI-Fragen beantworten" },
-    { stepKey: "kpi_gap_scan", schemaKey: "kpi_gap_report", label: "KPI-Lückenanalyse" },
     { stepKey: "industry_research", schemaKey: "industry_research", label: "Branchen- und Standortdaten" },
   ],
   WF_MARKET: [{ stepKey: "market_snapshot", schemaKey: "market_snapshot", label: "Marktüberblick" }],

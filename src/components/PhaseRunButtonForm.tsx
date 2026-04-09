@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 
 type PhaseRunButtonFormProps = {
   formId: string;
@@ -11,6 +12,8 @@ type PhaseRunButtonFormProps = {
 };
 
 export function PhaseRunButtonForm({ formId, phaseId, buttonLabel, workflows }: PhaseRunButtonFormProps) {
+  const searchParams = useSearchParams();
+  const isEmbed = searchParams.get("embed") === "1";
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
   const [openMenu, setOpenMenu] = useState(false);
@@ -92,16 +95,18 @@ export function PhaseRunButtonForm({ formId, phaseId, buttonLabel, workflows }: 
             >
               Automatisch ausführen
             </button>
-            <button
-              type="button"
-              onClick={() => {
-                setOpenMenu(false);
-                setOpenManualModal(true);
-              }}
-              className="block w-full rounded-lg px-3 py-2 text-left text-xs font-medium hover:bg-[var(--background)]"
-            >
-              Manueller Assistent
-            </button>
+            {!isEmbed ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setOpenMenu(false);
+                  setOpenManualModal(true);
+                }}
+                className="block w-full rounded-lg px-3 py-2 text-left text-xs font-medium hover:bg-[var(--background)]"
+              >
+                Manueller Assistent
+              </button>
+            ) : null}
           </div>
         )}
       </div>

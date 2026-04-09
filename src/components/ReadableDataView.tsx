@@ -64,7 +64,10 @@ const LABELS: Record<string, string> = {
   industry_research: "Branchenrecherche",
   business_model: "Geschäftsmodell",
   kpi_set: "KPI-Set",
+  selected_kpis: "Ausgewählte KPIs",
   kpi_snapshot: "KPI-Snapshot",
+  missing_inputs:
+    "Fehlende Eingangsdaten für die Berechnung der ausgewählten KPIs",
   artifacts_summary: "Dokumente",
   related_analysis_outputs: "Weitere Analysen (volle Inhalte)",
   artifact_type: "Dokumenttyp",

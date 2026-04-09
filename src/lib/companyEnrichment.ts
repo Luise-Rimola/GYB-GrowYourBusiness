@@ -141,6 +141,30 @@ export async function fetchLinkedInSearchContext(
   return { text: null, source: "none" };
 }
 
+export type PublicFinanceSearchResult = {
+  text: string | null;
+  source: "brave" | "ddg" | "none";
+};
+
+/**
+ * Öffentliche Finanz-/Register-Hinweise (z. B. northdata) für Umsatz/Bilanz-Kontext.
+ * Nur öffentlich zugängliche Snippets, keine Login- oder Scraping-Umgehung.
+ */
+export async function fetchPublicFinanceSearchContext(
+  companyName: string,
+  location: string
+): Promise<PublicFinanceSearchResult> {
+  const qBase = `${companyName.trim()} ${location.trim()}`.replace(/\s+/g, " ").trim();
+  if (!qBase) return { text: null, source: "none" };
+  const searchQuery =
+    `${qBase} northdata umsatz bilanz jahresabschluss bundesanzeiger handelsregister`;
+  const brave = await fetchBraveWebSnippets(searchQuery);
+  if (brave) return { text: brave, source: "brave" };
+  const ddg = await fetchDuckDuckGoHtmlSnippet(searchQuery);
+  if (ddg) return { text: ddg, source: "ddg" };
+  return { text: null, source: "none" };
+}
+
 function isEmptyVal(v: unknown): boolean {
   if (v == null) return true;
   if (typeof v === "string") return v.trim() === "";
@@ -218,7 +242,8 @@ function buildEnrichmentPrompt(
   website: string,
   location: string,
   websiteText: string | null,
-  linkedInSearchText: string | null
+  linkedInSearchText: string | null,
+  publicFinanceSearchText: string | null
 ): string {
   const lang = locale.startsWith("de") ? "German" : "English";
   const siteBlock = websiteText
@@ -229,12 +254,16 @@ function buildEnrichmentPrompt(
     ? `\nWeb search snippets (LinkedIn / company / people — independent of the website field; may be noisy):\n${linkedInSearchText}\n`
     : "\n(No web search text was retrieved — still use company name + location; for team use only widely verifiable public facts or [].)\n";
 
+  const financeBlock = publicFinanceSearchText
+    ? `\nPublic finance/register snippets (e.g. northdata / Bundesanzeiger / Handelsregister; may be noisy):\n${publicFinanceSearchText}\n`
+    : "\n(No public finance/register snippets retrieved. Keep financial fields conservative and avoid speculation.)\n";
+
   return `You help fill a structured business profile. Language for string values: ${lang}.
 
 Company name: ${companyName || "unknown"}
 Website: ${website || "—"}
 Location: ${location || "—"}
-${siteBlock}${linkedInBlock}
+${siteBlock}${linkedInBlock}${financeBlock}
 
 Return a single JSON object with ONLY these keys (omit keys you cannot infer; use null for unknown numbers):
 ${ENRICHMENT_KEYS.map((k) => `"${k}"`).join(", ")}
@@ -247,9 +276,10 @@ Rules:
 - business_state: one of idea, first_research, investor_search, launch, young_business, growing_business, scaling_business, established — or empty string.
 - team_size, years_in_business: numbers only if reasonably inferable, else null.
 - revenue_last_month, marketing_spend, fixed_costs, variable_costs, aov: numbers or null (do not guess wildly).
+- For financial numbers, use only clearly attributable public data points; if ambiguous, return null.
 - production_steps: short bullet-style text or empty string.
 - team: JSON array of { "name": string, "role": string, "skills": string }. This is NOT tied to whether a website URL was given.
-  Priority: (1) web search snippets above (prefer linkedin.com lines) for this exact company; (2) public website excerpt if any; (3) only if the company is unambiguous and facts are widely documented, minimal public leadership — otherwise []. Never invent names or titles.
+  Priority: (1) web search snippets above for this exact company (including public finance/register snippets for financial fields); (2) public website excerpt if any; (3) only if the company is unambiguous and facts are widely documented, minimal public leadership — otherwise []. Never invent names, titles, or financial values.
 
 Output JSON only, no markdown.`;
 }
@@ -336,9 +366,10 @@ export async function runCompanyEnrichment(args: {
     };
   }
 
-  const [websiteText, linkedInCtx] = await Promise.all([
+  const [websiteText, linkedInCtx, publicFinanceCtx] = await Promise.all([
     trimmedWeb && isSafePublicHttpUrl(trimmedWeb) ? fetchPublicWebsiteText(trimmedWeb) : Promise.resolve(null as string | null),
     fetchLinkedInSearchContext(trimmedName, trimmedLoc),
+    fetchPublicFinanceSearchContext(trimmedName, trimmedLoc),
   ]);
 
   const baseUrl = url.replace(/\/$/, "");
@@ -353,7 +384,8 @@ export async function runCompanyEnrichment(args: {
     trimmedWeb,
     trimmedLoc,
     websiteText,
-    linkedInCtx.text
+    linkedInCtx.text,
+    publicFinanceCtx.text
   );
   let content: string;
   try {
@@ -397,6 +429,8 @@ export async function runCompanyEnrichment(args: {
     websiteExcerptChars: websiteText?.length ?? 0,
     linkedInSearchSource: linkedInCtx.source,
     linkedInSearchChars: linkedInCtx.text?.length ?? 0,
+    publicFinanceSearchSource: publicFinanceCtx.source,
+    publicFinanceSearchChars: publicFinanceCtx.text?.length ?? 0,
   };
 
   const filled = [

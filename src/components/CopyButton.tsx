@@ -6,14 +6,21 @@ type CopyButtonProps = {
   text: string;
   label?: string;
   copiedLabel?: string;
+  onCopied?: () => void;
 };
 
-export function CopyButton({ text, label = "Kopieren", copiedLabel = "Kopiert!" }: CopyButtonProps) {
+export function CopyButton({
+  text,
+  label = "Kopieren",
+  copiedLabel = "Kopiert!",
+  onCopied,
+}: CopyButtonProps) {
   const [copied, setCopied] = useState(false);
 
   async function handleCopy() {
     await navigator.clipboard.writeText(text);
     setCopied(true);
+    onCopied?.();
     setTimeout(() => setCopied(false), 2000);
   }
 

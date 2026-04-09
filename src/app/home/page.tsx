@@ -121,7 +121,7 @@ export default async function Home({
         </p>
         <div className="flex flex-wrap gap-3">
           <Link
-            href="/assistant"
+            href="/assistant?start=1"
             prefetch={false}
             className="rounded-xl bg-teal-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-teal-500/25 transition hover:bg-teal-700 hover:shadow-teal-500/30"
           >

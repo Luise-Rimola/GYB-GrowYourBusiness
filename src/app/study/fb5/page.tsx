@@ -74,10 +74,12 @@ export default async function Fragebogen5Page({
 
   return (
     <div className="space-y-8">
-      <header>
-        <h1 className="text-3xl font-bold tracking-tight text-[var(--foreground)]">{t.study.fb5Title}</h1>
-        <p className="mt-2 text-[var(--muted)]">{t.study.fb5Desc}</p>
-      </header>
+      {!isEmbed ? (
+        <header>
+          <h1 className="text-3xl font-bold tracking-tight text-[var(--foreground)]">{t.study.fb5Title}</h1>
+          <p className="mt-2 text-[var(--muted)]">{t.study.fb5Desc}</p>
+        </header>
+      ) : null}
       <Fragebogen5Form
         action={saveFb5}
         t={t.study}

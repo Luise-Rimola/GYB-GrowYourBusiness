@@ -25,12 +25,14 @@ export default async function StudyCategoryInfoPage({
 
   return (
     <div className="space-y-8">
-      <header>
-        <h1 className="text-3xl font-bold tracking-tight text-[var(--foreground)]">
-          {t.study.studyInfoBeforeFb2Prefix} {t.study.studyFb2BeforeCategory} — {categoryLabel}
-        </h1>
-        <p className="mt-2 text-[var(--muted)]">{t.study.studyInfoIntro}</p>
-      </header>
+      {!isEmbed ? (
+        <header>
+          <h1 className="text-3xl font-bold tracking-tight text-[var(--foreground)]">
+            {t.study.studyInfoBeforeFb2Prefix} {t.study.studyFb2BeforeCategory} — {categoryLabel}
+          </h1>
+          <p className="mt-2 text-[var(--muted)]">{t.study.studyInfoIntro}</p>
+        </header>
+      ) : null}
 
       <section className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-5">
         <p>

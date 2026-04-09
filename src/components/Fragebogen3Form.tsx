@@ -18,6 +18,7 @@ type Fragebogen3FormProps = {
   submitLabel?: string;
   hideSubmitButton?: boolean;
   assistantEmbed?: boolean;
+  showIntroText?: boolean;
 };
 
 function likertDefault(initial: Partial<Record<string, number | string>> | undefined, key: string): number {
@@ -60,6 +61,7 @@ export function Fragebogen3Form({
   submitLabel,
   hideSubmitButton,
   assistantEmbed,
+  showIntroText = true,
 }: Fragebogen3FormProps) {
   const shouldHideSubmitButton = Boolean(hideSubmitButton);
 
@@ -67,7 +69,7 @@ export function Fragebogen3Form({
     <form action={action} data-assistant-form="1" className="space-y-8">
       {assistantEmbed ? <input type="hidden" name="assistant_embed" value="1" /> : null}
       {category && <input type="hidden" name="category" value={category} />}
-      <p className="text-sm text-[var(--muted)]">{t.fb3SameAsFb2Intro}</p>
+      {showIntroText ? <p className="text-sm text-[var(--muted)]">{t.fb3SameAsFb2Intro}</p> : null}
       <div className="space-y-6">
         <section className="rounded-xl border border-[var(--card-border)] p-6">
           <h3 className="mb-4 text-sm font-semibold text-[var(--foreground)]">{t.fb2DQ}</h3>

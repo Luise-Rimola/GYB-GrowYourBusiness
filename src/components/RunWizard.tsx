@@ -110,6 +110,7 @@ type RunWizardProps = {
     existingIdeas: { id: string; title: string }[];
   };
   showStepList?: boolean;
+  hideNextButton?: boolean;
 };
 
 export function RunWizard({
@@ -126,6 +127,7 @@ export function RunWizard({
   runNotesPlaceholder = "e.g. Focus on profitability…",
   appDevelopmentConfig,
   showStepList = true,
+  hideNextButton = false,
 }: RunWizardProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -133,6 +135,7 @@ export function RunWizard({
   const responseRef = useRef<HTMLTextAreaElement | null>(null);
   const formRef = useRef<HTMLFormElement | null>(null);
   const [runLoading, setRunLoading] = useState(false);
+  const [answerOpen, setAnswerOpen] = useState(false);
   const [userNotes, setUserNotes] = useState(run.userNotes ?? "");
   const [ideaMode, setIdeaMode] = useState<"existing" | "new">(
     (run.ideaMode === "existing" ? "existing" : "new") as "existing" | "new"
@@ -232,7 +235,7 @@ export function RunWizard({
         <summary className="cursor-pointer list-none rounded-lg px-0 py-3 text-sm font-semibold text-[var(--foreground)] transition hover:bg-slate-50/80 dark:hover:bg-slate-900/20 [&::-webkit-details-marker]:hidden">
           <span className="flex items-center justify-between gap-3">
             <span className="inline-flex items-center gap-2">
-              <span className="text-[var(--muted)] transition group-open:rotate-90">▸</span>
+              <span className="inline-block text-[var(--muted)] transition-transform duration-200 group-open:rotate-90">▸</span>
               KI-Prozess
             </span>
             {savedStep?.schemaValidationPassed ? (
@@ -250,11 +253,6 @@ export function RunWizard({
                 }`}
               >
                 Ungültig
-              </span>
-            )}
-            {isVerified && (
-              <span className="text-xs font-medium text-teal-600 dark:text-teal-400">
-                ✓ Verifiziert
               </span>
             )}
           </div>
@@ -420,14 +418,22 @@ export function RunWizard({
         <details className="group rounded-xl border border-[var(--card-border)] bg-slate-50/50 dark:bg-slate-900/20">
           <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-3 py-2.5 text-xs font-semibold text-[var(--muted)] [&::-webkit-details-marker]:hidden">
             <span className="inline-flex min-w-0 items-center gap-2">
-              <span className="shrink-0 text-[var(--muted)] transition group-open:rotate-90">▸</span>
+              <span className="inline-block shrink-0 text-[var(--muted)] transition-transform duration-200 group-open:rotate-90">▸</span>
               Prompt
             </span>
             <div
               className="flex shrink-0 items-center gap-2"
               onClick={(e) => e.stopPropagation()}
             >
-              <CopyButton text={prompt} label="Kopieren" copiedLabel="Kopiert!" />
+              <CopyButton
+                text={prompt}
+                label="Kopieren"
+                copiedLabel="Kopiert!"
+                onCopied={() => {
+                  setAnswerOpen(true);
+                  setTimeout(() => responseRef.current?.focus(), 0);
+                }}
+              />
               <RunLlmButton
                 prompt={prompt}
                 onResponse={(content) => {
@@ -449,17 +455,18 @@ export function RunWizard({
         </details>
 
         {/* Answer textarea + Save form */}
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-xs font-semibold text-[var(--muted)]">
+        <details
+          className="group rounded-xl border border-[var(--card-border)] bg-[var(--card)]"
+          open={answerOpen}
+          onToggle={(e) => setAnswerOpen((e.currentTarget as HTMLDetailsElement).open)}
+        >
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-3 py-2.5 text-xs font-semibold text-[var(--muted)] [&::-webkit-details-marker]:hidden">
+            <span className="inline-flex min-w-0 items-center gap-2">
+              <span className="inline-block shrink-0 text-[var(--muted)] transition-transform duration-200 group-open:rotate-90">▸</span>
               Antwort
-            </p>
-            {isVerified && (
-              <span className="text-xs font-medium text-teal-600 dark:text-teal-400">
-                ✓ Verifiziert
-              </span>
-            )}
-          </div>
+            </span>
+          </summary>
+          <div className="border-t border-[var(--card-border)] p-3">
           {useUpdateForm ? (
             <form action={updateStep} className="space-y-3">
               <input type="hidden" name="step_id" value={savedStep!.id} />
@@ -542,7 +549,8 @@ export function RunWizard({
               </button>
             </form>
           )}
-        </div>
+          </div>
+        </details>
         </div>
           </>
         )}
@@ -564,7 +572,7 @@ export function RunWizard({
             )}
           </div>
           <div>
-            {stepIndex < stepsConfig.length - 1 ? (
+            {stepIndex < stepsConfig.length - 1 && !hideNextButton ? (
               <button
                 type="button"
                 onClick={() => navigateToStep(stepIndex + 1)}
@@ -572,7 +580,7 @@ export function RunWizard({
               >
                 Weiter →
               </button>
-            ) : isVerified ? (
+            ) : isVerified && !hideNextButton ? (
               <a
                 href="/dashboard"
                 className="inline-block rounded-xl bg-teal-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-teal-700"

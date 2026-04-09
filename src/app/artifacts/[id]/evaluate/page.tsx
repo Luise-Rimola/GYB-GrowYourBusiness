@@ -12,14 +12,15 @@ export default async function ArtifactEvaluatePage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ saved?: string }>;
+  searchParams: Promise<{ saved?: string; return_to?: string }>;
 }) {
   const { id } = await params;
-  const { saved } = await searchParams;
+  const { saved, return_to } = await searchParams;
   const locale = await getServerLocale();
   const t = getTranslations(locale);
   const artifact = await prisma.artifact.findUnique({ where: { id } });
   if (!artifact) notFound();
+  const backHref = return_to?.trim() ? return_to : `/artifacts/${artifact.id}`;
 
   const evaluations = await getArtifactEvaluations(artifact.id);
 
@@ -30,15 +31,16 @@ export default async function ArtifactEvaluatePage({
         description={t.artifacts.evaluatePageDesc}
         actions={
           <Link
-            href={`/artifacts/${artifact.id}`}
+            href={backHref}
             className="rounded-xl border border-teal-600 px-4 py-2 text-sm font-medium text-teal-700 transition hover:bg-teal-50 dark:border-teal-500 dark:text-teal-300 dark:hover:bg-teal-950/50"
           >
-            {t.artifacts.viewDocument}
+            {locale === "de" ? "Zurück" : "Back"}
           </Link>
         }
       >
         <form action={submitArtifactEvaluationAction} className="space-y-5">
           <input type="hidden" name="artifact_id" value={artifact.id} />
+          <input type="hidden" name="return_to" value={return_to ?? ""} />
 
           <div className="grid gap-4 md:grid-cols-2">
             <label className="flex min-w-0 flex-col gap-2 text-sm">

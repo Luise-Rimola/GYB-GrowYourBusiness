@@ -229,7 +229,7 @@ export default async function InsightsPage({
           <div className="space-y-4">
             <div className="grid gap-4 lg:grid-cols-[auto_1fr]">
               <Link
-                href="/assistant"
+                href="/assistant?start=1"
                 prefetch={false}
                 className="inline-flex h-fit items-center justify-center rounded-xl bg-teal-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-teal-500/25 transition hover:bg-teal-700 hover:shadow-teal-500/30"
               >

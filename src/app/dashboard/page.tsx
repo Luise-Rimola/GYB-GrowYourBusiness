@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Script from "next/script";
+import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { createRunWorkflowAction } from "@/app/actions";
 import { Section } from "@/components/Section";
@@ -32,6 +33,8 @@ export default async function DashboardPage({
   searchParams: Promise<{ assistant_phase?: string; run_error?: string; run_success?: string; view?: string; phase?: string }>;
 }) {
   const params = await searchParams;
+  const hdrs = await headers();
+  const isEmbedFrame = hdrs.get("x-app-embed") === "1";
   const assistantPhaseId = String(params.assistant_phase ?? "").trim();
   const selectedOverviewPhaseId = String(params.phase ?? "").trim();
   const activeView = assistantPhaseId ? "execution" : (params.view === "execution" ? "execution" : "overview");
@@ -385,6 +388,44 @@ export default async function DashboardPage({
   const selectedStudyCtx = selectedOverviewSummary
     ? studyCtxByCategory[phaseToStudyCategory[selectedOverviewSummary.phase.id] ?? "markt_geschaeftsmodell"]
     : null;
+  const assistantPhase = assistantPhaseId
+    ? PLANNING_PHASES.find((p) => p.id === assistantPhaseId) ?? null
+    : null;
+  const assistantStudyCtx = assistantPhase
+    ? studyCtxByCategory[phaseToStudyCategory[assistantPhase.id] ?? "markt_geschaeftsmodell"]
+    : null;
+  const assistantPhaseDetailDe: Record<string, string> = {
+    ideation:
+      "Die KI analysiert hier Problem-Lösungs-Fit, Zielgruppe, Wertversprechen, Wettbewerbsumfeld und Trends. Ergebnis sind strukturierte Begründungen, Risiken, Chancen und priorisierte nächste Entscheidungen.",
+    validation:
+      "Die KI analysiert Machbarkeit, USP-Schärfe, Kundennutzen, Validierungssignale und Umsetzungsrisiken. Ziel ist eine evidenzbasierte Einschätzung, ob das Vorhaben in der Praxis tragfähig ist.",
+    launch:
+      "Die KI analysiert Markteintrittslogik, Preisgestaltung, Finanzierungsbedarf und operative Startfähigkeit. Ergebnis ist ein umsetzbarer Launch-Rahmen mit klaren Maßnahmen und Prioritäten.",
+    scaling:
+      "Die KI analysiert Wachstumshebel, Engpässe, Skalierbarkeit und Margenwirkung geplanter Maßnahmen. Ziel ist eine priorisierte Roadmap mit messbarem Beitrag zu Wachstum und Effizienz.",
+    tech_digital:
+      "Die KI analysiert Technologie- und Automatisierungsoptionen hinsichtlich Nutzen, Aufwand, Integrationsrisiko und ROI. Ergebnis ist eine vergleichbare Entscheidungsgrundlage für die Tool-Auswahl.",
+    maturity:
+      "Die KI analysiert Prozessqualität, Kostenhebel, Portfolio-Performance und Optimierungspotenziale. Ziel ist ein priorisierter Verbesserungsplan mit klarer wirtschaftlicher Wirkung.",
+    renewal:
+      "Die KI analysiert strategische Optionen für Erneuerung, Transformation oder Exit inklusive Szenarien, Chancen und Risiken. Ergebnis ist eine belastbare Entscheidungsbasis für die nächste Richtung.",
+  };
+  const assistantPhaseDetailEn: Record<string, string> = {
+    ideation:
+      "Here the AI analyzes problem-solution fit, target group, value proposition, competition, and trends. The output is structured rationale, risks, opportunities, and prioritized next decisions.",
+    validation:
+      "Here the AI analyzes feasibility, USP strength, customer value, validation signals, and execution risks. The goal is an evidence-based viability assessment for real-world execution.",
+    launch:
+      "Here the AI analyzes go-to-market logic, pricing, funding needs, and operational launch readiness. The output is an actionable launch frame with clear priorities.",
+    scaling:
+      "Here the AI analyzes growth levers, bottlenecks, scalability, and margin impact of initiatives. The goal is a prioritized roadmap with measurable business effect.",
+    tech_digital:
+      "Here the AI analyzes technology and automation options by benefit, effort, integration risk, and ROI. The output is a comparable basis for tool decisions.",
+    maturity:
+      "Here the AI analyzes process quality, cost levers, portfolio performance, and optimization potential. The goal is a prioritized improvement plan with measurable impact.",
+    renewal:
+      "Here the AI analyzes strategic options for renewal, transformation, or exit including scenarios, opportunities, and risks. The output is a decision-ready strategic view.",
+  };
 
   return (
     <div className="space-y-8">
@@ -421,15 +462,23 @@ export default async function DashboardPage({
         </div>
       )}
 
-      {activeView === "execution" && (
-        <header>
-          <h1 className="text-3xl font-bold tracking-tight text-[var(--foreground)]">
-            {`${t.dashboard.title} in ${t.dashboard.planningPhases}`}
-          </h1>
-          <p className="mt-2 text-[var(--muted)]">
-            {`${t.dashboard.subtitle} ${t.dashboard.planningPhasesDesc}`}
-          </p>
-        </header>
+      {activeView === "execution" && !assistantPhaseId && (
+        <div>
+          <header className="rounded-2xl border border-[var(--card-border)] bg-[var(--card)]/90 p-4 shadow-sm sm:p-5">
+            <h1 className="text-3xl font-bold tracking-tight text-[var(--foreground)]">
+              {assistantPhase
+                ? (isDe ? assistantPhase.name : (phaseNamesEn[assistantPhase.id] ?? assistantPhase.name))
+                : `${t.dashboard.title} in ${t.dashboard.planningPhases}`}
+            </h1>
+            <p className="mt-2 text-[var(--muted)]">
+              {assistantPhase
+                ? (isDe
+                    ? assistantPhaseDetailDe[assistantPhase.id] ?? assistantStudyCtx?.description ?? assistantPhase.goal
+                    : assistantPhaseDetailEn[assistantPhase.id] ?? assistantStudyCtx?.description ?? phaseGoalsEn[assistantPhase.id] ?? assistantPhase.goal)
+                : `${t.dashboard.subtitle} ${t.dashboard.planningPhasesDesc}`}
+            </p>
+          </header>
+        </div>
       )}
 
       {activeView === "execution" && params.run_error === "llm_missing" && (
@@ -726,19 +775,23 @@ export default async function DashboardPage({
                     )}
                   </div>
                   <p className="mt-1 text-sm text-[var(--muted)]">{isDe ? phase.goal : (phaseGoalsEn[phase.id] ?? phase.goal)}</p>
-                  {((isDe ? phase.instruments : phaseInstrumentsEn[phase.id])?.length ?? 0) > 0 && (
-                    <p className="mt-2 text-xs text-[var(--muted)]">
-                      {isDe ? "Instrumente" : "Instruments"}: {(isDe ? phase.instruments! : phaseInstrumentsEn[phase.id]!).slice(0, 5).join(", ")}
-                      {(isDe ? phase.instruments! : phaseInstrumentsEn[phase.id]!).length > 5 ? " …" : ""}
-                    </p>
-                  )}
+                  <p className="mt-1 text-sm text-[var(--muted)]">
+                    {isDe
+                      ? assistantPhaseDetailDe[phase.id] ?? ""
+                      : assistantPhaseDetailEn[phase.id] ?? ""}
+                  </p>
                 </div>
                 {phaseWorkflows.length > 0 ? (
                   <details data-phase-details={phase.id} className="group rounded-xl border border-[var(--card-border)] bg-[var(--background)]/40 p-3">
                     <summary className="cursor-pointer list-none text-sm font-medium text-[var(--foreground)]">
                       <span className="inline-flex items-center gap-2">
-                        <span aria-hidden>⚙️</span>
-                        {isDe ? "Prozesse anzeigen" : "Show workflows"}
+                        <span
+                          className="inline-block text-xs text-[var(--muted)] transition-transform duration-200 group-open:rotate-90"
+                          aria-hidden
+                        >
+                          ▸
+                        </span>
+                        {isDe ? "Prozessschritte anzeigen" : "Show process steps"}
                       </span>
                     </summary>
                     <div className="mt-3 space-y-3">

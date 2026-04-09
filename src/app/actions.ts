@@ -258,6 +258,7 @@ function parseOptionalLikert5(raw: unknown): number | null {
 export async function submitArtifactEvaluationAction(formData: FormData) {
   const company = await getOrCreateDemoCompany();
   const artifactId = String(formData.get("artifact_id") ?? "");
+  const returnTo = String(formData.get("return_to") ?? "").trim();
   if (!artifactId) {
     redirect("/artifacts");
   }
@@ -297,7 +298,9 @@ export async function submitArtifactEvaluationAction(formData: FormData) {
     ind_notes: ind_notes || null,
   });
 
-  redirect("/artifacts");
+  const q = new URLSearchParams({ saved: "1" });
+  if (returnTo) q.set("return_to", returnTo);
+  redirect(`/artifacts/${artifactId}/evaluate?${q.toString()}`);
 }
 
 const FEATURE_KINDS = new Set<FeatureEvaluationKind>(["decisions", "chat"]);
