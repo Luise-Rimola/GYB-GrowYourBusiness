@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getServerLocale } from "@/lib/locale";
 import { getTranslations } from "@/lib/i18n";
 import { loadAssistantSteps } from "@/lib/assistantSteps";
-import { WorkflowAssistantFrame } from "@/components/WorkflowAssistantFrame";
+import { WorkflowAssistantFrame } from "@/components/ProcessAssistant";
 
 export default async function AssistantPage() {
   const locale = await getServerLocale();

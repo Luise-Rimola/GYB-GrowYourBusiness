@@ -144,7 +144,7 @@ export function PhaseRunButtonForm({ formId, phaseId, buttonLabel, workflows }: 
               </div>
               <div className="pt-1">
                 <Link
-                  href={`/assistant/workflows?phase=${phaseId}`}
+                  href={`/assistant/?phase=${phaseId}`}
                   className="inline-block rounded-lg bg-teal-600 px-3 py-2 text-xs font-semibold text-white hover:bg-teal-700"
                 >
                   Assistent für diese Phase öffnen

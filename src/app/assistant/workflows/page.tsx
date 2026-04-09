@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { getOrCreateDemoCompany } from "@/lib/demo";
 import { WORKFLOW_NAMES, PLANNING_PHASES, WIZARD_WORKFLOW_ORDER } from "@/lib/planningFramework";
-import { WorkflowAssistantFrame } from "@/components/WorkflowAssistantFrame";
+import { WorkflowAssistantFrame } from "@/components/ProcessAssistant";
 import { workflowSteps } from "@/lib/workflowSteps";
 import { isRunProcessFullyComplete } from "@/lib/runProcessCompletion";
 

@@ -20,7 +20,7 @@ export function RunCompletionAdvanceButton({
           Zum Dashboard
         </Link>
         <Link
-          href="/assistant/workflows"
+          href="/assistant"
           prefetch={false}
           className="rounded-xl bg-teal-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-teal-700"
         >
