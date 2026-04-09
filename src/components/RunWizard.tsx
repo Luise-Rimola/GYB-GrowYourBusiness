@@ -582,7 +582,7 @@ export function RunWizard({
               </button>
             ) : isVerified && !hideNextButton ? (
               <a
-                href="/dashboard"
+                href="/dashboard?view=execution"
                 className="inline-block rounded-xl bg-teal-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-teal-700"
               >
                 Zum Dashboard →

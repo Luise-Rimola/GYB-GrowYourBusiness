@@ -866,7 +866,7 @@ export default async function DashboardPage({
                                 <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
                                   {wf.key === "WF_BUSINESS_PLAN"
                                     ? (isDe ? "Grundlagenanalyse, Warum Unternehmen scheitern, Lieferantenliste und Standortoptionen erforderlich" : "Baseline, failure analysis, supplier list, and location options required")
-                                    : wf.key === "WF_KPI_ESTIMATION"
+                                    : wf.key === "WF_BASELINE"
                                       ? (isDe ? "Grundlagenanalyse, Marktüberblick, Marktanalyse und Businessplan erforderlich" : "Baseline, market snapshot, market research, and business plan required")
                                       : ["WF_RESEARCH", "WF_SUPPLIER_LIST", "WF_REAL_ESTATE", "WF_CUSTOMER_VALIDATION", "WF_VALUE_PROPOSITION", "WF_GO_TO_MARKET", "WF_SWOT", "WF_COMPETITOR_ANALYSIS", "WF_STRATEGIC_PLANNING", "WF_TREND_ANALYSIS"].includes(wf.key)
                                         ? (isDe ? "Grundlagenanalyse und Marktüberblick erforderlich" : "Baseline and market snapshot required")
