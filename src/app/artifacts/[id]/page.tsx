@@ -180,7 +180,7 @@ export default async function ArtifactDetailPage({
 
       {kpiAnswersSection}
 
-      {!isEmbed ? (
+      {/*{!isEmbed ? (
         <Section title={isDe ? "Erweitert" : "Advanced"} description={isDe ? "Rohdaten (JSON) - nur Anzeige." : "Raw data (JSON) - read only."}>
           <details className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-4">
             <summary className="cursor-pointer text-sm font-semibold text-[var(--foreground)]">{isDe ? "Dokument bearbeiten" : "Edit document"}</summary>
@@ -204,7 +204,7 @@ export default async function ArtifactDetailPage({
           </details>
           <AdvancedJson data={artifact.contentJson} title={isDe ? "Erweitert" : "Advanced"} summary={isDe ? "Rohdaten (JSON)" : "Raw data (JSON)"} />
         </Section>
-      ) : null}
+      ) : null}*/}
     </div>
   );
 }
