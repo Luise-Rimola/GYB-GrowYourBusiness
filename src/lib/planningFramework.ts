@@ -70,7 +70,7 @@ export const DATA_TO_WORKFLOWS: Record<string, string[]> = {
 /** Artifact types produced by each workflow */
 export const WORKFLOW_TO_ARTIFACTS: Record<string, string[]> = {
   WF_BUSINESS_FORM: [],
-  WF_BASELINE: ["baseline", "industry_research"],
+  WF_BASELINE: ["industry_research"],
   WF_MARKET: ["market"],
   WF_RESEARCH: ["market_research", "best_practices", "failure_analysis"],
   WF_VALUE_PROPOSITION: ["value_proposition"],
@@ -340,7 +340,7 @@ export function workflowDisplayName(locale: Locale, workflowKey: string): string
 /** Unterworkflows (Steps) pro Workflow – für Anzeige */
 export const WORKFLOW_STEP_LABELS: Record<string, string[]> = {
   WF_BUSINESS_FORM: ["Unternehmensformular"],
-  WF_BASELINE: ["Geschäftsmodell", "KPI-Set", "KPI-Plan", "KPI-Antworten", "KPI-Lücken-Scan", "Branchenanalyse"],
+  WF_BASELINE: ["Geschäftsmodell", "KPI-Set", "Branchenanalyse"],
   WF_MARKET: ["Marktüberblick"],
   WF_RESEARCH: ["Marktanalyse", "Best Practices", "Warum Unternehmen scheitern"],
   WF_MENU_CARD: ["Angebotskatalog (Intro + Vollständig)"],

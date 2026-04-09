@@ -8,7 +8,7 @@ export const WORKFLOWS = [
   {
     key: "WF_BASELINE",
     name: "Grundlagenanalyse",
-    description: "Business model + KPI setup + gap scan.",
+    description: "Business model + KPI setup",
     explanation: "Erklärung: Grundlage für alle weiteren Workflows. Basiert auf: Company Profile (Intake). Zu Untersuchen: Geschäftsmodell, KPI-Auswahl, Lückenanalyse, Branchendaten. Output: Business-Model-Klassifikation, KPI-Set, KPI-Gap-Report, Industry Research (JSON).",
   },
   {

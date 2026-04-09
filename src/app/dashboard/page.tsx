@@ -109,7 +109,7 @@ export default async function DashboardPage({
   };
   const workflowStepLabelsEn: Record<string, string[]> = {
     WF_BUSINESS_FORM: ["Company profile form"],
-    WF_BASELINE: ["Business model", "KPI set", "KPI plan", "KPI inputs", "KPI gap scan", "Industry analysis"],
+    WF_BASELINE: ["Business model", "KPI set", "Industry analysis"],
     WF_MARKET: ["Market snapshot"],
     WF_RESEARCH: ["Market research", "Best practices", "Why companies fail"],
     WF_MENU_CARD: ["Offer catalog (intro + complete)"],
