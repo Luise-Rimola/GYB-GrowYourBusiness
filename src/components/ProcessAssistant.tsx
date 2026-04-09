@@ -285,6 +285,7 @@ function persistDoneHref(href: string) {
   }
 }
 
+
 export function WorkflowAssistantFrame({
   steps,
 }: {
@@ -497,6 +498,10 @@ export function WorkflowAssistantFrame({
   useEffect(() => {
     function onMsg(e: MessageEvent) {
       const d = e.data as { type?: string; runId?: string } | null;
+      if (d?.type === "assistant-reload") {
+        window.location.reload();
+        return;
+      }
       if (d?.type === "assistant-iframe-done") {
         if (!pendingSubmit && !isProfileStep) return;
         lastCompletionUrlRef.current = null;
@@ -546,7 +551,7 @@ export function WorkflowAssistantFrame({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <div className="inline-flex items-center rounded-full border border-teal-300 bg-teal-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.08em] text-teal-700 dark:border-teal-700/70 dark:bg-teal-950/40 dark:text-teal-200">
-            KI-Prozessdurchführungs Assistent
+            Studiendurchführungs Assistent
           </div>
           <p className="mt-1 text-base font-semibold text-[var(--foreground)] sm:text-lg">{current.label}</p>
           <p className="mt-1 text-sm text-[var(--muted)]">
@@ -677,7 +682,7 @@ function toEmbedHref(href: string): string {
   const phaseFromHash = hash?.startsWith("artifacts-phase-")
     ? hash.slice("artifacts-phase-".length)
     : null;
-  if (base.startsWith("/assistant")) {
+  if (base.startsWith("/assistant/workflows")) {
     try {
       const q = base.includes("?") ? base.split("?")[1] ?? "" : "";
       const sp = new URLSearchParams(q);

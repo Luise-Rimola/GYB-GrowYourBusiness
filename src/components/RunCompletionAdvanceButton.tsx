@@ -1,6 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+
+
 
 export function RunCompletionAdvanceButton({
   embed,
@@ -10,15 +13,23 @@ export function RunCompletionAdvanceButton({
   runId: string;
 }) {
   if (!embed) {
+    const router = useRouter();
     return (
       <div className="flex items-center gap-2">
-        <Link
-          href="/dashboard?view=execution"
-          prefetch={false}
-          className="rounded-xl border border-[var(--card-border)] bg-white px-4 py-2 text-xs font-semibold text-[var(--foreground)] transition hover:bg-[var(--background)] dark:bg-[var(--card)]"
-        >
-          Zum Dashboard
-        </Link>
+        <button
+                type="button"
+                onClick={() => {
+                  if (typeof window === "undefined") return;
+                
+                  window.parent.postMessage(
+                    { type: "assistant-reload" },
+                    window.location.origin
+                  );
+                }}
+                className="rounded-xl border border-[var(--card-border)] bg-white px-4 py-2 text-xs font-semibold text-[var(--foreground)] transition hover:bg-[var(--background)] dark:bg-[var(--card)]"
+              >
+                Zum Dashboard →
+              </button>
         {/* <Link
           href="/assistant"
           prefetch={false}
@@ -29,16 +40,23 @@ export function RunCompletionAdvanceButton({
       </div>
     );
   }
-
+  const router = useRouter();
   return (
     <div className="flex items-center gap-2">
-      <Link
-        href="/dashboard?view=execution"
-        prefetch={false}
-        className="rounded-xl border border-[var(--card-border)] bg-white px-4 py-2 text-xs font-semibold text-[var(--foreground)] transition hover:bg-[var(--background)] dark:bg-[var(--card)]"
-      >
-        Zum Dashboard
-      </Link>
+      <button
+                type="button"
+                onClick={() => {
+                  if (typeof window === "undefined") return;
+                
+                  window.parent.postMessage(
+                    { type: "assistant-reload" },
+                    window.location.origin
+                  );
+                }}
+                className="rounded-xl border border-[var(--card-border)] bg-white px-4 py-2 text-xs font-semibold text-[var(--foreground)] transition hover:bg-[var(--background)] dark:bg-[var(--card)]"
+              >
+                Zum Dashboard →
+              </button>
       <button
         type="button"
         onClick={() => {

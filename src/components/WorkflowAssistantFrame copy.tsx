@@ -285,6 +285,7 @@ function persistDoneHref(href: string) {
   }
 }
 
+
 export function WorkflowAssistantFrame({
   steps,
 }: {
@@ -497,6 +498,10 @@ export function WorkflowAssistantFrame({
   useEffect(() => {
     function onMsg(e: MessageEvent) {
       const d = e.data as { type?: string; runId?: string } | null;
+      if (d?.type === "assistant-reload") {
+        window.location.reload();
+        return;
+      }
       if (d?.type === "assistant-iframe-done") {
         if (!pendingSubmit && !isProfileStep) return;
         lastCompletionUrlRef.current = null;

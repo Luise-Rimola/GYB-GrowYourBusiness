@@ -581,12 +581,23 @@ export function RunWizard({
                 Weiter →
               </button>
             ) : isVerified && !hideNextButton ? (
-              <a
-                href="/dashboard?view=execution"
-                className="inline-block rounded-xl bg-teal-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-teal-700"
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                
+                  if (typeof window === "undefined") return;
+                
+                  window.parent.postMessage(
+                    { type: "assistant-reload" },
+                    window.location.origin
+                  );
+                }}
+                className="rounded-xl border border-[var(--card-border)] bg-white px-4 py-2 text-xs font-semibold text-[var(--foreground)] transition hover:bg-[var(--background)] dark:bg-[var(--card)]"
               >
                 Zum Dashboard →
-              </a>
+              </button>
             ) : null}
           </div>
         </div>
