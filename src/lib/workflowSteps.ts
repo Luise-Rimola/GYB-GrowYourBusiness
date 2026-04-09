@@ -8,18 +8,16 @@ export function mergeRunStepsIntoContext(
   stepKey: string
 ) {
   const planStep = steps.find((s) => s.stepKey === "kpi_computation_plan");
-  const answersStep = steps.find((s) => s.stepKey === "kpi_questions_answer");
-  const gapStep = steps.find((s) => s.stepKey === "kpi_gap_scan");
+  {/*const answersStep = steps.find((s) => s.stepKey === "kpi_questions_answer");
+  const gapStep = steps.find((s) => s.stepKey === "kpi_gap_scan");*/}
   const workProcessesStep = steps.find((s) => s.stepKey === "work_processes");
   const personnelStep = steps.find((s) => s.stepKey === "personnel_plan");
   const result: Record<string, unknown> = {
     ...base,
-    kpi_computation_plan: planStep?.parsedOutputJson ?? null,
+    {/*kpi_computation_plan: planStep?.parsedOutputJson ?? null,
     kpi_answers: answersStep?.parsedOutputJson ?? null,
-  };
-  if (stepKey === "industry_research") {
-    result.kpi_gap_report = gapStep?.parsedOutputJson ?? null;
-  }
+  }*/};
+  
   if ((stepKey === "personnel_plan" || FINANCIAL_MONTHLY_STEPS.includes(stepKey)) && workProcessesStep?.parsedOutputJson) {
     result.work_processes = workProcessesStep.parsedOutputJson;
   }

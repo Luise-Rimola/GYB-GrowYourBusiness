@@ -3140,7 +3140,6 @@ export const WorkflowService = {
     if (!run) return { created: [] };
 
     const wfBaselineSteps: Array<{ stepKey: string; schemaKey: SchemaKey; type: "baseline" | "industry_research" }> = [
-      { stepKey: "kpi_gap_scan", schemaKey: "kpi_gap_report", type: "baseline" },
       { stepKey: "industry_research", schemaKey: "industry_research", type: "industry_research" },
     ];
 

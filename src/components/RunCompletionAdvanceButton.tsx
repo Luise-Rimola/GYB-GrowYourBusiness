@@ -11,33 +11,34 @@ export function RunCompletionAdvanceButton({
 }) {
   const router = useRouter();
 
+  const isEmbeddedRuntime =
+    typeof window !== "undefined" && window.self !== window.top;
+
   const handleDashboardClick = () => {
     if (typeof window === "undefined") return;
 
-    // ✅ CASE: iframe
-    if (embed) {
-      window.parent.postMessage(
-        { type: "assistant-reload" },
-        "*"
-      );
+    // Im Frame: Parent neu laden
+    if (isEmbeddedRuntime) {
+      window.parent.postMessage({ type: "assistant-reload" }, "*");
       return;
     }
 
-    // ✅ CASE: normale Seite
-    window.location.href = "/dashboard";
+    // Standalone: normale Navigation
+    router.push("/dashboard");
   };
 
   const handleNextClick = () => {
     if (typeof window === "undefined") return;
 
-    if (embed) {
+    if (isEmbeddedRuntime) {
       window.parent.postMessage(
         { type: "assistant-run-process-complete", runId },
         "*"
       );
-    } else {
-      router.push("/assistant"); // oder wohin du willst
+      return;
     }
+
+    router.push("/assistant");
   };
 
   return (
@@ -45,18 +46,20 @@ export function RunCompletionAdvanceButton({
       <button
         type="button"
         onClick={handleDashboardClick}
-        className="rounded-xl border border-[var(--card-border)] bg-white px-4 py-2 text-xs font-semibold"
+        className="rounded-xl border border-[var(--card-border)] bg-white px-4 py-2 text-xs font-semibold text-[var(--foreground)] transition hover:bg-[var(--background)] dark:bg-[var(--card)]"
       >
         Zum Dashboard →
       </button>
 
-      {/*<button
-        type="button"
-        onClick={handleNextClick}
-        className="rounded-xl bg-teal-600 px-4 py-2 text-xs font-semibold text-white"
-      >
-        Weiter →
-      </button>*/}
+{/*{isEmbeddedRuntime && (
+        <button
+          type="button"
+          onClick={handleNextClick}
+          className="rounded-xl bg-teal-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-teal-700"
+        >
+          Weiter →
+        </button>
+      )}*/}
     </div>
   );
 }
