@@ -6,6 +6,7 @@ import { submitArtifactEvaluationAction } from "@/app/actions";
 import { getArtifactEvaluations } from "@/lib/artifactEvaluations";
 import { getServerLocale } from "@/lib/locale";
 import { getTranslations } from "@/lib/i18n";
+import { redirect } from "next/navigation";
 
 export default async function ArtifactEvaluatePage({
   params,
@@ -23,6 +24,7 @@ export default async function ArtifactEvaluatePage({
   const backHref = return_to?.trim() ? return_to : `/artifacts/${artifact.id}`;
 
   const evaluations = await getArtifactEvaluations(artifact.id);
+  
 
   return (
     <div className="space-y-8">
@@ -38,7 +40,9 @@ export default async function ArtifactEvaluatePage({
           </Link>
         }
       >
-        <form action={submitArtifactEvaluationAction} className="space-y-5">
+        <form
+   action={submitArtifactEvaluationAction} className="space-y-5"
+>
           <input type="hidden" name="artifact_id" value={artifact.id} />
           <input type="hidden" name="return_to" value={return_to ?? ""} />
 

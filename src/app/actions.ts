@@ -260,7 +260,7 @@ export async function submitArtifactEvaluationAction(formData: FormData) {
   const artifactId = String(formData.get("artifact_id") ?? "");
   const returnTo = String(formData.get("return_to") ?? "").trim();
   if (!artifactId) {
-    redirect("/artifacts");
+    redirect(`/artifacts/?saved=1`);
   }
 
   const answerQuality = Number(formData.get("answer_quality") ?? 0);
@@ -300,7 +300,7 @@ export async function submitArtifactEvaluationAction(formData: FormData) {
 
   const q = new URLSearchParams({ saved: "1" });
   if (returnTo) q.set("return_to", returnTo);
-  redirect(`/artifacts/${artifactId}/evaluate?${q.toString()}`);
+  redirect(`/artifacts/?saved=1`);
 }
 
 const FEATURE_KINDS = new Set<FeatureEvaluationKind>(["decisions", "chat"]);

@@ -3,6 +3,7 @@
 import { useRef, useState, type ReactNode } from "react";
 import { ReadableDataView } from "@/components/ReadableDataView";
 import { REPORT_HEADER_LINE } from "@/lib/reportBranding";
+import { useRouter } from "next/navigation";
 
 function formatArtifactPdfName(title: string, fallbackId: string): string {
   const s = title
@@ -85,33 +86,29 @@ export function ArtifactContentMode({
       setPdfBusy(false);
     }
   }
+  const router = useRouter();
 
+  function handleBack() {
+    if (window.history.length > 1) {
+      router.back();
+    } else {
+      router.push("/assistant"); // fallback
+    }
+  }
   return (
     <div className="space-y-4">
       <div className="no-print flex flex-wrap items-center justify-between gap-3 border-b border-[var(--card-border)] pb-3">
         <div className="flex flex-wrap gap-2">
-          <button
+        <button
             type="button"
-            onClick={() => setMode("report")}
-            className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
-              mode === "report"
-                ? "bg-teal-600 text-white dark:bg-teal-600"
-                : "text-[var(--muted)] hover:bg-slate-100 dark:hover:bg-slate-800"
-            }`}
+            onClick={() => handleBack()}
+           className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-medium text-[var(--muted)] transition hover:bg-slate-100 dark:hover:bg-slate-800"
           >
-            {isDe ? "Bericht" : "Report"}
-          </button>
-          <button
-            type="button"
-            onClick={() => setMode("data")}
-            className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
-              mode === "data"
-                ? "bg-teal-600 text-white dark:bg-teal-600"
-                : "text-[var(--muted)] hover:bg-slate-100 dark:hover:bg-slate-800"
-            }`}
-          >
-            {isDe ? "Datenfelder" : "Data fields"}
-          </button>
+          {isDe ? "← Züruck" : "Back"} 
+         </button>
+          
+          
+
         </div>
         {mode === "report" ? (
           <button
