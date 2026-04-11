@@ -20,6 +20,6 @@ export function DashboardButton() {
       onClick={handleClick}
       className="rounded-xl border px-4 py-2 text-xs font-semibold"
     >
-      Zurück zu allen Artefakten    </button>
+      Zurück zu allen Dokumenten    </button>
   );
 }

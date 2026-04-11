@@ -932,7 +932,7 @@ export const translations = {
     common: {
       resumeWizard: "Assistent fortsetzen",
       runWorkflows: "Prozesse ausführen",
-      viewArtifacts: "Dokumente ansehen",
+      viewArtifacts: "Dokumente überprüfen",
       alerts: "Hinweise",
       quickActions: "Schnellaktionen",
       nextSteps: "Schritte zur Analyse Ihres Unternehmens",

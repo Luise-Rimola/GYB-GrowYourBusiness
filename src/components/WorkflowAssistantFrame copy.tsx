@@ -35,7 +35,7 @@ type StepInfoContent = {
 function phaseInfoById(phaseId: string): StepInfoContent | null {
   const byPhase: Record<string, StepInfoContent> = {
     ideation: {
-      title: "Prozess: Ideen- und Konzeptphase",
+      title: "KI-Analyseprozess: Ideen- und Konzeptphase",
       whatToDo:
         "Prüfen Sie Problem, Zielgruppe, Wertversprechen und Wettbewerb strukturiert. Öffnen Sie einzelne Prozesse und arbeiten Sie die Schritte sauber durch.",
       whyItMatters:
@@ -44,7 +44,7 @@ function phaseInfoById(phaseId: string): StepInfoContent | null {
         "Nutzen Sie Notizen für Hypothesen, offene Fragen und Belege, damit spätere Entscheidungen nachvollziehbar bleiben.",
     },
     validation: {
-      title: "Prozess: Validierungsphase",
+      title: "KI-Analyseprozess: Validierungsphase",
       whatToDo:
         "Validieren Sie Machbarkeit, USP und Kundenakzeptanz. Fokussieren Sie auf belastbare Nachweise statt auf reine Annahmen.",
       whyItMatters:
@@ -53,7 +53,7 @@ function phaseInfoById(phaseId: string): StepInfoContent | null {
         "Dokumentieren Sie Unsicherheiten und Gegenargumente im Notizfeld pro Schritt.",
     },
     launch: {
-      title: "Prozess: Gründungs- / Launchphase",
+      title: "KI-Analyseprozess: Gründungs- / Launchphase",
       whatToDo:
         "Arbeiten Sie die Kernprozesse für Markteintritt, Finanzierung und operative Vorbereitung nacheinander ab.",
       whyItMatters:
@@ -62,7 +62,7 @@ function phaseInfoById(phaseId: string): StepInfoContent | null {
         "Halten Sie in Notizen fest, welche Voraussetzungen erfüllt sind und was noch fehlt.",
     },
     scaling: {
-      title: "Prozess: Wachstumsphase",
+      title: "KI-Analyseprozess: Wachstumsphase",
       whatToDo:
         "Bewerten Sie Skalierungshebel, Margen und operative Engpässe. Priorisieren Sie Maßnahmen mit klarer Wirkung.",
       whyItMatters:
@@ -71,7 +71,7 @@ function phaseInfoById(phaseId: string): StepInfoContent | null {
         "Notieren Sie Abhängigkeiten zwischen Teams, KPIs und Ressourcen im jeweiligen Schritt.",
     },
     tech_digital: {
-      title: "Prozess: Technologie & Digitalisierung",
+      title: "KI-Analyseprozess: Technologie & Digitalisierung",
       whatToDo:
         "Prüfen Sie passende Tools, Automatisierungspotenziale und Implementierungsaufwand pro Anwendungsfall.",
       whyItMatters:
@@ -80,7 +80,7 @@ function phaseInfoById(phaseId: string): StepInfoContent | null {
         "Erfassen Sie in Notizen Integrationsrisiken, Datenanforderungen und Betriebsauswirkungen.",
     },
     maturity: {
-      title: "Prozess: Reifephase",
+      title: "KI-Analyseprozess: Reifephase",
       whatToDo:
         "Optimieren Sie Prozesse, Portfolio und Steuerungslogik auf Stabilität, Profitabilität und Resilienz.",
       whyItMatters:
@@ -89,7 +89,7 @@ function phaseInfoById(phaseId: string): StepInfoContent | null {
         "Notieren Sie Verbesserungsideen mit direktem Bezug zu Effizienz, Kosten und Kundennutzen.",
     },
     renewal: {
-      title: "Prozess: Erneuerung / Exit / Transformation",
+      title: "KI-Analyseprozess: Erneuerung / Exit / Transformation",
       whatToDo:
         "Analysieren Sie strategische Optionen, Risiken und Szenarien für Erneuerung, Transformation oder Exit.",
       whyItMatters:
