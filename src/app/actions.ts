@@ -300,7 +300,7 @@ export async function submitArtifactEvaluationAction(formData: FormData) {
 
   const q = new URLSearchParams({ saved: "1" });
   if (returnTo) q.set("return_to", returnTo);
-  redirect(`/artifacts/?saved=1`);
+  redirect(`/artifacts/${artifactId}/evaluate?${q.toString()}`);
 }
 
 const FEATURE_KINDS = new Set<FeatureEvaluationKind>(["decisions", "chat"]);

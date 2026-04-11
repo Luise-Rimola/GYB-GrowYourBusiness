@@ -7,6 +7,7 @@ import { getArtifactEvaluations } from "@/lib/artifactEvaluations";
 import { getServerLocale } from "@/lib/locale";
 import { getTranslations } from "@/lib/i18n";
 import { redirect } from "next/navigation";
+import { DashboardButton } from "@/components/Windowsreload";
 
 export default async function ArtifactEvaluatePage({
   params,
@@ -24,22 +25,21 @@ export default async function ArtifactEvaluatePage({
   const backHref = return_to?.trim() ? return_to : `/artifacts/${artifact.id}`;
 
   const evaluations = await getArtifactEvaluations(artifact.id);
+
+  
   
 
   return (
+    
     <div className="space-y-8">
       <Section
         title={`${t.artifacts.evaluateArtifact}: ${artifact.title}`}
         description={t.artifacts.evaluatePageDesc}
-        actions={
-          <Link
-            href={backHref}
-            className="rounded-xl border border-teal-600 px-4 py-2 text-sm font-medium text-teal-700 transition hover:bg-teal-50 dark:border-teal-500 dark:text-teal-300 dark:hover:bg-teal-950/50"
-          >
-            {locale === "de" ? "Zurück" : "Back"}
-          </Link>
-        }
+        actions={<DashboardButton />}
       >
+       
+
+    
         <form
    action={submitArtifactEvaluationAction} className="space-y-5"
 >
@@ -188,7 +188,7 @@ export default async function ArtifactEvaluatePage({
             >
               {t.artifacts.saveEvaluation}
             </button>
-          </div>
+    </div>
         </form>
       </Section>
 
