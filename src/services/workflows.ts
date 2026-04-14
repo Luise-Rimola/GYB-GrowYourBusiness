@@ -272,11 +272,16 @@ export const WorkflowService = {
     promptRendered: string;
     userResponse: string;
     promptTemplateVersion?: number;
+    /** When true (e.g. /api/run-step/execute), mark step verified if JSON validates — no extra manual click. */
+    autoVerify?: boolean;
   }) {
     const validation = validateStrictJson(params.userResponse, params.schemaKey);
 
+    // Immer die neueste Zeile pro (runId, stepKey) — ohne orderBy kann findFirst eine alte Duplikat-Zeile
+    // treffen; die UI nutzt aber latest-by-createdAt → verifiedByUser/Content wirkten „weg“.
     const existing = await prisma.runStep.findFirst({
       where: { runId: params.runId, stepKey: params.stepKey },
+      orderBy: { createdAt: "desc" },
     });
 
     const stepData = {
@@ -288,7 +293,7 @@ export const WorkflowService = {
       parsedOutputJson: validation.ok ? (validation.data as object) : undefined,
       schemaValidationPassed: validation.ok,
       validationErrorsJson: validation.ok ? undefined : (validation.errors as object),
-      ...(existing && { verifiedByUser: false }),
+      verifiedByUser: validation.ok && params.autoVerify === true,
     };
 
     const step = existing
@@ -1151,7 +1156,8 @@ export const WorkflowService = {
             await createArtifactWithEnumFallback({
               companyId: run.companyId,
               runId: run.id,
-              type: "pestel_analysis",
+              // Fallback to a stable enum in DB environments where pestel_analysis is not migrated yet.
+              type: "trend_analysis",
               title: "PESTEL-Analyse",
               contentJson: parsed.data as object,
               exportHtml: null,
@@ -1299,7 +1305,7 @@ export const WorkflowService = {
       }
     }
 
-    return step;
+    return { step, validation };
   },
 
   /** Merge financial sub-steps into full financial_planning. Returns merged content if all 6 steps are valid, else null. */
@@ -1346,6 +1352,7 @@ export const WorkflowService = {
     const userResponse = JSON.stringify(validation.data);
     const existing = await prisma.runStep.findFirst({
       where: { runId: params.runId, stepKey: "kpi_questions_answer" },
+      orderBy: { createdAt: "desc" },
     });
     if (existing) {
       return prisma.runStep.update({
@@ -1374,6 +1381,8 @@ export const WorkflowService = {
     stepId: string;
     schemaKey: SchemaKey;
     userResponse: string;
+    /** Nach KI „Ausführen“ automatisch speichern → als verifiziert zählen. */
+    autoVerify?: boolean;
   }) {
     const validation = validateStrictJson(params.userResponse, params.schemaKey);
     const step = await prisma.runStep.findUnique({ where: { id: params.stepId }, include: { run: true } });
@@ -1386,6 +1395,7 @@ export const WorkflowService = {
         parsedOutputJson: validation.ok ? (validation.data as object) : undefined,
         schemaValidationPassed: validation.ok,
         validationErrorsJson: validation.ok ? undefined : (validation.errors as object),
+        verifiedByUser: validation.ok && params.autoVerify === true,
       },
     });
 
@@ -2261,7 +2271,8 @@ export const WorkflowService = {
           await createArtifactWithEnumFallback({
             companyId: run.companyId,
             runId: run.id,
-            type: "pestel_analysis",
+            // Fallback to a stable enum in DB environments where pestel_analysis is not migrated yet.
+            type: "trend_analysis",
             title: "PESTEL-Analyse",
             contentJson: parsed.data as object,
             exportHtml: null,
@@ -3185,9 +3196,9 @@ export const WorkflowService = {
       { stepKey: "best_practices", type: "best_practices" },
       { stepKey: "failure_reasons", type: "failure_analysis" },
     ];
-    const wfTrendSteps: Array<{ stepKey: string; type: "trend_analysis" | "pestel_analysis" }> = [
+    const wfTrendSteps: Array<{ stepKey: string; type: "trend_analysis" }> = [
       { stepKey: "trend_analysis", type: "trend_analysis" },
-      { stepKey: "pestel_analysis", type: "pestel_analysis" },
+      { stepKey: "pestel_analysis", type: "trend_analysis" },
     ];
 
     const wfFinancialSteps: Array<{ stepKey: string; type: "work_processes" | "personnel_plan" | "financial_planning" }> = [
@@ -3448,12 +3459,13 @@ export const WorkflowService = {
             await createArtifactWithEnumFallback({
               companyId: run.companyId,
               runId: run.id,
-              type: "pestel_analysis",
+              // Fallback to a stable enum in DB environments where pestel_analysis is not migrated yet.
+              type: "trend_analysis",
               title: "PESTEL-Analyse",
               contentJson: parsed.data as object,
               exportHtml: null,
             });
-            created.push("pestel_analysis");
+            created.push("trend_analysis");
           }
         }
       }

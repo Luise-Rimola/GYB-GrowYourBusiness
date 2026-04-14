@@ -14,28 +14,43 @@ export async function POST(req: Request) {
     if (body.companyId !== company.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
-    const updateData: { llmApiUrl?: string | null; llmApiKey?: string | null; llmModel?: string | null } = {
-      llmApiUrl: body.llmApiUrl ?? null,
-      llmModel: body.llmModel ?? "gpt-4o-mini",
+
+    const llmApiUrl = typeof body.llmApiUrl === "string" ? body.llmApiUrl.trim() : "";
+    const llmModel = typeof body.llmModel === "string" ? body.llmModel.trim() : "";
+
+    const updateData: {
+      llmApiUrl: string | null;
+      llmModel: string | null;
+      llmApiKey?: string | null;
+    } = {
+      llmApiUrl: llmApiUrl || null,
+      llmModel: llmModel || null,
     };
-    if (body.llmApiKey !== undefined) {
-      updateData.llmApiKey = body.llmApiKey ?? null;
+
+    if (body.llmApiKey !== undefined && typeof body.llmApiKey === "string") {
+      const key = body.llmApiKey.trim();
+      if (key) {
+        updateData.llmApiKey = key;
+      }
     }
+
     await prisma.companySettings.upsert({
       where: { companyId: company.id },
       create: {
         companyId: company.id,
-        llmApiUrl: body.llmApiUrl ?? null,
-        llmApiKey: body.llmApiKey ?? null,
-        llmModel: body.llmModel ?? "gpt-4o-mini",
+        llmApiUrl: updateData.llmApiUrl,
+        llmModel: updateData.llmModel,
+        llmApiKey: updateData.llmApiKey ?? null,
       },
       update: updateData,
     });
 
     if (body.markLlmSetupComplete === true) {
-      const url = typeof body.llmApiUrl === "string" ? body.llmApiUrl.trim() : "";
-      if (!url) {
-        return NextResponse.json({ error: "Bitte eine gültige API-URL angeben (z. B. OpenAI oder Ollama)." }, { status: 400 });
+      if (!llmApiUrl) {
+        return NextResponse.json(
+          { error: "Bitte eine gültige API-URL angeben (z. B. OpenAI oder Ollama)." },
+          { status: 400 }
+        );
       }
       const participant = await getOrCreateStudyParticipant(company.id);
       await updateStudyParticipantById(participant.id, { completedLlmSetup: true });

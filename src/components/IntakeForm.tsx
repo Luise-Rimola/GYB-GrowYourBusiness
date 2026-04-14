@@ -61,6 +61,8 @@ export function IntakeForm({
   const formRef = useRef<HTMLFormElement>(null);
   const [enrichBusy, setEnrichBusy] = useState(false);
   const [enrichErr, setEnrichErr] = useState<string | null>(null);
+  const [companyExists, setCompanyExists] = useState<boolean>(String(existing.company_exists ?? "1") !== "0");
+  const profileFlowRef = useRef<HTMLInputElement | null>(null);
   const [mobileEdit, setMobileEdit] = useState<
     null | { kind: "product" | "supplier" | "team"; index: number }
   >(null);
@@ -128,6 +130,7 @@ export function IntakeForm({
       const data = (await res.json()) as { error?: string };
       if (!res.ok) throw new Error(data.error || "Enrichment failed");
       // Continue flow: submit form after enrichment.
+      if (profileFlowRef.current) profileFlowRef.current.value = "auto_web";
       el.requestSubmit();
     } catch (e) {
       setEnrichErr(e instanceof Error ? e.message : String(e));
@@ -151,6 +154,8 @@ export function IntakeForm({
       className={embedFlush ? "h-full space-y-4" : "space-y-10"}
     >
       {assistantEmbed ? <input type="hidden" name="assistant_embed" value="1" /> : null}
+      <input ref={profileFlowRef} type="hidden" name="profile_flow" defaultValue="manual" />
+      <input type="hidden" name="company_exists" value={companyExists ? "1" : "0"} />
       {hiddenFields &&
         Object.entries(hiddenFields).map(([name, value]) => (
           <input key={name} type="hidden" name={name} value={value} />
@@ -167,6 +172,27 @@ export function IntakeForm({
           <div>
             <label className={labelClass}>{c.companyName}</label>
             <input name="company_name" defaultValue={String(existing.company_name ?? "")} className={`mt-2 ${inputClass}`} />
+            <div className="mt-3 inline-flex items-center gap-3 rounded-xl border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-700">
+              <span className="font-medium text-zinc-700 dark:text-zinc-200">{c.companyExistsToggleLabel}</span>
+              <label className="inline-flex items-center gap-1.5">
+                <input
+                  type="radio"
+                  name="company_exists_ui"
+                  checked={companyExists}
+                  onChange={() => setCompanyExists(true)}
+                />
+                <span>{c.companyExistsYes}</span>
+              </label>
+              <label className="inline-flex items-center gap-1.5">
+                <input
+                  type="radio"
+                  name="company_exists_ui"
+                  checked={!companyExists}
+                  onChange={() => setCompanyExists(false)}
+                />
+                <span>{c.companyExistsNo}</span>
+              </label>
+            </div>
           </div>
           <div>
             <label className={labelClass}>{c.location}</label>
@@ -254,16 +280,31 @@ export function IntakeForm({
         </div>
         {!assistantEmbed ? (
           <div className="flex flex-wrap gap-3">
-            <button
-              type="button"
-              disabled={enrichBusy}
-              onClick={enrichAndContinue}
-              className="rounded-full bg-teal-600 px-6 py-3 text-sm font-semibold text-white hover:bg-teal-700 disabled:opacity-60"
-            >
-              {enrichBusy ? c.enrichLoading : c.enrichContinue}
-            </button>
+            {companyExists ? (
+              <button
+                type="button"
+                disabled={enrichBusy}
+                onClick={enrichAndContinue}
+                className="rounded-full bg-teal-600 px-6 py-3 text-sm font-semibold text-white hover:bg-teal-700 disabled:opacity-60"
+              >
+                {enrichBusy ? c.enrichLoading : c.enrichContinue}
+              </button>
+            ) : (
+              <button
+                type="submit"
+                onClick={() => {
+                  if (profileFlowRef.current) profileFlowRef.current.value = "auto_no_web";
+                }}
+                className="rounded-full bg-teal-600 px-6 py-3 text-sm font-semibold text-white hover:bg-teal-700"
+              >
+                {c.autoContinueNoWeb}
+              </button>
+            )}
             <button
               type="submit"
+              onClick={() => {
+                if (profileFlowRef.current) profileFlowRef.current.value = "manual";
+              }}
               className="rounded-full border border-zinc-300 bg-white px-6 py-3 text-sm font-semibold text-zinc-800 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-100 dark:hover:bg-zinc-900"
             >
               {c.manualContinue}
@@ -871,16 +912,31 @@ export function IntakeForm({
 
       {assistantEmbed ? (
         <div className="flex flex-wrap items-center justify-end gap-3">
-          <button
-            type="button"
-            disabled={enrichBusy}
-            onClick={enrichAndContinue}
-            className="rounded-full bg-teal-600 px-6 py-3 text-sm font-semibold text-white hover:bg-teal-700 disabled:opacity-60"
-          >
-            {enrichBusy ? c.enrichLoading : c.enrichContinue}
-          </button>
+          {companyExists ? (
+            <button
+              type="button"
+              disabled={enrichBusy}
+              onClick={enrichAndContinue}
+              className="rounded-full bg-teal-600 px-6 py-3 text-sm font-semibold text-white hover:bg-teal-700 disabled:opacity-60"
+            >
+              {enrichBusy ? c.enrichLoading : c.enrichContinue}
+            </button>
+          ) : (
+            <button
+              type="submit"
+              onClick={() => {
+                if (profileFlowRef.current) profileFlowRef.current.value = "auto_no_web";
+              }}
+              className="rounded-full bg-teal-600 px-6 py-3 text-sm font-semibold text-white hover:bg-teal-700"
+            >
+              {c.autoContinueNoWeb}
+            </button>
+          )}
           <button
             type="submit"
+            onClick={() => {
+              if (profileFlowRef.current) profileFlowRef.current.value = "manual";
+            }}
             className="rounded-full border border-zinc-300 bg-white px-6 py-3 text-sm font-semibold text-zinc-800 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-100 dark:hover:bg-zinc-900"
           >
             {c.manualContinue}

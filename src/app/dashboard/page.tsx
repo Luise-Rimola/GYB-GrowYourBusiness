@@ -321,33 +321,21 @@ export default async function DashboardPage({
     : PLANNING_PHASES;
 
   const workflowsInOrder = WIZARD_WORKFLOW_ORDER.filter((k) => WORKFLOW_BY_KEY[k]);
+  /** Abgeschlossener Run = für die Ausführungs-Ansicht „validiert“; manuelle Bestätigung nur im Run-/Audit-Detail. */
   function isRunValidated(run: { status: string; steps?: { stepKey: string; schemaValidationPassed: boolean; verifiedByUser: boolean; createdAt: Date }[] }): boolean {
     if (run.status === "approved") return true;
     if (run.status !== "complete") return false;
-    const steps = (run.steps ?? []).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    const latestByKey = new Map<string, (typeof steps)[0]>();
-    for (const s of steps) {
-      if (!latestByKey.has(s.stepKey)) latestByKey.set(s.stepKey, s);
-    }
-    const completedSteps = [...latestByKey.values()].filter((s) => s.schemaValidationPassed);
-    if (completedSteps.length === 0) return true;
-    return completedSteps.every((s) => s.verifiedByUser);
+    return true;
   }
-  function runHasUnverifiedResponse(run: { steps?: { stepKey: string; schemaValidationPassed: boolean; verifiedByUser: boolean; createdAt: Date }[] }): boolean {
-    const steps = (run.steps ?? []).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    const latestByKey = new Map<string, (typeof steps)[0]>();
-    for (const s of steps) {
-      if (!latestByKey.has(s.stepKey)) latestByKey.set(s.stepKey, s);
-    }
-    const completedSteps = [...latestByKey.values()].filter((s) => s.schemaValidationPassed);
-    if (completedSteps.length === 0) return false;
-    return completedSteps.some((s) => !s.verifiedByUser);
+  function runHasUnverifiedResponse(_run: { steps?: { stepKey: string; schemaValidationPassed: boolean; verifiedByUser: boolean; createdAt: Date }[] }): boolean {
+    return false;
   }
   function isWorkflowComplete(key: string): boolean {
     if (key === "WF_BUSINESS_FORM") return hasProfile;
-    const hasComplete = runsByWorkflow[key]?.some((r) => r.status === "complete" || r.status === "approved");
-    const hasInProgress = runsByWorkflow[key]?.some((r) => ["draft", "running", "incomplete"].includes(r.status));
-    return !!hasComplete && !hasInProgress;
+    const list = runsByWorkflow[key] ?? [];
+    if (list.length === 0) return false;
+    const latest = list[0];
+    return latest.status === "complete" || latest.status === "approved";
   }
   function isPhasePlanningComplete(phase: (typeof PLANNING_PHASES)[number]): boolean {
     const keys = phase.workflowKeys.filter((k) => k !== "WF_BUSINESS_FORM");
@@ -814,7 +802,23 @@ export default async function DashboardPage({
                       const wfArtifactTypes = WORKFLOW_TO_ARTIFACTS[wf.key] ?? [];
                       const wfArtifactItems = wfArtifactTypes.map((artifactType) => {
                         const workflowRunIds = new Set((runsByWorkflow[wf.key] ?? []).map((run) => run.id));
-                        const artifact = artifacts.find((a) => a.type === artifactType && a.runId && workflowRunIds.has(a.runId));
+                        const scoped = artifacts.find(
+                          (a) => a.type === artifactType && a.runId && workflowRunIds.has(a.runId)
+                        );
+                        let artifact = scoped ?? artifacts.find((a) => a.type === artifactType);
+                        // Hotfix compatibility: in some DBs PESTEL is persisted as trend_analysis fallback.
+                        if (!artifact && wf.key === "WF_TREND_ANALYSIS" && artifactType === "pestel_analysis") {
+                          const scopedPestelFallback = artifacts.find(
+                            (a) =>
+                              a.type === "trend_analysis" &&
+                              a.runId &&
+                              workflowRunIds.has(a.runId) &&
+                              /pestel/i.test(a.title ?? "")
+                          );
+                          artifact =
+                            scopedPestelFallback ??
+                            artifacts.find((a) => a.type === "trend_analysis" && /pestel/i.test(a.title ?? ""));
+                        }
                         return { type: artifactType, artifact };
                       });
                       const isComplete = isWorkflowComplete(wf.key);
@@ -845,7 +849,7 @@ export default async function DashboardPage({
                                   type="checkbox"
                                   name="workflow_keys"
                                   value={wf.key}
-                                  defaultChecked
+                                  defaultChecked={!hasInProgress && !hasComplete}
                                   form={phaseFormId}
                                   data-phase-workflow={phase.id}
                                   className="h-4 w-4 rounded border-[var(--card-border)] text-teal-600 focus:ring-teal-500"
@@ -925,7 +929,7 @@ export default async function DashboardPage({
                               {wfArtifactItems.map(({ type, artifact }) =>
                                 artifact ? (
                                   <Link
-                                    key={artifact.id}
+                                    key={`${type}:${artifact.id}`}
                                     href={type === "decision_pack" ? "/decisions" : `/artifacts/${artifact.id}`}
                                     className="rounded-lg border border-teal-200 bg-teal-50/50 px-3 py-1.5 text-xs font-medium text-teal-800 transition hover:bg-teal-100 dark:border-teal-800 dark:bg-teal-950/30 dark:text-teal-200 dark:hover:bg-teal-900/50"
                                   >

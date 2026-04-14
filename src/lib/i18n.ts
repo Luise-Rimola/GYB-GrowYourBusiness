@@ -540,6 +540,15 @@ export const translations = {
       phaseReleaseCancel: "Cancel",
       runStartFailed:
         "The workflow run could not be started (e.g. database or context preparation). Please try again or check the server logs.",
+      phaseRunsCreatedOne:
+        "One new workflow run started. Documents are created when you complete the AI steps in that run.",
+      phaseRunsCreatedMany:
+        "{count} new workflow runs started. Documents are created when you complete the AI steps in each run.",
+      phaseRunsNoneSelected: "No process selected — check at least one workflow.",
+      phaseRunsAllAlreadyActive:
+        "No new runs started: there is already an open run for each selected workflow. Use “Continue” on the workflow, or finish or archive existing runs first. Documents appear after the steps are executed.",
+      phaseRunsSkippedHint:
+        "({skipped} selected workflow(s) already had an open run — use “Continue” there.)",
     },
     data: {
       title: "Data",
@@ -1423,6 +1432,15 @@ export const translations = {
       phaseReleaseCancel: "Abbrechen",
       runStartFailed:
         "Der Prozess-Lauf konnte nicht gestartet werden (z. B. Datenbank oder Kontextaufbau). Bitte erneut versuchen oder die Server-Logs prüfen.",
+      phaseRunsCreatedOne:
+        "Ein neuer Prozesslauf wurde gestartet. Dokumente entstehen, wenn Sie die KI-Schritte in diesem Lauf ausführen.",
+      phaseRunsCreatedMany:
+        "{count} neue Prozessläufe wurden gestartet. Dokumente entstehen, wenn Sie die KI-Schritte in jedem Lauf ausführen.",
+      phaseRunsNoneSelected: "Kein Prozess ausgewählt — bitte mindestens einen Workflow ankreuzen.",
+      phaseRunsAllAlreadyActive:
+        "Es wurde kein neuer Lauf gestartet: Für alle gewählten Prozesse gibt es bereits einen offenen Lauf. Nutzen Sie „Fortsetzen“ am jeweiligen Prozess — Dokumente entstehen erst nach Ausführung der KI-Schritte.",
+      phaseRunsSkippedHint:
+        "({skipped} ausgewählte Prozesse hatten bereits einen offenen Lauf — dort „Fortsetzen“ nutzen.)",
     },
     data: {
       title: "Daten",

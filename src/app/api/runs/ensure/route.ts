@@ -11,6 +11,7 @@ export async function POST(req: Request) {
     const { company } = auth;
     const body = await req.json();
     const workflowKey = String(body.workflowKey ?? "");
+    const onlyOpen = Boolean(body.onlyOpen);
 
     if (!workflowKey) {
       return NextResponse.json({ error: "workflowKey required" }, { status: 400 });
@@ -23,6 +24,17 @@ export async function POST(req: Request) {
 
     if (existing) {
       return NextResponse.json({ runId: existing.id });
+    }
+
+    if (onlyOpen) {
+      const latestFinished = await prisma.run.findFirst({
+        where: { companyId: company.id, workflowKey, status: { in: ["complete", "approved"] } },
+        select: { id: true },
+        orderBy: { createdAt: "desc" },
+      });
+      if (latestFinished?.id) {
+        return NextResponse.json({ skipped: "completed_exists" });
+      }
     }
 
     const contextPack = await ContextPackService.build(company.id, workflowKey);

@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { workflowSteps, MANUAL_STEP_KEYS } from "@/lib/workflowSteps";
+import { LLM_BATCH_STEP_REQUEST_MS } from "@/lib/llmClientTimeouts";
 
 const RETRY_DELAY_SEC = 180; // 3 Minuten
 const MAX_429_RETRIES = 2;
@@ -121,10 +122,11 @@ export function RunAllButton({ selectedWorkflowKeys, allWorkflowKeys, labels }: 
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ workflowKey: wf }),
         });
-        const data = await res.json();
+        const data = (await res.json()) as { runId?: string; error?: string; debugId?: string };
         if (!res.ok || !data.runId) {
           setLoading(false);
-          alert(data.error ?? "KI-Prozess konnte nicht erstellt werden");
+          const debugSuffix = data.debugId ? ` (debug: ${data.debugId})` : "";
+          alert((data.error ?? "KI-Prozess konnte nicht erstellt werden") + debugSuffix);
           return;
         }
         runIdsByWf[wf] = data.runId;
@@ -161,10 +163,16 @@ export function RunAllButton({ selectedWorkflowKeys, allWorkflowKeys, labels }: 
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ runId: it.runId, stepKey: it.stepKey }),
+          signal: AbortSignal.timeout(LLM_BATCH_STEP_REQUEST_MS),
         });
-        const execData = await execRes.json();
+        const execData = (await execRes.json()) as { error?: string; validationErrors?: string[]; debugId?: string };
         if (!execRes.ok) {
-          const errMsg = execData.error ?? "Fehler";
+          const schemaHint =
+            execRes.status === 422 && execData.validationErrors?.length
+              ? `\n${execData.validationErrors.slice(0, 5).join("\n")}`
+              : "";
+          const debugSuffix = execData.debugId ? `\n(debug: ${execData.debugId})` : "";
+          const errMsg = (execData.error ?? "Fehler") + schemaHint + debugSuffix;
           const is429 = execRes.status === 429;
           if (is429 && retryCount < MAX_429_RETRIES) {
             setProgress((prev) =>

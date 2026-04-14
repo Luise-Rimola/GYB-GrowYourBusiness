@@ -122,8 +122,9 @@ async function updateStep(formData: FormData) {
   const runId = String(formData.get("run_id"));
   const userResponse = String(formData.get("user_response"));
   const schemaKey = String(formData.get("schema_key")) as SchemaKey;
+  const autoVerify = String(formData.get("from_llm_auto") || "") === "1";
   if (!stepId || !userResponse) return;
-  await WorkflowService.updateStep({ stepId, schemaKey, userResponse });
+  await WorkflowService.updateStep({ stepId, schemaKey, userResponse, autoVerify });
   const step = formData.get("step");
   const q = step != null ? `?step=${step}` : "";
   redirect(`/runs/${runId}${q}`);
@@ -240,6 +241,7 @@ async function saveRunStep(formData: FormData) {
     }
   }
 
+  const autoVerify = String(formData.get("from_llm_auto") || "") === "1";
   await WorkflowService.saveStep({
     runId,
     stepKey,
@@ -247,6 +249,7 @@ async function saveRunStep(formData: FormData) {
     promptRendered,
     userResponse: response,
     promptTemplateVersion: prompt.template.version,
+    autoVerify,
   });
   const step = formData.get("step");
   const q = step != null ? `?step=${step}` : "";

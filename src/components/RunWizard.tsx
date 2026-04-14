@@ -1,9 +1,29 @@
 "use client";
 
-import { useSearchParams, useRouter, usePathname } from "next/navigation";
-import { useCallback, useRef, useState } from "react";
+import {
+  useSearchParams,
+  useRouter,
+  usePathname,
+  unstable_rethrow,
+} from "next/navigation";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { CopyButton } from "@/components/CopyButton";
 import { getWorkflowStepStatus } from "@/lib/workflowStepStatus";
+import { LLM_SINGLE_REQUEST_MS, llmSingleRequestMinutes } from "@/lib/llmClientTimeouts";
+import { postLlmComplete } from "@/lib/fetchLlmCompleteClient";
+
+function createLlmAbortSignal(): { signal: AbortSignal; cancel?: () => void } {
+  if (typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function") {
+    return { signal: AbortSignal.timeout(LLM_SINGLE_REQUEST_MS) };
+  }
+  const ac = new AbortController();
+  const tid = window.setTimeout(() => ac.abort(), LLM_SINGLE_REQUEST_MS);
+  return {
+    signal: ac.signal,
+    cancel: () => window.clearTimeout(tid),
+  };
+}
 
 function RunLlmButton({
   prompt,
@@ -12,7 +32,7 @@ function RunLlmButton({
   setLoading,
 }: {
   prompt: string;
-  onResponse: (content: string) => void;
+  onResponse: (content: string) => void | Promise<void>;
   loading: boolean;
   setLoading: (v: boolean) => void;
 }) {
@@ -22,21 +42,35 @@ function RunLlmButton({
     if (!prompt.trim()) return;
     setLoading(true);
     setInlineError("");
+    const { signal, cancel } = createLlmAbortSignal();
     try {
-      const res = await fetch("/api/llm/complete", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Fehler");
-      onResponse(data.content ?? "");
+      const content = await postLlmComplete(prompt, { signal });
+      try {
+        await Promise.resolve(onResponse(content));
+      } catch (applyErr) {
+        unstable_rethrow(applyErr);
+        console.error("[RunLlmButton] onResponse:", applyErr);
+        setInlineError(
+          applyErr instanceof Error
+            ? applyErr.message
+            : "Antwort konnte nicht gespeichert werden. Bitte „Schritt speichern“ nutzen oder Seite neu laden."
+        );
+      }
     } catch (err) {
-      const errorText = err instanceof Error ? err.message : "LLM-Anfrage fehlgeschlagen";
+      unstable_rethrow(err);
+      const aborted =
+        (err instanceof Error && err.name === "AbortError") ||
+        (typeof DOMException !== "undefined" && err instanceof DOMException && err.name === "AbortError");
+      const errorText = aborted
+        ? `Zeitüberschreitung nach ${llmSingleRequestMinutes()} Min — Anfrage abgebrochen.`
+        : err instanceof Error
+          ? err.message
+          : "LLM-Anfrage fehlgeschlagen";
       setInlineError(
-        `${errorText}. Hinweis: Du kannst den Prompt manuell kopieren, in den ChatGPT-Chat einfügen und die Antwort hier in das Antwortfeld einfügen.`
+        `${errorText} Hinweis: Du kannst den Prompt manuell kopieren, in ChatGPT/Kimi einfügen und die JSON-Antwort hier einfügen.`
       );
     } finally {
+      cancel?.();
       setLoading(false);
     }
   }
@@ -134,6 +168,7 @@ export function RunWizard({
   const pathname = usePathname();
   const responseRef = useRef<HTMLTextAreaElement | null>(null);
   const formRef = useRef<HTMLFormElement | null>(null);
+  const [submitFromLlm, setSubmitFromLlm] = useState(false);
   const [runLoading, setRunLoading] = useState(false);
   const [answerOpen, setAnswerOpen] = useState(false);
   const [userNotes, setUserNotes] = useState(run.userNotes ?? "");
@@ -157,6 +192,20 @@ export function RunWizard({
     [pathname, router, searchParams]
   );
 
+  const stepConfig = stepsConfig[stepIndex];
+  const savedStep = stepConfig
+    ? run.steps.find((s) => s.stepKey === stepConfig.stepKey)
+    : undefined;
+  const existingResponse = savedStep?.userPastedResponse ?? "";
+  const [responseDraft, setResponseDraft] = useState(existingResponse);
+  useEffect(() => {
+    setResponseDraft(existingResponse);
+  }, [stepConfig?.stepKey, existingResponse]);
+
+  useEffect(() => {
+    setSubmitFromLlm(false);
+  }, [stepConfig?.stepKey]);
+
   if (stepsConfig.length === 0) {
     return (
       <div className="rounded-2xl border border-[var(--card-border)] bg-[var(--card)] p-6 text-center text-sm text-[var(--muted)]">
@@ -165,13 +214,10 @@ export function RunWizard({
     );
   }
 
-  const stepConfig = stepsConfig[stepIndex];
   const isBusinessFormStep = stepConfig.stepKey === "business_form" && businessFormStep;
   const isKpiQuestionsStep = stepConfig.stepKey === "kpi_questions_answer" && kpiQuestionsStep;
   const basePrompt = promptsByStepKey[stepConfig.stepKey] ?? "";
   const prompt = basePrompt.replace("{{USER_NOTES}}", (userNotes || "").trim() || "(keine)");
-  const savedStep = run.steps.find((s) => s.stepKey === stepConfig.stepKey);
-  const existingResponse = savedStep?.userPastedResponse ?? "";
   const isVerified = isBusinessFormStep
     ? businessFormStep!.isComplete
     : isKpiQuestionsStep
@@ -436,8 +482,31 @@ export function RunWizard({
               />
               <RunLlmButton
                 prompt={prompt}
-                onResponse={(content) => {
-                  if (responseRef.current) responseRef.current.value = content;
+                onResponse={async (content) => {
+                  flushSync(() => {
+                    setResponseDraft(content);
+                    setAnswerOpen(true);
+                  });
+                  const fd = new FormData();
+                  fd.append("from_llm_auto", "1");
+                  fd.append("user_response", content);
+                  fd.append("step", String(stepIndex));
+                  if (appDevelopmentConfig) {
+                    fd.append("notes", userNotes);
+                    fd.append("idea_mode", ideaMode);
+                    fd.append("idea_artifact_id", ideaMode === "existing" ? selectedArtifactId : "");
+                  }
+                  if (useUpdateForm && savedStep && updateStep) {
+                    fd.append("step_id", savedStep.id);
+                    fd.append("run_id", run.id);
+                    fd.append("schema_key", stepConfig.schemaKey);
+                    await updateStep(fd);
+                  } else {
+                    fd.append("run_id", run.id);
+                    fd.append("step_key", stepConfig.stepKey);
+                    fd.append("schema_key", stepConfig.schemaKey);
+                    await saveStep(fd);
+                  }
                 }}
                 loading={runLoading}
                 setLoading={setRunLoading}
@@ -469,6 +538,7 @@ export function RunWizard({
           <div className="border-t border-[var(--card-border)] p-3">
           {useUpdateForm ? (
             <form action={updateStep} className="space-y-3">
+              <input type="hidden" name="from_llm_auto" value={submitFromLlm ? "1" : "0"} />
               <input type="hidden" name="step_id" value={savedStep!.id} />
               <input type="hidden" name="run_id" value={run.id} />
               <input type="hidden" name="schema_key" value={stepConfig.schemaKey} />
@@ -486,10 +556,10 @@ export function RunWizard({
               )}
               <textarea
                 ref={responseRef}
-                key={stepConfig.stepKey}
                 name="user_response"
                 rows={6}
-                defaultValue={existingResponse}
+                value={responseDraft}
+                onChange={(e) => setResponseDraft(e.target.value)}
                 className="w-full rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-3 text-xs text-[var(--foreground)] placeholder:text-[var(--muted)] resize-none"
                 placeholder='Paste the LLM JSON output here (e.g. {"kpi_estimates": [...], "sources_used": []}). Do NOT paste the prompt.'
               />
@@ -510,6 +580,7 @@ export function RunWizard({
               )}
               <button
                 type="submit"
+                onClick={() => setSubmitFromLlm(false)}
                 className="rounded-xl bg-teal-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-teal-700"
               >
                 Fix & Re-save
@@ -517,6 +588,7 @@ export function RunWizard({
             </form>
           ) : (
             <form action={saveStep} className="space-y-3">
+              <input type="hidden" name="from_llm_auto" value={submitFromLlm ? "1" : "0"} />
               <input type="hidden" name="run_id" value={run.id} />
               <input type="hidden" name="step_key" value={stepConfig.stepKey} />
               <input type="hidden" name="schema_key" value={stepConfig.schemaKey} />
@@ -534,15 +606,16 @@ export function RunWizard({
               )}
               <textarea
                 ref={responseRef}
-                key={stepConfig.stepKey}
                 name="user_response"
                 rows={6}
-                defaultValue={existingResponse}
+                value={responseDraft}
+                onChange={(e) => setResponseDraft(e.target.value)}
                 className="w-full rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-3 text-xs text-[var(--foreground)] placeholder:text-[var(--muted)] resize-none"
                 placeholder='1) Prompt oben kopieren → 2) In ChatGPT/Claude einfügen → 3) JSON-Ausgabe kopieren → 4) Hier einfügen'
               />
               <button
                 type="submit"
+                onClick={() => setSubmitFromLlm(false)}
                 className="rounded-xl bg-teal-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-teal-700"
               >
                 Schritt speichern

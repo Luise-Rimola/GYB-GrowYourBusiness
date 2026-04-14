@@ -67,8 +67,12 @@ export type IntakeFormCopy = {
   anythingElse: string;
   save: string;
   enrichContinue: string;
+  autoContinueNoWeb: string;
   manualContinue: string;
   enrichLoading: string;
+  companyExistsToggleLabel: string;
+  companyExistsYes: string;
+  companyExistsNo: string;
   optionalManualTitle: string;
   confirmRemoveProduct: string;
   confirmRemoveSupplier: string;
@@ -202,8 +206,12 @@ const EN: IntakeFormCopy = {
   anythingElse: "Anything else we should know?",
   save: "Save",
   enrichContinue: "Continue — fetch & merge public info",
+  autoContinueNoWeb: "Continue automated process",
   manualContinue: "Use manual data only — continue",
   enrichLoading: "Fetching…",
+  companyExistsToggleLabel: "Company already exists",
+  companyExistsYes: "Yes",
+  companyExistsNo: "No",
   optionalManualTitle: "Optional manual entry",
   confirmRemoveProduct: "Remove this product from the list?",
   confirmRemoveSupplier: "Remove this supplier from the list?",
@@ -360,8 +368,12 @@ const DE: IntakeFormCopy = {
   anythingElse: "Was sollten wir noch wissen?",
   save: "Speichern",
   enrichContinue: "Weiter — Infos aus dem Web übernehmen",
+  autoContinueNoWeb: "Automatisierten Prozess fortfahren",
   manualContinue: "Nur manuelle Daten verwenden — weiter",
   enrichLoading: "Wird geladen…",
+  companyExistsToggleLabel: "Unternehmen existiert bereits",
+  companyExistsYes: "Ja",
+  companyExistsNo: "Nein",
   optionalManualTitle: "Optionale manuelle Infoeingabe",
   confirmRemoveProduct: "Dieses Produkt aus der Liste entfernen?",
   confirmRemoveSupplier: "Diesen Eintrag entfernen?",

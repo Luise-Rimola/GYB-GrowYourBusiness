@@ -67,7 +67,7 @@ export async function POST(req: Request) {
       where: { companyId: company.id },
       create: {
         companyId: company.id,
-        llmModel: "gpt-4o-mini",
+        llmModel: "kimi-k2",
       },
       update: {},
     });

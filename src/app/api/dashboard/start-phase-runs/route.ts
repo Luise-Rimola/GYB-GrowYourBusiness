@@ -25,11 +25,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "llm_missing" }, { status: 400 });
     }
 
-    if (workflowKeys.length === 0) {
-      return NextResponse.json({ ok: true, created: 0 });
+    const requested = workflowKeys.length;
+    if (requested === 0) {
+      return NextResponse.json({ ok: true, created: 0, skipped: 0, requested: 0 });
     }
 
     let created = 0;
+    let skipped = 0;
     for (const workflowKey of workflowKeys) {
       const existing = await prisma.run.findFirst({
         where: {
@@ -40,14 +42,17 @@ export async function POST(req: Request) {
         orderBy: { createdAt: "desc" },
         select: { id: true },
       });
-      if (existing?.id) continue;
+      if (existing?.id) {
+        skipped += 1;
+        continue;
+      }
 
       const contextPack = await ContextPackService.build(company.id, workflowKey);
       await WorkflowService.createRun(company.id, workflowKey, contextPack);
       created += 1;
     }
 
-    return NextResponse.json({ ok: true, created });
+    return NextResponse.json({ ok: true, created, skipped, requested });
   } catch (err) {
     console.error("[dashboard/start-phase-runs] error:", err);
     return NextResponse.json({ error: "run_start_failed" }, { status: 500 });

@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCompanyForApi } from "@/lib/companyContext";
+import { fetchChatCompletionWithTemperatureRetry } from "@/lib/llmTemperatureRetry";
+import { extractAssistantTextFromChatCompletion } from "@/lib/openAiChatContent";
+
+export const maxDuration = 600;
 
 export async function POST(req: Request) {
   try {
@@ -37,52 +41,45 @@ export async function POST(req: Request) {
       headers["Authorization"] = `Bearer ${apiKey}`;
     }
 
-    const payloadWithJsonMode = {
+    const payloadWithJsonMode: Record<string, unknown> = {
       model,
       messages: [{ role: "user", content: prompt }],
       temperature: 0.3,
       response_format: { type: "json_object" as const },
     };
 
-    let res = await fetch(chatUrl, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(payloadWithJsonMode),
-    });
+    const payloadPlain: Record<string, unknown> = {
+      model,
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.3,
+    };
 
-    // Fallback for providers that don't support response_format.
+    /** Kimi/Moonshot and others often reject OpenAI-style json_object; always fall back without it. */
+    let res = await fetchChatCompletionWithTemperatureRetry(chatUrl, headers, payloadWithJsonMode);
     if (!res.ok) {
       const firstErr = await res.text();
-      const unsupportedJsonMode =
-        /response_format|json_object|unsupported|unknown/i.test(firstErr);
-      if (unsupportedJsonMode) {
-        res = await fetch(chatUrl, {
-          method: "POST",
-          headers,
-          body: JSON.stringify({
-            model,
-            messages: [{ role: "user", content: prompt }],
-            temperature: 0.3,
-          }),
-        });
-      } else {
+      const status = res.status;
+      if (status === 401 || status === 403) {
         return NextResponse.json(
-          { error: `LLM-API Fehler (${res.status}): ${firstErr.slice(0, 200)}` },
+          { error: `LLM-API Fehler (${status}): ${firstErr.slice(0, 300)}` },
+          { status: 502 }
+        );
+      }
+      res = await fetchChatCompletionWithTemperatureRetry(chatUrl, headers, payloadPlain);
+      if (!res.ok) {
+        const secondErr = await res.text();
+        const secondStatus = res.status;
+        return NextResponse.json(
+          {
+            error: `LLM-API Fehler (${status}, erneuter Versuch ${secondStatus}): ${firstErr.slice(0, 160)} … ${secondErr.slice(0, 160)}`,
+          },
           { status: 502 }
         );
       }
     }
 
-    if (!res.ok) {
-      const errText = await res.text();
-      return NextResponse.json(
-        { error: `LLM-API Fehler (${res.status}): ${errText.slice(0, 200)}` },
-        { status: 502 }
-      );
-    }
-
     const data = (await res.json()) as {
-      choices?: { message?: { content?: string } }[];
+      choices?: Array<{ message?: { content?: string | unknown } }>;
       error?: { message?: string };
     };
 
@@ -90,7 +87,19 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: data.error.message }, { status: 502 });
     }
 
-    const content = data.choices?.[0]?.message?.content ?? "";
+    const content = extractAssistantTextFromChatCompletion(data);
+
+    if (!content.trim()) {
+      console.warn("[llm/complete] empty assistant text; raw snippet:", JSON.stringify(data).slice(0, 1200));
+      return NextResponse.json(
+        {
+          error:
+            "Leere Antwort vom Modell (kein Text in choices[0].message). Bitte Modell/Endpoint prüfen oder Prompt kürzen.",
+        },
+        { status: 502 }
+      );
+    }
+
     return NextResponse.json({ content });
   } catch (err) {
     console.error("[llm/complete] error:", err);

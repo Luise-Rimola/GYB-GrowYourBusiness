@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { fetchChatCompletionWithTemperatureRetry } from "@/lib/llmTemperatureRetry";
 
 const MAX_WEB_BYTES = 400_000;
 const WEB_FETCH_MS = 12_000;
@@ -290,31 +291,23 @@ async function callLlmJson(
   model: string,
   prompt: string
 ): Promise<string> {
-  const payloadWithJsonMode = {
+  const payloadWithJsonMode: Record<string, unknown> = {
     model,
     messages: [{ role: "user", content: prompt }],
     temperature: 0.2,
     response_format: { type: "json_object" as const },
   };
 
-  let res = await fetch(chatUrl, {
-    method: "POST",
-    headers,
-    body: JSON.stringify(payloadWithJsonMode),
-  });
+  let res = await fetchChatCompletionWithTemperatureRetry(chatUrl, headers, payloadWithJsonMode);
 
   if (!res.ok) {
     const firstErr = await res.text();
     const unsupportedJsonMode = /response_format|json_object|unsupported|unknown/i.test(firstErr);
     if (unsupportedJsonMode) {
-      res = await fetch(chatUrl, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          model,
-          messages: [{ role: "user", content: prompt }],
-          temperature: 0.2,
-        }),
+      res = await fetchChatCompletionWithTemperatureRetry(chatUrl, headers, {
+        model,
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.2,
       });
     } else {
       throw new Error(`LLM ${res.status}: ${firstErr.slice(0, 300)}`);
