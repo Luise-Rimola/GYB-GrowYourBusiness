@@ -4,7 +4,7 @@ import { getCompanyForApi } from "@/lib/companyContext";
 import { fetchChatCompletionWithTemperatureRetry } from "@/lib/llmTemperatureRetry";
 import { extractAssistantTextFromChatCompletion } from "@/lib/openAiChatContent";
 
-export const maxDuration = 600;
+export const maxDuration = 300;
 
 export async function POST(req: Request) {
   try {

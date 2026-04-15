@@ -11,7 +11,7 @@ import { getServerLocale } from "@/lib/locale";
 import { fetchChatCompletionWithTemperatureRetry } from "@/lib/llmTemperatureRetry";
 import { extractAssistantTextFromChatCompletion } from "@/lib/openAiChatContent";
 
-export const maxDuration = 600;
+export const maxDuration = 300;
 
 export async function POST(req: Request) {
   const debugId = `exec_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
