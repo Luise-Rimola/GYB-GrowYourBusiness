@@ -1,3 +1,8 @@
+/**
+ * Liefert die Queue aus `{ workflowKey, runId, stepKey, label }` für ausstehende KI-Schritte.
+ * `RunAllButton` baut dieselbe Liste clientseitig aus `workflowSteps`; diese Route ist optional
+ * für Tools/Integrationen und wird im `src`-Frontend nicht aufgerufen.
+ */
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ContextPackService } from "@/services/contextPack";

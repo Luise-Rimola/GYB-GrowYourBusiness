@@ -126,8 +126,8 @@ export default async function ArtifactsPage({
     launch: "Founding / Launch Phase",
     scaling: "Growth Phase",
     tech_digital: "Technology & Digitalization",
-    maturity: "Maturity Phase",
-    renewal: "Renewal / Exit / Transformation",
+    maturity: "Strategy Phase",
+    renewal: "Strategic Options / Exit / Transformation",
   };
   const company = await getOrCreateDemoCompany();
   const allArtifacts = await prisma.artifact.findMany({
@@ -197,7 +197,7 @@ export default async function ArtifactsPage({
     const isEvaluated = latestEvaluationByArtifactId.has(artifact.id);
     return (
     <div
-      className={`rounded-2xl border border-sky-200 bg-sky-50/80 p-4 transition ${
+      className={`rounded-lg border border-sky-200 bg-sky-50/80 px-2.5 py-2 transition ${
         isEvaluated
           ? "opacity-70 grayscale-[0.15] dark:border-sky-900/60 dark:bg-sky-950/30"
           : "hover:border-sky-300 hover:shadow-md dark:border-sky-900/60 dark:bg-sky-950/25 dark:hover:border-sky-700"
@@ -205,7 +205,7 @@ export default async function ArtifactsPage({
     >
       <div className="flex items-center justify-between gap-3">
         <Link href={`/artifacts/${artifact.id}`} className="min-w-0 flex-1">
-          <p className="font-semibold text-[var(--foreground)]">{displayArtifactName(artifact, locale)}</p>
+          <p className="text-sm font-semibold text-[var(--foreground)]">{displayArtifactName(artifact, locale)}</p>
         </Link>
         <div className="flex shrink-0 items-center gap-2">
           {hasEarlyWarningSignal(artifact) && (
@@ -222,9 +222,9 @@ export default async function ArtifactsPage({
               ...(isEmbed ? { embed: "1" } : {}),
             }).toString()}`}
             aria-label={isEn ? "Open document" : "Dokument öffnen"}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[var(--card-border)] bg-white text-[var(--muted)] transition hover:bg-[var(--background)] hover:text-[var(--foreground)] dark:bg-[var(--card)]"
+            className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-[var(--card-border)] bg-white text-[var(--muted)] transition hover:bg-[var(--background)] hover:text-[var(--foreground)] dark:bg-[var(--card)]"
           >
-            <span aria-hidden className="text-base leading-none">→</span>
+            <span aria-hidden className="text-sm leading-none">→</span>
           </Link>
         </div>
       </div>
@@ -467,9 +467,11 @@ export default async function ArtifactsPage({
               ) : null}
               {visiblePhaseSections.map((section) => (
                 <div key={section.id}>
-                  <h3 className="mb-3 text-base font-semibold text-[var(--foreground)]">{section.name}</h3>
+                  <h3 className="mb-3 border-b border-teal-200 pb-1 text-lg font-bold text-[var(--foreground)] dark:border-teal-900/50">
+                    {section.name}
+                  </h3>
                   {section.artifacts.length > 0 ? (
-                    <div className="space-y-3">
+                    <div className="grid gap-3 md:grid-cols-2">
                       {section.artifacts.map((artifact) => (
                         <ArtifactCard key={artifact.id} artifact={artifact} />
                       ))}
@@ -483,8 +485,10 @@ export default async function ArtifactsPage({
               ))}
               {!isEmbed && unassignedArtifacts.length > 0 && (
                 <div>
-                  <h3 className="mb-3 text-base font-semibold text-[var(--foreground)]">{copy.moreArtifacts}</h3>
-                  <div className="space-y-3">
+                  <h3 className="mb-3 border-b border-teal-200 pb-1 text-lg font-bold text-[var(--foreground)] dark:border-teal-900/50">
+                    {copy.moreArtifacts}
+                  </h3>
+                  <div className="grid gap-3 md:grid-cols-2">
                     {unassignedArtifacts.map((artifact) => (
                       <ArtifactCard key={artifact.id} artifact={artifact} />
                     ))}

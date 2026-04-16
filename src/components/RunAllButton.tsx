@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { workflowSteps, MANUAL_STEP_KEYS } from "@/lib/workflowSteps";
 import { LLM_BATCH_STEP_REQUEST_MS } from "@/lib/llmClientTimeouts";
+import { buildWorkflowRunQueue } from "@/lib/workflowRunQueueClient";
+import { formatRunStepExecuteError, postRunStepExecute } from "@/lib/runStepExecuteClient";
 
 const RETRY_DELAY_SEC = 180; // 3 Minuten
 const MAX_429_RETRIES = 2;
@@ -37,6 +38,7 @@ type RetryState = {
 
 export function RunAllButton({ selectedWorkflowKeys, allWorkflowKeys, labels }: RunAllButtonProps) {
   const router = useRouter();
+  const [, startRefreshTransition] = useTransition();
   const searchParams = useSearchParams();
   const isEmbed = searchParams.get("embed") === "1";
   const [loading, setLoading] = useState(false);
@@ -105,38 +107,24 @@ export function RunAllButton({ selectedWorkflowKeys, allWorkflowKeys, labels }: 
     abortRef.current = false;
     setLoading(true);
 
-    const items: StepItem[] = [];
+    let items: StepItem[] = [];
     if (mode === "selected" || mode === "all") {
-      for (const wf of workflowKeys) {
-        const steps = workflowSteps[wf] ?? [];
-        for (const s of steps) {
-          if (!MANUAL_STEP_KEYS.has(s.stepKey)) {
-            items.push({ wf, step: s.label, runId: "", stepKey: s.stepKey, status: "pending" });
-          }
-        }
-      }
-      const runIdsByWf: Record<string, string> = {};
-      for (const wf of workflowKeys) {
-        const res = await fetch("/api/runs/ensure", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ workflowKey: wf }),
+      try {
+        const queue = await buildWorkflowRunQueue({
+          workflowKeys,
+          onlyOpen: false,
         });
-        const data = (await res.json()) as { runId?: string; error?: string; debugId?: string };
-        if (!res.ok || !data.runId) {
-          setLoading(false);
-          const debugSuffix = data.debugId ? ` (debug: ${data.debugId})` : "";
-          alert((data.error ?? "KI-Prozess konnte nicht erstellt werden") + debugSuffix);
-          return;
-        }
-        runIdsByWf[wf] = data.runId;
-      }
-      let i = 0;
-      for (const wf of workflowKeys) {
-        for (const s of (workflowSteps[wf] ?? []).filter((x) => !MANUAL_STEP_KEYS.has(x.stepKey))) {
-          items[i] = { ...items[i], runId: runIdsByWf[wf] };
-          i++;
-        }
+        items = queue.map((q) => ({
+          wf: q.wf,
+          step: q.label,
+          runId: q.runId,
+          stepKey: q.stepKey,
+          status: "pending",
+        }));
+      } catch (e) {
+        setLoading(false);
+        alert(e instanceof Error ? e.message : "KI-Prozess konnte nicht erstellt werden");
+        return;
       }
     }
 
@@ -159,21 +147,14 @@ export function RunAllButton({ selectedWorkflowKeys, allWorkflowKeys, labels }: 
       if (!it.runId) continue;
       setProgress((prev) => prev.map((p, j) => (j === idx ? { ...p, status: "running" as const } : p)));
       try {
-        const execRes = await fetch("/api/run-step/execute", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ runId: it.runId, stepKey: it.stepKey }),
+        const execResult = await postRunStepExecute({
+          runId: it.runId,
+          stepKey: it.stepKey,
           signal: AbortSignal.timeout(LLM_BATCH_STEP_REQUEST_MS),
         });
-        const execData = (await execRes.json()) as { error?: string; validationErrors?: string[]; debugId?: string };
-        if (!execRes.ok) {
-          const schemaHint =
-            execRes.status === 422 && execData.validationErrors?.length
-              ? `\n${execData.validationErrors.slice(0, 5).join("\n")}`
-              : "";
-          const debugSuffix = execData.debugId ? `\n(debug: ${execData.debugId})` : "";
-          const errMsg = (execData.error ?? "Fehler") + schemaHint + debugSuffix;
-          const is429 = execRes.status === 429;
+        if (!execResult.ok) {
+          const errMsg = formatRunStepExecuteError(execResult.status, execResult.data);
+          const is429 = execResult.status === 429;
           if (is429 && retryCount < MAX_429_RETRIES) {
             setProgress((prev) =>
               prev.map((p, j) => (j === idx ? { ...p, status: "error" as const, errorMessage: errMsg } : p))
@@ -209,7 +190,12 @@ export function RunAllButton({ selectedWorkflowKeys, allWorkflowKeys, labels }: 
     }
 
     setLoading(false);
-    router.refresh();
+    startRefreshTransition(() => {
+      void router.refresh();
+    });
+    window.setTimeout(() => {
+      window.location.reload();
+    }, 180);
   }
 
   const doneCount = progress.filter((p) => p.status === "done").length;
@@ -334,7 +320,9 @@ export function RunAllButton({ selectedWorkflowKeys, allWorkflowKeys, labels }: 
                 <button
                   type="button"
                   onClick={() => {
-                    router.refresh();
+                    startRefreshTransition(() => {
+                      void router.refresh();
+                    });
                     setProgress([]);
                   }}
                   className="w-full rounded-lg bg-teal-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-700"

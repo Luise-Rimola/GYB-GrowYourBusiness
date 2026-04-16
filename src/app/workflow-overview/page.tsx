@@ -9,6 +9,7 @@ import { getServerLocale } from "@/lib/locale";
 import { getTranslations } from "@/lib/i18n";
 import { getWorkflowOverviewCharts } from "@/lib/workflowOverviewCharts";
 import { WORKFLOW_BY_KEY } from "@/lib/workflows";
+import { PhaseRunButtonForm } from "@/components/PhaseRunButtonForm";
 
 export default async function WorkflowOverviewPage() {
   const company = await getOrCreateDemoCompany();
@@ -23,8 +24,8 @@ export default async function WorkflowOverviewPage() {
     launch: "Founding / Launch Phase",
     scaling: "Growth Phase",
     tech_digital: "Technology & Digitalization",
-    maturity: "Maturity Phase",
-    renewal: "Renewal / Exit / Transformation",
+    maturity: "Strategy Phase",
+    renewal: "Strategic Options / Exit / Transformation",
   };
   const areaNamesEn: Record<string, string> = {
     strategic: "Strategic planning",
@@ -68,12 +69,44 @@ export default async function WorkflowOverviewPage() {
         <div className="space-y-6">
           <div>
             <h3 className="mb-3 font-semibold text-[var(--foreground)]">{w.planningPhasesHeading}</h3>
-            <div className="flex flex-wrap gap-2">
-              {PLANNING_PHASES.map((p) => (
-                <span key={p.id} className="rounded-lg border border-[var(--card-border)] bg-[var(--card)] px-3 py-1.5 text-sm">
-                  {isEn ? (phaseNamesEn[p.id] ?? p.name) : p.name}
-                </span>
-              ))}
+            <div className="grid gap-3 md:grid-cols-2">
+              {PLANNING_PHASES.map((p) => {
+                const phaseWorkflows = p.workflowKeys
+                  .filter((k) => k !== "WF_BUSINESS_FORM")
+                  .map((k) => WORKFLOW_BY_KEY[k])
+                  .filter(Boolean) as { key: string; name: string; description: string }[];
+                const phaseFormId = `overview-phase-run-${p.id}`;
+                return (
+                  <div key={p.id} className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold text-[var(--foreground)]">
+                          {isEn ? (phaseNamesEn[p.id] ?? p.name) : p.name}
+                        </p>
+                        <p className="mt-1 text-xs text-[var(--muted)]">
+                          {phaseWorkflows.length} {isEn ? "workflows" : "Workflows"}
+                        </p>
+                      </div>
+                      {phaseWorkflows.length > 0 ? (
+                        <PhaseRunButtonForm
+                          formId={phaseFormId}
+                          phaseId={p.id}
+                          buttonLabel={isEn ? "Run" : "Ausführen"}
+                          workflows={phaseWorkflows.map((wf) => ({
+                            key: wf.key,
+                            name: isEn ? (workflowNamesEn[wf.key] ?? wf.name) : wf.name,
+                          }))}
+                        />
+                      ) : null}
+                    </div>
+                    <form id={phaseFormId} className="hidden">
+                      {phaseWorkflows.map((wf) => (
+                        <input key={wf.key} type="checkbox" name="workflow_keys" value={wf.key} defaultChecked readOnly />
+                      ))}
+                    </form>
+                  </div>
+                );
+              })}
             </div>
           </div>
           <div>

@@ -129,13 +129,13 @@ export const WORKFLOWS = [
     key: "WF_PROCESS_OPTIMIZATION",
     name: "Process Optimization",
     description: "Prozessoptimierung inkl. CX, Organisation/Rollen und Hiring-Strategie.",
-    explanation: "Erklärung: Prozessoptimierung und Kostenmanagement für Reifephase. Basiert auf: Company Profile, KPI-Snapshot, Industry Research, Baseline. Zu Untersuchen: Prozesse, Bottlenecks, Kostentreiber, Einsparpotenzial, Customer Experience sowie Organisations-/Rollenklarheit und Hiring-Prioritäten. Kennzahlen: EBITDA, Gewinnmarge. Output: process_optimization, customer_experience_cx, organization_roles, hiring_talent_strategy (JSON).",
+    explanation: "Erklärung: Prozessoptimierung und Kostenmanagement für Strategiephase. Basiert auf: Company Profile, KPI-Snapshot, Industry Research, Baseline. Zu Untersuchen: Prozesse, Bottlenecks, Kostentreiber, Einsparpotenzial, Customer Experience sowie Organisations-/Rollenklarheit und Hiring-Prioritäten. Kennzahlen: EBITDA, Gewinnmarge. Output: process_optimization, customer_experience_cx, organization_roles, hiring_talent_strategy (JSON).",
   },
   {
     key: "WF_STRATEGIC_OPTIONS",
     name: "Strategic Options",
-    description: "Erneuerung, Exit, M&A, Börsengang, Nachfolgeplanung.",
-    explanation: "Erklärung: Strategische Optionen für Erneuerung oder Exit. Basiert auf: Company Profile, Market Research, Industry Research, Business Plan. Zu Untersuchen: neue Geschäftsmodelle, neue Märkte, M&A (kaufen/verkaufen), Börsengang, Nachfolgeplanung. Planungsschwerpunkte: Innovationsstrategie, Portfolioanpassung, Unternehmenswert steigern. Kennzahlen: Unternehmensbewertung, Wachstumspotenzial, strategischer Fit. Output: strategic_options, exit_readiness, recommendations (JSON).",
+    description: "Strategische Optionen inkl. Unternehmenswert, Exit-Kanäle, Börsengang, Rechtsformwechsel und Expansion.",
+    explanation: "Erklärung: Strategische Optionen für Neuausrichtung, Wachstum oder Exit. Basiert auf: Company Profile, Market Research, Industry Research, Business Plan. Zu Untersuchen: Unternehmenswert-Schätzung, neue Geschäftsmodelle, neue Märkte/Expansion, M&A (kaufen/verkaufen), Börsengang, Nachfolgeplanung, Unternehmensformwechsel und Plattform-/Kanaloptionen für einen möglichen Verkauf. Planungsschwerpunkte: Innovationsstrategie, Portfolioanpassung, Unternehmenswert steigern. Kennzahlen: Unternehmensbewertung, Wachstumspotenzial, strategischer Fit. Output: strategic_options, company_valuation_estimate, exit_channels, legal_form_change_options, expansion_options, exit_readiness, recommendations (JSON).",
   },
   {
     key: "WF_VALUE_PROPOSITION",
@@ -162,10 +162,52 @@ export const WORKFLOWS = [
     explanation: "Erklärung: Situationsanalyse und Optimierung in der Wachstumsphase. Basiert auf: Baseline, KPIs, Markt-/Businessplan, Go-to-Market, Marketing, ggf. Warenkosten und Finanzplanung. Zu Untersuchen: was pro Verkauf wirtschaftlich hängen bleibt; wie Angebot und Kommunikation Preis oder Absatz heben können; Kostentreiber und Einsparpotenziale (Personal, Einkauf, Energie, Verpackung). Wenn Daten fehlen: Branchen-Checkliste mit Beispielen zum Selbstprüfen. Output: growth_margin_optimization (JSON).",
   },
   {
+    key: "WF_GROWTH_BUSINESS_SUMMARY",
+    name: "Growth: Business Summary",
+    description: "Kompakte, strukturierte Zusammenfassung zu Modell, Angebot, Zielmarkt und Wachstumshebeln.",
+    explanation: "Erklärung: Einstieg in die Wachstumsanalyse mit klarem Unternehmensbild. Basiert auf: Company Profile (Intake). Zu Untersuchen: Geschäftsmodell, Kernangebot, Zielmarkt, Positionierung, Wachstumshebel, Risiken und Engpässe. Output: growth_business_summary (JSON).",
+  },
+  {
+    key: "WF_GROWTH_OFFER_AUDIENCE_FUNNEL",
+    name: "Growth: Offer, Audience & Funnel",
+    description: "Angebots-/Positionierungsanalyse, Zielgruppen-Personas und Funnel-Optimierung in einem Workflow.",
+    explanation: "Erklärung: Verbindet Positionierung, Zielgruppe und Conversion-Funnel für Wachstum. Basiert auf: Company Profile sowie vorhandene Web-/Tracking-Indikatoren im Kontext. Zu Untersuchen: USP-Stärke, Personas, Kauftrigger, Einwände, Drop-offs, Conversion-Barrieren, Tests und Prioritäten. Output: growth_offer_audience_funnel (JSON).",
+  },
+  {
+    key: "WF_GROWTH_PAID_ADS",
+    name: "Growth: Meta & Google Ads",
+    description: "Paid-Media-Readiness inkl. Kampagnenstruktur und Prioritäten für Meta Ads und Google Ads.",
+    explanation: "Erklärung: Bewertet, ob und wie Paid Ads effizient skaliert werden können. Basiert auf: Company Profile, Positionierung, Zielgruppe. Zu Untersuchen: Readiness, Budgetfit, Tracking-/Creative-Reife, Prioritäten und Kampagnenstruktur für Meta/Google. Output: growth_paid_ads (JSON).",
+  },
+  {
+    key: "WF_GROWTH_SEO",
+    name: "Growth: SEO",
+    description: "Technische, Onpage- und Content-SEO-Analyse inklusive Keyword-Clustern und Maßnahmenplan.",
+    explanation: "Erklärung: SEO-Potenziale für nachhaltiges Wachstum sichtbar machen. Basiert auf: Company Profile und vorhandene Web-Informationen im Kontext. Zu Untersuchen: technische SEO-Basis, Onpage-Qualität, Content-Lücken, Keyword-Cluster und priorisierte Maßnahmen. Output: growth_seo (JSON).",
+  },
+  {
+    key: "WF_GROWTH_RETENTION_CONTENT",
+    name: "Growth: Retention, Content & UGC",
+    description: "Email/SMS-Retention, Content-Strategie und UGC/Creative-Roadmap.",
+    explanation: "Erklärung: Verknüpft Bestandskundenwachstum mit kanalübergreifender Content- und Creative-Strategie. Basiert auf: Company Profile und Zielgruppenkontext. Zu Untersuchen: Lifecycle-Flows, Segmentierung, Content-Pillars, Hook-Kategorien, UGC-Briefs und Testmatrix. Output: growth_retention_content (JSON).",
+  },
+  {
+    key: "WF_GROWTH_EXECUTION_PLAN",
+    name: "Growth: KPI & 30/60/90 Execution",
+    description: "KPI-Framework plus 30/60/90-Plan inkl. umsetzbarer Draft-Artefakte.",
+    explanation: "Erklärung: Führt alle Growth-Ergebnisse in messbare Umsetzung über. Basiert auf: Company Profile und vorliegende Growth-Analysen im Kontext. Zu Untersuchen: North Star + Kanal-KPIs, Messanforderungen, Priorisierung 30/60/90, Quick Wins, Risiken und umsetzbare Drafts für Ads/Email/SEO/Content. Output: growth_execution_plan (JSON).",
+  },
+  {
+    key: "WF_SUBSIDY_RESEARCH",
+    name: "Zuschuesse & Foerderprogramme",
+    description: "Recherchiert passende Landes-/Stadtfoerderungen inkl. Voraussetzungen und Antragsschritten.",
+    explanation: "Erklärung: Recherchiert Foerderprogramme fuer Unternehmen je Standort und Vorhaben. Basiert auf: Company Profile, Industry Research, Financial Planning, Startup/Funding-Outputs. Zu Untersuchen: Programmname, Gueltigkeitsbereich, Foerderinhalt, Voraussetzungen und konkreter Bewerbungsweg. Output: subsidy_research (JSON).",
+  },
+  {
     key: "WF_PORTFOLIO_MANAGEMENT",
     name: "Portfolio- & Markenstrategie",
     description: "Portfolio Management, Markenstrategie, Internationalisierung, strategische Partnerschaften.",
-    explanation: "Erklärung: Portfolio- und Markenstrategie für Reifephase. Basiert auf: Company Profile, KPI-Snapshot, Industry Research. Zu Untersuchen: Produktportfolio optimieren, Marktsegmente erweitern, strategische Partnerschaften. Kennzahlen: Marktanteil, Kundenbindung. Output: portfolio_analysis, brand_strategy_recommendations (JSON).",
+    explanation: "Erklärung: Portfolio- und Markenstrategie für Strategiephase. Basiert auf: Company Profile, KPI-Snapshot, Industry Research. Zu Untersuchen: Produktportfolio optimieren, Marktsegmente erweitern, strategische Partnerschaften. Kennzahlen: Marktanteil, Kundenbindung. Output: portfolio_analysis, brand_strategy_recommendations (JSON).",
   },
   {
     key: "WF_SCENARIO_ANALYSIS",
@@ -252,9 +294,9 @@ export function getWorkflowSubtitle(key: string, runId?: string, status?: string
   if (runId) parts.push(`#${runId.slice(0, 8)}`);
   if (status) {
     const statusLabel: Record<string, string> = {
-      draft: "Entwurf",
-      running: "Läuft",
-      incomplete: "Unvollständig",
+      draft: "Nicht abgeschlossen",
+      running: "Nicht abgeschlossen",
+      incomplete: "Nicht abgeschlossen",
       complete: "Abgeschlossen",
       approved: "Freigegeben",
       failed: "Fehlgeschlagen",
@@ -314,7 +356,7 @@ const SIMPLE_EXPLANATIONS: Record<string, string> = {
   WF_PROCESS_OPTIMIZATION:
     "Dieser Prozess analysiert deine Abläufe und zeigt, wo Zeit, Geld oder Qualität verloren geht. Ziel ist, Prozesse einfacher, schneller und wirtschaftlicher zu machen.",
   WF_STRATEGIC_OPTIONS:
-    "Hier werden strategische Optionen gegenübergestellt, zum Beispiel Wachstum, Neuausrichtung oder Exit. So kannst du fundiert entscheiden, welche Richtung am besten passt.",
+    "Hier werden strategische Optionen inklusive Unternehmenswert-Schätzung, Exit-Kanälen/Plattformen, Rechtsformwechsel, Börsengang und Expansion strukturiert bewertet.",
   WF_VALUE_PROPOSITION:
     "Dieser Prozess schärft dein Wertversprechen: Für wen ist dein Angebot, welches Problem löst es und warum ist es besser als Alternativen. Das schafft Klarheit für Produkt, Marketing und Vertrieb.",
   WF_GO_TO_MARKET:
@@ -323,6 +365,20 @@ const SIMPLE_EXPLANATIONS: Record<string, string> = {
     "Dieser Prozess zeigt, wie dein Unternehmen kontrolliert wachsen kann. Er macht sichtbar, welche Bereiche zuerst skaliert werden sollten und welche Voraussetzungen dafür nötig sind.",
   WF_GROWTH_MARGIN_OPTIMIZATION:
     "Hier werden Marge pro Verkauf, Angebotsgestaltung und Kostentreiber zusammengeführt. Du siehst, was sich rechnet, was du kommunizieren kannst, und wo du realistisch sparen oder nachjustieren solltest.",
+  WF_GROWTH_BUSINESS_SUMMARY:
+    "Dieser Workflow fasst dein Geschäftsmodell, Angebot, Zielmarkt und zentrale Wachstumshebel kompakt zusammen. So entsteht ein klarer Ausgangspunkt für alle Marketing- und Skalierungsentscheidungen.",
+  WF_GROWTH_OFFER_AUDIENCE_FUNNEL:
+    "Hier werden Positionierung, Zielgruppen und Funnel gemeinsam analysiert. Du erkennst, welche Botschaften funktionieren, wo Abbrüche entstehen und welche Tests als Nächstes sinnvoll sind.",
+  WF_GROWTH_PAID_ADS:
+    "Dieser Workflow bewertet, wie bereit dein Unternehmen für Meta Ads und Google Ads ist. Du bekommst klare Empfehlungen zu Kampagnenstruktur, Prioritäten und Risiken.",
+  WF_GROWTH_SEO:
+    "Hier wird dein SEO-Potenzial strukturiert bewertet – technisch, inhaltlich und strategisch. Das Ergebnis zeigt dir konkrete Maßnahmen für mehr organische Sichtbarkeit.",
+  WF_GROWTH_RETENTION_CONTENT:
+    "Dieser Workflow verbindet Retention (Email/SMS), Content und UGC-Creative. Du erhältst einen umsetzbaren Plan für Kundenbindung und wiederholbare Content-Produktion.",
+  WF_GROWTH_EXECUTION_PLAN:
+    "Hier werden KPI-Logik und Umsetzungsplan zusammengeführt. Du bekommst klare 30/60/90-Prioritäten plus direkt nutzbare Drafts für Ads, SEO, Email und Content.",
+  WF_SUBSIDY_RESEARCH:
+    "Dieser Workflow recherchiert passende Zuschuesse und Foerderprogramme fuer dein Unternehmen und zeigt dir klar, was moeglich ist und wie du dich bewerben kannst.",
   WF_PORTFOLIO_MANAGEMENT:
     "Hier wird bewertet, welche Produkte oder Leistungen gestärkt, angepasst oder reduziert werden sollten. Das hilft, Ressourcen auf die wichtigsten Umsatztreiber zu konzentrieren.",
   WF_SCENARIO_ANALYSIS:

@@ -80,11 +80,11 @@ function phaseInfoById(phaseId: string): StepInfoContent | null {
         "Erfassen Sie in Notizen Integrationsrisiken, Datenanforderungen und Betriebsauswirkungen.",
     },
     maturity: {
-      title: "KI-Analyseprozess: Reifephase",
+      title: "KI-Analyseprozess: Strategiephase",
       whatToDo:
         "Optimieren Sie Prozesse, Portfolio und Steuerungslogik auf Stabilität, Profitabilität und Resilienz.",
       whyItMatters:
-        "In der Reifephase entstehen Wettbewerbsvorteile vor allem durch konsequente Exzellenz in der Ausführung.",
+        "In der Strategiephase entstehen Wettbewerbsvorteile vor allem durch konsequente Exzellenz in der Ausführung.",
       resultHint:
         "Notieren Sie Verbesserungsideen mit direktem Bezug zu Effizienz, Kosten und Kundennutzen.",
     },

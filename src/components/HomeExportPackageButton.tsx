@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { CollapsibleDetails } from "@/components/CollapsibleDetails";
+import { fetchApi } from "@/lib/apiClient";
 
 type Props = {
   locale: "de" | "en";
@@ -42,7 +43,7 @@ export function HomeExportPackageButton({ locale, autoOpen = false, showButton =
     setMessage("");
     setSending(true);
     try {
-      const res = await fetch("/api/export/send-package-email", {
+      const res = await fetchApi("/api/export/send-package-email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ locale }),

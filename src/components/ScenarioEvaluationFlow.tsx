@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Section } from "@/components/Section";
+import { fetchApi } from "@/lib/apiClient";
 import {
   SCENARIOS,
   getScenarioCategories,
@@ -175,7 +176,7 @@ export function ScenarioEvaluationFlow({
     setMessage(null);
     setAiRunError("");
     try {
-      const res = await fetch("/api/evaluation/scenario-answer", {
+      const res = await fetchApi("/api/evaluation/scenario-answer", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -209,7 +210,7 @@ export function ScenarioEvaluationFlow({
     if (!selectedScenario) return;
     setLoading(true);
     try {
-      const res = await fetch("/api/evaluation/scenario-prompt", {
+      const res = await fetchApi("/api/evaluation/scenario-prompt", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

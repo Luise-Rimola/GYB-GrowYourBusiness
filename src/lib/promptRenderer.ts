@@ -83,7 +83,8 @@ export function renderPrompt(
     }
   }
 
-  const contextString = JSON.stringify(contextForPrompt, null, 2);
+  // Keep prompts compact to reduce LLM request latency and timeout risk.
+  const contextString = JSON.stringify(contextForPrompt);
   let rendered = template.templateText.replace("{{CONTEXT_JSON}}", contextString);
   if (workflowKey === "WF_FINANCIAL_PLANNING" && (stepKey === "financial_planning" || stepKey === "financial_monthly_h1" || stepKey === "financial_monthly_h2")) {
     const personnelCosts = formatPersonnelCostsForPrompt(contextJson);
@@ -104,6 +105,8 @@ export function renderPrompt(
     locale === "de"
       ? "\n\n--- NUTZERNOTIZEN (optional, zur Steuerung) ---\n{{USER_NOTES}}"
       : "\n\n--- USER NOTES (optional, for steering) ---\n{{USER_NOTES}}";
+  rendered +=
+    "\n\nFINAL OUTPUT CONTRACT (always required): Return ONLY valid JSON. Do not output prose, explanations, markdown fences, or bullet lists outside JSON.";
   if (locale === "de") {
     rendered +=
       "\n\nSPRACHE: Gib die Antwort ausschließlich auf Deutsch aus. Behalte das geforderte JSON-Format exakt bei und liefere nur valides JSON ohne zusätzlichen Fließtext." +

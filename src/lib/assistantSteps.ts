@@ -145,8 +145,8 @@ export async function loadAssistantSteps(params: {
               launch: "Founding / Launch Phase",
               scaling: "Growth Phase",
               tech_digital: "Technology & Digitalization",
-              maturity: "Maturity Phase",
-              renewal: "Renewal / Exit / Transformation",
+              maturity: "Strategy Phase",
+              renewal: "Strategic Options / Exit / Transformation",
             } as Record<string, string>
           )[phase.id] ?? phase.name;
     const phaseCategories = categoriesByPhase.get(phase.id) ?? [];

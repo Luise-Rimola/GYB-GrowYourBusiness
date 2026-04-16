@@ -9,6 +9,17 @@ import { getServerLocale } from "@/lib/locale";
 import { fetchChatCompletionWithTemperatureRetry } from "@/lib/llmTemperatureRetry";
 import { extractAssistantTextFromChatCompletion } from "@/lib/openAiChatContent";
 
+function resolveTemperature(model: string): number {
+  const m = model.toLowerCase();
+  if (m.includes("kimi") || m.includes("moonshot")) return 1;
+  return 0.3;
+}
+
+function supportsJsonMode(model: string): boolean {
+  const m = model.toLowerCase();
+  return !(m.includes("kimi") || m.includes("moonshot"));
+}
+
 export async function executeRunStepForCompany(params: {
   companyId: string;
   runId: string;
@@ -58,6 +69,7 @@ export async function executeRunStepForCompany(params: {
   const url = settings?.llmApiUrl?.trim();
   const apiKey = settings?.llmApiKey?.trim();
   const model = settings?.llmModel?.trim() || "gpt-4o-mini";
+  const temperature = resolveTemperature(model);
   if (!url) throw new Error("LLM-API nicht konfiguriert");
 
   const baseUrl = url.replace(/\/$/, "");
@@ -68,30 +80,47 @@ export async function executeRunStepForCompany(params: {
   const payloadWithJsonMode: Record<string, unknown> = {
     model,
     messages: [{ role: "user", content: promptRendered }],
-    temperature: 0.3,
+    temperature,
     response_format: { type: "json_object" as const },
   };
   const payloadPlain: Record<string, unknown> = {
     model,
     messages: [{ role: "user", content: promptRendered }],
-    temperature: 0.3,
+    temperature,
   };
 
-  let llmRes = await fetchChatCompletionWithTemperatureRetry(chatUrl, headers, payloadWithJsonMode);
-  if (!llmRes.ok) {
-    const firstErr = await llmRes.text();
-    const status = llmRes.status;
-    if (status === 401 || status === 403) throw new Error(`LLM-API Fehler (${status}): ${firstErr.slice(0, 300)}`);
+  let llmRes: Response;
+  if (supportsJsonMode(model)) {
+    llmRes = await fetchChatCompletionWithTemperatureRetry(chatUrl, headers, payloadWithJsonMode);
+    if (!llmRes.ok) {
+      const firstErr = await llmRes.text();
+      const status = llmRes.status;
+      if (status === 401 || status === 403) throw new Error(`LLM-API Fehler (${status}): ${firstErr.slice(0, 300)}`);
+      llmRes = await fetchChatCompletionWithTemperatureRetry(chatUrl, headers, payloadPlain);
+      if (!llmRes.ok) {
+        const secondErr = await llmRes.text();
+        throw new Error(
+          `LLM-API Fehler (${status}, erneuter Versuch ${llmRes.status}): ${firstErr.slice(0, 160)} … ${secondErr.slice(0, 160)}`
+        );
+      }
+    }
+  } else {
     llmRes = await fetchChatCompletionWithTemperatureRetry(chatUrl, headers, payloadPlain);
     if (!llmRes.ok) {
-      const secondErr = await llmRes.text();
-      throw new Error(
-        `LLM-API Fehler (${status}, erneuter Versuch ${llmRes.status}): ${firstErr.slice(0, 160)} … ${secondErr.slice(0, 160)}`
-      );
+      const errText = await llmRes.text();
+      throw new Error(`LLM-API Fehler (${llmRes.status}): ${errText.slice(0, 300)}`);
     }
   }
 
-  const llmData = (await llmRes.json()) as { error?: { message?: string } };
+  const rawLlmBody = await llmRes.text();
+  let llmData: { error?: { message?: string } };
+  try {
+    llmData = JSON.parse(rawLlmBody) as { error?: { message?: string } };
+  } catch {
+    throw new Error(
+      `LLM-Antwort ist kein gültiges JSON (${rawLlmBody.length} Zeichen empfangen). Bitte erneut versuchen.`
+    );
+  }
   if (llmData.error?.message) throw new Error(`LLM-API: ${String(llmData.error.message).slice(0, 500)}`);
   const content = extractAssistantTextFromChatCompletion(llmData);
   if (!content.trim()) throw new Error("Leere Antwort vom Modell");
@@ -140,5 +169,46 @@ export async function executePrimaryWorkflowStepForCompany(params: {
     runId,
     stepKey: primary.stepKey,
   });
+}
+
+async function ensureRunForWorkflow(params: { companyId: string; workflowKey: string }): Promise<string> {
+  const existing = await prisma.run.findFirst({
+    where: {
+      companyId: params.companyId,
+      workflowKey: params.workflowKey,
+      status: { in: ["draft", "running", "incomplete"] },
+    },
+    select: { id: true },
+    orderBy: { createdAt: "desc" },
+  });
+
+  if (existing?.id) return existing.id;
+
+  const contextPack = await ContextPackService.build(params.companyId, params.workflowKey);
+  const run = await WorkflowService.createRun(params.companyId, params.workflowKey, contextPack);
+  return run.id;
+}
+
+/**
+ * Execute all auto-runnable steps for a workflow in order.
+ * Each step uses the same API path semantics as the KI run button:
+ * prompt render -> LLM request -> save -> schema verify -> artifact generation.
+ */
+export async function executeWorkflowForCompany(params: {
+  companyId: string;
+  workflowKey: string;
+}): Promise<{ runId: string; executedStepKeys: string[] }> {
+  const runId = await ensureRunForWorkflow(params);
+  const autoSteps = (workflowSteps[params.workflowKey] ?? []).filter((s) => !MANUAL_STEP_KEYS.has(s.stepKey));
+  const executedStepKeys: string[] = [];
+  for (const step of autoSteps) {
+    await executeRunStepForCompany({
+      companyId: params.companyId,
+      runId,
+      stepKey: step.stepKey,
+    });
+    executedStepKeys.push(step.stepKey);
+  }
+  return { runId, executedStepKeys };
 }
 

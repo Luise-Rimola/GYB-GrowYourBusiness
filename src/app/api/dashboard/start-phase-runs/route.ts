@@ -1,3 +1,8 @@
+/**
+ * Programmatisches Pendant zu `startPhaseRunsAction` in `app/actions.ts` (legt offene Runs an).
+ * Die Next.js-Oberfläche nutzt die Server Action oder `PhaseRunButtonForm` + `/api/runs/ensure`;
+ * diese Route ist für externe/formularlose POST-Clients gedacht und wird im `src`-Frontend nicht aufgerufen.
+ */
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ContextPackService } from "@/services/contextPack";

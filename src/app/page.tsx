@@ -162,12 +162,12 @@ export default async function LandingPage({
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
             {isAuthed ? (
-              <Link
+              <a
                 href="/home"
                 className="rounded-xl bg-teal-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-teal-700"
               >
                 {c.ctaContinue}
-              </Link>
+              </a>
             ) : (
               <Link
                 href="/register"
@@ -259,12 +259,12 @@ export default async function LandingPage({
           </div>
           <div className="flex gap-3">
             {isAuthed ? (
-              <Link
+              <a
                 href="/home"
                 className="rounded-xl bg-teal-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-700"
               >
                 {c.ctaContinue}
-              </Link>
+              </a>
             ) : (
               <Link
                 href="/register"

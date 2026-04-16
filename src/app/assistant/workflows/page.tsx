@@ -9,7 +9,29 @@ type AssistantStep = {
   href: string;
   label: string;
   completed: boolean;
+  phaseId?: string;
 };
+
+function pickPreferredStepStates(
+  steps: Array<{ stepKey: string; schemaValidationPassed: boolean; createdAt: Date }>
+) {
+  const byKey = new Map<string, Array<{ stepKey: string; schemaValidationPassed: boolean; createdAt: Date }>>();
+  for (const step of steps) {
+    const list = byKey.get(step.stepKey) ?? [];
+    list.push(step);
+    byKey.set(step.stepKey, list);
+  }
+  const preferred = new Map<string, { schemaValidationPassed: boolean; createdAt: Date }>();
+  for (const [stepKey, list] of byKey.entries()) {
+    list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    const chosen = list.find((step) => step.schemaValidationPassed) ?? list[0];
+    preferred.set(stepKey, {
+      schemaValidationPassed: chosen.schemaValidationPassed,
+      createdAt: chosen.createdAt,
+    });
+  }
+  return preferred;
+}
 
 export default async function WorkflowOnlyAssistantPage({
   searchParams,
@@ -51,18 +73,7 @@ export default async function WorkflowOnlyAssistantPage({
     const wfRuns = runs.filter((r) => r.workflowKey === workflowKey);
     const latestRun = wfRuns[0];
     const configuredSteps = workflowSteps[workflowKey] ?? [];
-    const latestByStepKey = new Map<string, { schemaValidationPassed: boolean; createdAt: Date }>();
-    if (latestRun) {
-      for (const s of latestRun.steps) {
-        const existing = latestByStepKey.get(s.stepKey);
-        if (!existing || new Date(s.createdAt) > new Date(existing.createdAt)) {
-          latestByStepKey.set(s.stepKey, {
-            schemaValidationPassed: s.schemaValidationPassed,
-            createdAt: s.createdAt,
-          });
-        }
-      }
-    }
+    const latestByStepKey = latestRun ? pickPreferredStepStates(latestRun.steps) : new Map<string, { schemaValidationPassed: boolean; createdAt: Date }>();
     const runStepsForComplete = [...latestByStepKey.entries()].map(([stepKey, v]) => ({
       stepKey,
       schemaValidationPassed: v.schemaValidationPassed,
@@ -85,12 +96,13 @@ export default async function WorkflowOnlyAssistantPage({
             : "/dashboard",
       label: WORKFLOW_NAMES[workflowKey] ?? workflowKey,
       completed: Boolean(latestRun && allStepsDone),
+      phaseId,
     };
   });
 
   return (
     <div className="-my-10 max-md:-mx-6 max-md:w-[calc(100%+3rem)] max-md:max-w-[100vw] overflow-hidden py-2 md:mx-0 md:w-full md:py-4">
-      <WorkflowAssistantFrame steps={steps} />
+      <WorkflowAssistantFrame steps={steps} assistantTitle="KI-Analyse Assistent" />
     </div>
   );
 }

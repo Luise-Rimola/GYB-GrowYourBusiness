@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { startupInsights } from "@/lib/startupInsights";
 import { AutoKpiService } from "@/services/autoKpi";
+import { DATA_TO_WORKFLOWS, PLANNING_PHASES, WORKFLOW_TO_ARTIFACTS } from "@/lib/planningFramework";
 
 export type ContextPack = {
   startup_insights: Record<string, unknown>;
@@ -199,6 +200,57 @@ const RELATED_ARTIFACT_TYPES_BY_WORKFLOW: Record<string, readonly string[]> = {
     "scaling_strategy",
     "process_optimization",
   ],
+  WF_GROWTH_BUSINESS_SUMMARY: [
+    "baseline",
+    "market_research",
+    "business_plan",
+    "decision_pack",
+  ],
+  WF_GROWTH_OFFER_AUDIENCE_FUNNEL: [
+    "value_proposition",
+    "market_research",
+    "marketing_strategy",
+    "conversion_funnel_analysis",
+    "social_media_content_plan",
+    "go_to_market",
+  ],
+  WF_GROWTH_PAID_ADS: [
+    "go_to_market",
+    "marketing_strategy",
+    "conversion_funnel_analysis",
+    "social_media_content_plan",
+    "decision_pack",
+  ],
+  WF_GROWTH_SEO: [
+    "market_research",
+    "value_proposition",
+    "marketing_strategy",
+    "go_to_market",
+  ],
+  WF_GROWTH_RETENTION_CONTENT: [
+    "marketing_strategy",
+    "conversion_funnel_analysis",
+    "social_media_content_plan",
+    "customer_validation",
+    "go_to_market",
+  ],
+  WF_GROWTH_EXECUTION_PLAN: [
+    "decision_pack",
+    "marketing_strategy",
+    "conversion_funnel_analysis",
+    "social_media_content_plan",
+    "go_to_market",
+    "scaling_strategy",
+    "growth_margin_optimization",
+  ],
+  WF_SUBSIDY_RESEARCH: [
+    "startup_guide",
+    "capital_strategy",
+    "financial_planning",
+    "business_plan",
+    "market_research",
+    "industry_research",
+  ],
   WF_PORTFOLIO_MANAGEMENT: ["business_plan", "strategic_planning", "baseline", "market_research"],
   WF_GO_TO_MARKET: ["value_proposition", "business_plan", "market_research", "scenario_analysis", "swot_analysis"],
   WF_FINANCIAL_PLANNING: [
@@ -224,30 +276,137 @@ const RELATED_ARTIFACT_TYPES_BY_WORKFLOW: Record<string, readonly string[]> = {
   WF_RESEARCH: ["competitor_analysis", "swot_analysis", "trend_analysis", "value_proposition", "baseline"],
 };
 
-function buildRelatedAnalysisOutputs(
-  artifacts: Array<{ type: string; title: string; contentJson: unknown }>,
-  workflowKey: string,
-): Array<{ artifact_type: string; title: string; content: Record<string, unknown> }> {
-  if (!Object.prototype.hasOwnProperty.call(RELATED_ARTIFACT_TYPES_BY_WORKFLOW, workflowKey)) {
-    return [];
-  }
-  const types = RELATED_ARTIFACT_TYPES_BY_WORKFLOW[workflowKey]!;
-  if (!types.length) return [];
+const MAX_RELATED_OUTPUTS_BY_WORKFLOW: Record<string, number> = {
+  __DEFAULT__: 6,
+  WF_GROWTH_EXECUTION_PLAN: 10,
+  WF_SUBSIDY_RESEARCH: 10,
+  WF_NEXT_BEST_ACTIONS: 8,
+  WF_BUSINESS_PLAN: 8,
+  WF_SCALING_STRATEGY: 8,
+};
 
-  const out: Array<{ artifact_type: string; title: string; content: Record<string, unknown> }> = [];
-  const used = new Set<string>();
-  for (const t of types) {
-    if (used.has(t)) continue;
-    const a = artifacts.find((x) => x.type === t);
-    if (!a?.contentJson || typeof a.contentJson !== "object" || Array.isArray(a.contentJson)) continue;
-    used.add(t);
-    out.push({
-      artifact_type: a.type,
-      title: a.title ?? a.type,
-      content: a.contentJson as Record<string, unknown>,
-    });
+const WORKFLOW_RETRIEVAL_HINTS: Record<string, string[]> = {
+  WF_GROWTH_MARGIN_OPTIMIZATION: ["margin", "cost", "pricing", "offer", "conversion", "roi", "ltv", "cac"],
+  WF_SCALING_STRATEGY: ["scaling", "ltv", "cac", "pmf", "growth", "funnel", "retention"],
+  WF_MARKETING_STRATEGY: ["marketing", "channel", "content", "funnel", "campaign"],
+  WF_GROWTH_PAID_ADS: ["meta", "google", "ads", "campaign", "tracking", "conversion"],
+  WF_GROWTH_SEO: ["seo", "keyword", "content", "organic", "ranking", "technical"],
+  WF_GROWTH_RETENTION_CONTENT: ["retention", "email", "sms", "content", "ugc", "creative"],
+  WF_GROWTH_EXECUTION_PLAN: ["kpi", "roadmap", "execution", "30", "60", "90", "plan"],
+  WF_SUBSIDY_RESEARCH: ["zuschuss", "foerderung", "grant", "subsidy", "funding", "antrag", "voraussetzung"],
+  WF_NEXT_BEST_ACTIONS: ["decision", "priority", "risk", "roadmap", "execution"],
+};
+
+const WORKFLOW_PHASE_BY_KEY: Record<string, string> = Object.fromEntries(
+  PLANNING_PHASES.flatMap((phase) => phase.workflowKeys.map((workflowKey) => [workflowKey, phase.id]))
+);
+
+const PRODUCER_WORKFLOWS_BY_ARTIFACT_TYPE: Record<string, string[]> = (() => {
+  const map: Record<string, string[]> = {};
+  for (const [workflowKey, artifactTypes] of Object.entries(WORKFLOW_TO_ARTIFACTS)) {
+    for (const artifactType of artifactTypes) {
+      if (!map[artifactType]) map[artifactType] = [];
+      map[artifactType].push(workflowKey);
+    }
   }
-  return out;
+  return map;
+})();
+
+function workflowConsumesArtifactType(workflowKey: string, artifactType: string): boolean {
+  return (DATA_TO_WORKFLOWS[artifactType] ?? []).includes(workflowKey);
+}
+
+function scoreArtifactForWorkflow(params: {
+  workflowKey: string;
+  preferredTypes: Set<string>;
+  artifact: { type: string; title: string; contentJson: unknown; recencyRank: number };
+}): number {
+  const { workflowKey, preferredTypes, artifact } = params;
+  let score = 0;
+  if (preferredTypes.has(artifact.type)) score += 60;
+  if (workflowConsumesArtifactType(workflowKey, artifact.type)) score += 30;
+
+  const targetPhase = WORKFLOW_PHASE_BY_KEY[workflowKey];
+  const producerWorkflows = PRODUCER_WORKFLOWS_BY_ARTIFACT_TYPE[artifact.type] ?? [];
+  if (targetPhase && producerWorkflows.some((wf) => WORKFLOW_PHASE_BY_KEY[wf] === targetPhase)) {
+    score += 15;
+  }
+
+  const hints = WORKFLOW_RETRIEVAL_HINTS[workflowKey] ?? [];
+  if (hints.length > 0) {
+    const haystack = [
+      artifact.type,
+      artifact.title,
+      ...(artifact.contentJson && typeof artifact.contentJson === "object" && !Array.isArray(artifact.contentJson)
+        ? Object.keys(artifact.contentJson as Record<string, unknown>)
+        : []),
+    ]
+      .join(" ")
+      .toLowerCase();
+    let overlap = 0;
+    for (const hint of hints) {
+      if (haystack.includes(hint.toLowerCase())) overlap += 1;
+    }
+    score += Math.min(20, overlap * 4);
+  }
+
+  score += Math.max(0, 12 - artifact.recencyRank);
+  return score;
+}
+
+function buildRelatedAnalysisRetrieval(
+  artifacts: Array<{ type: string; title: string; contentJson: unknown; createdAt: Date }>,
+  workflowKey: string,
+): {
+  outputs: Array<{ artifact_type: string; title: string; content: Record<string, unknown> }>;
+  retrievedObjects: Array<Record<string, unknown>>;
+} {
+  const configuredTypes = RELATED_ARTIFACT_TYPES_BY_WORKFLOW[workflowKey] ?? RELATED_ARTIFACT_TYPES_BY_WORKFLOW.__DEFAULT__;
+  if (!configuredTypes || configuredTypes.length === 0) {
+    return { outputs: [], retrievedObjects: [] };
+  }
+
+  // newest artifact per type only
+  const newestByType = new Map<string, { type: string; title: string; contentJson: unknown; createdAt: Date }>();
+  for (const a of artifacts) {
+    if (!newestByType.has(a.type)) newestByType.set(a.type, a);
+  }
+  const candidates = Array.from(newestByType.values())
+    .filter((a) => a.contentJson && typeof a.contentJson === "object" && !Array.isArray(a.contentJson))
+    .map((a, idx) => ({ ...a, recencyRank: idx + 1 }));
+
+  const preferredTypes = new Set(configuredTypes);
+  const scored = candidates
+    .map((artifact) => ({
+      artifact,
+      score: scoreArtifactForWorkflow({ workflowKey, preferredTypes, artifact }),
+    }))
+    .filter((r) => r.score > 0)
+    .sort((a, b) => b.score - a.score);
+
+  const limit = MAX_RELATED_OUTPUTS_BY_WORKFLOW[workflowKey] ?? MAX_RELATED_OUTPUTS_BY_WORKFLOW.__DEFAULT__;
+  const selected = scored.slice(0, limit);
+
+  return {
+    outputs: selected.map(({ artifact }) => ({
+      artifact_type: artifact.type,
+      title: artifact.title ?? artifact.type,
+      content: artifact.contentJson as Record<string, unknown>,
+    })),
+    retrievedObjects: selected.map(({ artifact, score }) => ({
+      artifact_type: artifact.type,
+      title: artifact.title ?? artifact.type,
+      retrieval_score: score,
+      created_at: artifact.createdAt,
+      reason: {
+        preferred_match: preferredTypes.has(artifact.type),
+        consumed_by_workflow: workflowConsumesArtifactType(workflowKey, artifact.type),
+        same_phase_producer: (PRODUCER_WORKFLOWS_BY_ARTIFACT_TYPE[artifact.type] ?? []).some(
+          (wf) => WORKFLOW_PHASE_BY_KEY[wf] === WORKFLOW_PHASE_BY_KEY[workflowKey]
+        ),
+      },
+    })),
+  };
 }
 
 /** Step-level whitelist: for WF_FINANCIAL_PLANNING sub-steps, only these fields. Reduces tokens significantly. */
@@ -503,6 +662,70 @@ const CONTEXT_WHITELIST: Record<string, (keyof ContextPack)[]> = {
     "business_model",
     "related_analysis_outputs",
   ],
+  WF_GROWTH_BUSINESS_SUMMARY: [
+    "company_profile",
+    "baseline",
+    "market_research",
+    "decision_pack",
+    "constraints",
+    "business_model",
+    "related_analysis_outputs",
+  ],
+  WF_GROWTH_OFFER_AUDIENCE_FUNNEL: [
+    "company_profile",
+    "market_snapshot",
+    "market_research",
+    "decision_pack",
+    "constraints",
+    "business_model",
+    "related_analysis_outputs",
+  ],
+  WF_GROWTH_PAID_ADS: [
+    "company_profile",
+    "kpi_snapshot",
+    "market_research",
+    "market_snapshot",
+    "constraints",
+    "business_model",
+    "related_analysis_outputs",
+  ],
+  WF_GROWTH_SEO: [
+    "company_profile",
+    "market_research",
+    "industry_research",
+    "constraints",
+    "business_model",
+    "related_analysis_outputs",
+  ],
+  WF_GROWTH_RETENTION_CONTENT: [
+    "company_profile",
+    "decision_pack",
+    "kpi_snapshot",
+    "market_research",
+    "constraints",
+    "business_model",
+    "related_analysis_outputs",
+  ],
+  WF_GROWTH_EXECUTION_PLAN: [
+    "company_profile",
+    "kpi_snapshot",
+    "kpi_set",
+    "kpi_estimation",
+    "decision_pack",
+    "constraints",
+    "business_model",
+    "related_analysis_outputs",
+  ],
+  WF_SUBSIDY_RESEARCH: [
+    "company_profile",
+    "industry_research",
+    "market_research",
+    "financial_planning",
+    "business_plan",
+    "constraints",
+    "business_model",
+    "related_analysis_outputs",
+  ],
   WF_PORTFOLIO_MANAGEMENT: [
     "company_profile",
     "kpi_snapshot",
@@ -676,6 +899,8 @@ export const ContextPackService = {
       }
     }
 
+    const retrieval = buildRelatedAnalysisRetrieval(artifacts as Array<{ type: string; title: string; contentJson: unknown; createdAt: Date }>, workflowKey);
+
     const fullContext: ContextPack = {
       startup_insights: startupInsights as unknown as Record<string, unknown>,
       company_profile,
@@ -782,10 +1007,10 @@ export const ContextPackService = {
         key_points: source.keyPointsJson,
       })),
       artifacts_summary: [],
-      related_analysis_outputs: buildRelatedAnalysisOutputs(artifacts, workflowKey),
+      related_analysis_outputs: retrieval.outputs,
       knowledge_retrieval: {
         kb_version_active: activeKnowledgeVersion?.versionLabel ?? null,
-        retrieved_objects: [],
+        retrieved_objects: retrieval.retrievedObjects,
         contradictions: [],
       },
       data_quality: {

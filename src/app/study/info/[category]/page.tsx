@@ -4,6 +4,17 @@ import { getServerLocale } from "@/lib/locale";
 import { getTranslations } from "@/lib/i18n";
 import { workflowDisplayName } from "@/lib/planningFramework";
 import { getStudyCategoryContext, getStudyCategoryLabels, VALID_STUDY_CATEGORIES, type StudyCategoryKey } from "@/lib/studyCategoryContext";
+import { startPhaseRunsAction } from "@/app/actions";
+
+const CATEGORY_TO_PHASE_ID: Record<StudyCategoryKey, string> = {
+  markt_geschaeftsmodell: "ideation",
+  produktstrategie: "validation",
+  launch_marketing_investition: "launch",
+  wachstum_expansion: "scaling",
+  technologie_digitalisierung: "tech_digital",
+  reifephase: "maturity",
+  erneuerung_exit: "renewal",
+};
 
 export default async function StudyCategoryInfoPage({
   params,
@@ -22,6 +33,8 @@ export default async function StudyCategoryInfoPage({
   const cat = category as StudyCategoryKey;
   const categoryLabel = getStudyCategoryLabels(locale)[cat];
   const ctx = getStudyCategoryContext(locale)[cat];
+  const phaseId = CATEGORY_TO_PHASE_ID[cat];
+  const phaseWorkflows = ctx.workflowKeys.map((k) => ({ key: k, name: workflowDisplayName(locale, k) }));
 
   return (
     <div className="space-y-8">
@@ -35,9 +48,24 @@ export default async function StudyCategoryInfoPage({
       ) : null}
 
       <section className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-5">
-        <p>
-          <span className="font-semibold">{t.study.studyInfoCurrentPhase}</span> {ctx.phase}
-        </p>
+        <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+          <p>
+            <span className="font-semibold">{t.study.studyInfoCurrentPhase}</span> {ctx.phase}
+          </p>
+          <form action={startPhaseRunsAction} className="shrink-0">
+            <input type="hidden" name="phase_id" value={phaseId} />
+            {phaseWorkflows.map((wf) => (
+              <input key={wf.key} type="hidden" name="workflow_keys" value={wf.key} />
+            ))}
+            <button
+              type="submit"
+              disabled={phaseWorkflows.length === 0}
+              className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {locale === "de" ? "Ausführen" : "Run"}
+            </button>
+          </form>
+        </div>
         <p className="mt-3 text-sm text-[var(--muted)]">{ctx.description}</p>
         <p className="mt-4 text-sm font-semibold text-[var(--foreground)]">{t.study.studyInfoWhatDone}</p>
         <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-[var(--muted)]">

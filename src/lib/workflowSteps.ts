@@ -139,6 +139,27 @@ export const workflowSteps: Record<
   WF_GROWTH_MARGIN_OPTIMIZATION: [
     { stepKey: "growth_margin_optimization", schemaKey: "growth_margin_optimization", label: "Marge, Angebot & Kostenoptimierung" },
   ],
+  WF_GROWTH_BUSINESS_SUMMARY: [
+    { stepKey: "growth_business_summary", schemaKey: "growth_business_summary", label: "Business Summary" },
+  ],
+  WF_GROWTH_OFFER_AUDIENCE_FUNNEL: [
+    { stepKey: "growth_offer_audience_funnel", schemaKey: "growth_offer_audience_funnel", label: "Offer, Audience & Funnel Analyse" },
+  ],
+  WF_GROWTH_PAID_ADS: [
+    { stepKey: "growth_paid_ads", schemaKey: "growth_paid_ads", label: "Meta & Google Ads Readiness" },
+  ],
+  WF_GROWTH_SEO: [
+    { stepKey: "growth_seo", schemaKey: "growth_seo", label: "SEO Analyse" },
+  ],
+  WF_GROWTH_RETENTION_CONTENT: [
+    { stepKey: "growth_retention_content", schemaKey: "growth_retention_content", label: "Email/Retention & Content/UGC" },
+  ],
+  WF_GROWTH_EXECUTION_PLAN: [
+    { stepKey: "growth_execution_plan", schemaKey: "growth_execution_plan", label: "KPI-Framework & 30/60/90 Umsetzungsplan" },
+  ],
+  WF_SUBSIDY_RESEARCH: [
+    { stepKey: "subsidy_research", schemaKey: "subsidy_research", label: "Zuschuesse & Foerderprogramme" },
+  ],
   WF_PORTFOLIO_MANAGEMENT: [{ stepKey: "portfolio_management", schemaKey: "portfolio_management", label: "Portfolio- & Markenstrategie" }],
   WF_SCENARIO_ANALYSIS: [{ stepKey: "scenario_analysis", schemaKey: "scenario_analysis", label: "Szenario- & Risikoanalyse" }],
   WF_OPERATIVE_PLAN: [{ stepKey: "operative_plan", schemaKey: "operative_plan", label: "Operativer Plan" }],

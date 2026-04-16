@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { NAV_TRANSITION_EVENT } from "@/components/NavigationTransition";
 import { iframeShowsStepCompletion } from "@/lib/assistantIframeCompletion";
 import { SUBMIT_BUTTON_PENDING_CLASS } from "@/lib/submitButtonStyle";
@@ -23,6 +24,7 @@ type AssistantStep = {
   href: string;
   label: string;
   completed: boolean;
+  phaseId?: string;
 };
 
 type StepInfoContent = {
@@ -80,18 +82,18 @@ function phaseInfoById(phaseId: string): StepInfoContent | null {
         "Erfassen Sie in Notizen Integrationsrisiken, Datenanforderungen und Betriebsauswirkungen.",
     },
     maturity: {
-      title: "KI-Analyseprozess: Reifephase",
+      title: "KI-Analyseprozess: Strategiephase",
       whatToDo:
         "Optimieren Sie Prozesse, Portfolio und Steuerungslogik auf Stabilität, Profitabilität und Resilienz.",
       whyItMatters:
-        "In der Reifephase entstehen Wettbewerbsvorteile vor allem durch konsequente Exzellenz in der Ausführung.",
+        "In der Strategiephase entstehen Wettbewerbsvorteile vor allem durch konsequente Exzellenz in der Ausführung.",
       resultHint:
         "Notieren Sie Verbesserungsideen mit direktem Bezug zu Effizienz, Kosten und Kundennutzen.",
     },
     renewal: {
-      title: "KI-Analyseprozess: Erneuerung / Exit / Transformation",
+      title: "KI-Analyseprozess: Strategische Optionen / Exit / Transformation",
       whatToDo:
-        "Analysieren Sie strategische Optionen, Risiken und Szenarien für Erneuerung, Transformation oder Exit.",
+        "Analysieren Sie strategische Optionen, Risiken und Szenarien inkl. Unternehmenswert, Exit-Kanälen, Rechtsformwechsel, Expansion und Börsengang.",
       whyItMatters:
         "Diese Phase entscheidet über langfristige Zukunftsfähigkeit und die Qualität großer Richtungsentscheidungen.",
       resultHint:
@@ -288,9 +290,12 @@ function persistDoneHref(href: string) {
 
 export function WorkflowAssistantFrame({
   steps,
+  assistantTitle = "Studiendurchführungs Assistent",
 }: {
   steps: AssistantStep[];
+  assistantTitle?: string;
 }) {
+  const router = useRouter();
   const firstOpen = steps.findIndex((s) => !s.completed);
   const fallbackIndex = firstOpen >= 0 ? firstOpen : Math.max(steps.length - 1, 0);
   const [index, setIndex] = useState(fallbackIndex);
@@ -543,6 +548,10 @@ export function WorkflowAssistantFrame({
     return Boolean(current.completed || runProcessUnlocked[index]);
   })();
 
+  const assistantExitHref = current.phaseId
+    ? `/dashboard?view=overview&phase=${encodeURIComponent(current.phaseId)}#phase-${encodeURIComponent(current.phaseId)}`
+    : "/home";
+
   const erledigtDisabled =
     pendingSubmit || index >= steps.length - 1 || !canUseErledigtWeiter;
 
@@ -551,7 +560,7 @@ export function WorkflowAssistantFrame({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <div className="inline-flex items-center rounded-full border border-teal-300 bg-teal-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.08em] text-teal-700 dark:border-teal-700/70 dark:bg-teal-950/40 dark:text-teal-200">
-            Studiendurchführungs Assistent
+            {assistantTitle}
           </div>
           <p className="mt-1 text-base font-semibold text-[var(--foreground)] sm:text-lg">{current.label}</p>
           <p className="mt-1 text-sm text-[var(--muted)]">
@@ -586,7 +595,7 @@ export function WorkflowAssistantFrame({
             </div>
           </div>
           <Link
-            href="/home"
+            href={assistantExitHref}
             prefetch={false}
             className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] px-3 py-2 text-sm font-medium text-[var(--foreground)] transition hover:bg-[var(--background)]"
           >
@@ -610,6 +619,10 @@ export function WorkflowAssistantFrame({
         <button
           type="button"
           onClick={() => {
+            if (index === 0) {
+              router.push(assistantExitHref);
+              return;
+            }
             dispatchAssistantPulse("start");
             lastManualNavAtRef.current = Date.now();
             suppressAutoAdvanceUntilRef.current = Date.now() + 5000;
@@ -619,7 +632,7 @@ export function WorkflowAssistantFrame({
             setIndex((i) => Math.max(i - 1, 0));
             requestAnimationFrame(() => dispatchAssistantPulse("end"));
           }}
-          disabled={pendingSubmit || index === 0}
+          disabled={pendingSubmit}
           className="rounded-xl border border-[var(--card-border)] px-4 py-2 text-sm font-medium text-[var(--foreground)] shadow-sm transition hover:bg-[var(--background)] disabled:opacity-50"
         >
           Zurück

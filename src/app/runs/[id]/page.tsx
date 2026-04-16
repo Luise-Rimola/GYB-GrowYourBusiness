@@ -10,7 +10,7 @@ import { renderPrompt } from "@/lib/promptRenderer";
 import { ContextPackService } from "@/services/contextPack";
 import { WorkflowService } from "@/services/workflows";
 import { submitKpiAnswersAction } from "@/app/actions";
-import { SchemaKey } from "@/types/schemas";
+import { SchemaKey, supplierListSchema } from "@/types/schemas";
 import { getWorkflowName, getWorkflowSubtitle, getWorkflowExplanationLines } from "@/lib/workflows";
 import { mergeRunStepsIntoContext, workflowSteps } from "@/lib/workflowSteps";
 import { isRunProcessFullyComplete } from "@/lib/runProcessCompletion";
@@ -21,6 +21,21 @@ import { getTranslations } from "@/lib/i18n";
 import { getWorkflowStepStatus } from "@/lib/workflowStepStatus";
 import { HistoryBackLink } from "@/components/HistoryBackLink";
 import { RunCompletionAdvanceButton } from "@/components/RunCompletionAdvanceButton";
+
+function pickPreferredRunSteps<T extends { stepKey: string; createdAt: Date; schemaValidationPassed: boolean }>(steps: T[]): T[] {
+  const byKey = new Map<string, T[]>();
+  for (const step of steps) {
+    const list = byKey.get(step.stepKey) ?? [];
+    list.push(step);
+    byKey.set(step.stepKey, list);
+  }
+  const preferred: T[] = [];
+  for (const list of byKey.values()) {
+    list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    preferred.push(list.find((step) => step.schemaValidationPassed) ?? list[0]);
+  }
+  return preferred;
+}
 
 async function verifyStep(formData: FormData) {
   "use server";
@@ -185,13 +200,7 @@ async function saveRunStep(formData: FormData) {
 
   const run = await prisma.run.findUnique({ where: { id: runId }, include: { steps: true } });
   if (!run) return;
-  const runStepsLatest = run.steps.reduce<typeof run.steps>((acc, step) => {
-    const existing = acc.find((s) => s.stepKey === step.stepKey);
-    if (!existing || new Date(step.createdAt) > new Date(existing.createdAt)) {
-      return [...acc.filter((s) => s.stepKey !== step.stepKey), step];
-    }
-    return acc;
-  }, []);
+  const runStepsLatest = pickPreferredRunSteps(run.steps);
   const freshBase = (await ContextPackService.build(run.companyId, run.workflowKey)) as unknown as Record<string, unknown>;
   const needsMergedContext = ["kpi_gap_scan", "industry_research", "financial_planning", "financial_monthly_h1", "financial_monthly_h2", "app_requirements", "app_tech_spec", "app_mvp_guide", "app_page_specs", "app_db_schema"].includes(stepKey);
   let contextPack = needsMergedContext ? mergeRunStepsIntoContext(freshBase, runStepsLatest, stepKey) : freshBase;
@@ -277,13 +286,22 @@ export default async function RunDetailPage({
     notFound();
   }
 
-  const runStepsLatest = run.steps.reduce<typeof run.steps>((acc, step) => {
-    const existing = acc.find((s) => s.stepKey === step.stepKey);
-    if (!existing || new Date(step.createdAt) > new Date(existing.createdAt)) {
-      return [...acc.filter((s) => s.stepKey !== step.stepKey), step];
-    }
-    return acc;
-  }, []);
+  const runStepsLatest = pickPreferredRunSteps(run.steps);
+  const runStepsDisplay = runStepsLatest.map((step) => {
+    if (step.stepKey !== "supplier_list") return step;
+    if (!step.parsedOutputJson) return step;
+    const parsed = supplierListSchema.safeParse(step.parsedOutputJson);
+    if (parsed.success) return step;
+    return {
+      ...step,
+      schemaValidationPassed: false,
+      verifiedByUser: false,
+      validationErrorsJson: parsed.error.issues.map((issue) => {
+        const path = issue.path.length ? issue.path.join(".") : "root";
+        return `${path}: ${issue.message}`;
+      }),
+    };
+  });
 
   const steps = workflowSteps[run.workflowKey] ?? [];
   const stepParam = Math.max(0, Number(String(sp.step ?? "0")) || 0);
@@ -313,11 +331,11 @@ export default async function RunDetailPage({
       isComplete,
     };
   }
-  const completedStepKeys = new Set(runStepsLatest.map((s) => s.stepKey));
+  const completedStepKeys = new Set(runStepsDisplay.map((s) => s.stepKey));
   if (hasBusinessFormStep && businessFormStep?.isComplete) completedStepKeys.add("business_form");
 
-  const kpiPlanStep = runStepsLatest.find((s) => s.stepKey === "kpi_computation_plan");
-  const kpiAnswersStep = runStepsLatest.find((s) => s.stepKey === "kpi_questions_answer");
+  const kpiPlanStep = runStepsDisplay.find((s) => s.stepKey === "kpi_computation_plan");
+  const kpiAnswersStep = runStepsDisplay.find((s) => s.stepKey === "kpi_questions_answer");
   const hasKpiQuestionsStep = steps.some((s) => s.stepKey === "kpi_questions_answer");
   let kpiQuestionsStep: { plan: { questions_simple: string[]; mapping_to_kpi_keys: string[]; default_estimates_if_unknown: string[] }; existingAnswers: string[]; submitAction: (fd: FormData) => Promise<void>; isComplete: boolean } | undefined;
   if (hasKpiQuestionsStep && kpiPlanStep?.parsedOutputJson && typeof kpiPlanStep.parsedOutputJson === "object") {
@@ -335,10 +353,10 @@ export default async function RunDetailPage({
   }
 
   const allStepsComplete = steps.length > 0 && steps.every((s) => completedStepKeys.has(s.stepKey));
-  const verifiedCount = runStepsLatest.filter((s) => s.verifiedByUser).length;
+  const verifiedCount = runStepsDisplay.filter((s) => s.verifiedByUser).length;
   const allProcessStepsValid = isRunProcessFullyComplete(
     steps,
-    runStepsLatest.map((s) => ({ stepKey: s.stepKey, schemaValidationPassed: s.schemaValidationPassed })),
+    runStepsDisplay.map((s) => ({ stepKey: s.stepKey, schemaValidationPassed: s.schemaValidationPassed })),
   );
 
   let appDevelopmentConfig: { existingIdeas: { id: string; title: string }[] } | undefined;
@@ -365,14 +383,6 @@ export default async function RunDetailPage({
       {embedAssistant ? (
         <AssistantRunEmbedBridge embed={embedAssistant} runId={run.id} allComplete={allProcessStepsValid} />
       ) : null}
-      <div className="flex justify-start">
-        <HistoryBackLink
-          fallbackHref="/dashboard"
-          className="text-sm font-medium text-blue-600 transition hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
-        >
-          ← Zurück
-        </HistoryBackLink>
-      </div>
       <Section
         compact
         title={getWorkflowName(run.workflowKey)}
@@ -388,7 +398,7 @@ export default async function RunDetailPage({
               <p className="text-xs font-semibold text-[var(--muted)]">Schritte</p>
               <div className="mt-2 flex flex-wrap gap-2">
                 {steps.map((s, i) => {
-                  const status = getWorkflowStepStatus(i, steps, runStepsLatest, {
+                  const status = getWorkflowStepStatus(i, steps, runStepsDisplay, {
                     businessFormComplete: businessFormStep?.isComplete,
                     kpiQuestionsComplete: kpiQuestionsStep?.isComplete,
                   });
@@ -429,7 +439,7 @@ export default async function RunDetailPage({
             {run.workflowKey !== "WF_BUSINESS_FORM" && (
               <>
                 <span className="rounded-lg border border-[var(--card-border)] bg-slate-50 px-2.5 py-1 text-xs font-medium dark:bg-slate-900/50">
-                  Schritte: {runStepsLatest.length}/{steps.length}
+                  Schritte: {runStepsDisplay.length}/{steps.length}
                 </span>
               </>
             )}
@@ -445,6 +455,17 @@ export default async function RunDetailPage({
       </Section>
 
       <Section title="">
+        <div className="mb-4 flex items-center justify-start">
+          {stepIndex > 0 ? (
+            <Link
+              href={`/runs/${run.id}?step=${stepIndex - 1}${embedAssistant ? "&embed=1" : ""}`}
+              prefetch={false}
+              className="rounded-xl border border-[var(--card-border)] bg-slate-100 px-4 py-2 text-xs font-medium text-[var(--foreground)] transition hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700"
+            >
+              ← Zurück
+            </Link>
+          ) : null}
+        </div>
         <Suspense fallback={<div className="rounded-2xl border border-[var(--card-border)] bg-[var(--card)] p-8 text-center text-[var(--muted)]">Wizard wird geladen…</div>}>
           <RunWizard
             run={{
@@ -452,7 +473,7 @@ export default async function RunDetailPage({
               userNotes: run.userNotes ?? "",
               ideaMode: run.ideaMode ?? null,
               ideaArtifactId: run.ideaArtifactId ?? null,
-              steps: runStepsLatest.map((s) => ({
+              steps: runStepsDisplay.map((s) => ({
                 id: s.id,
                 stepKey: s.stepKey,
                 userPastedResponse: s.userPastedResponse,
@@ -478,7 +499,7 @@ export default async function RunDetailPage({
                   s.stepKey === "app_mvp_guide" ||
                   s.stepKey === "app_page_specs" ||
                   s.stepKey === "app_db_schema"
-                    ? mergeRunStepsIntoContext(freshContextRecord, runStepsLatest, s.stepKey)
+                    ? mergeRunStepsIntoContext(freshContextRecord, runStepsDisplay, s.stepKey)
                     : freshContextRecord;
                 context = filterContextForStep(context, run.workflowKey, s.stepKey);
                 const p = renderPrompt(run.workflowKey, s.stepKey, context, locale);
@@ -500,28 +521,44 @@ export default async function RunDetailPage({
         </Suspense>
       </Section>
 
-      {runStepsLatest.length > 0 && (
+      {runStepsDisplay.length > 0 && (
         <div id="pruefprotokoll">
-          <Section title={locale === "de" ? "Prüfprotokoll" : "Audit Trail"} description="Ergebnisse pro Schritt prüfen.">
+          <Section
+            title={locale === "de" ? "Prüfprotokoll" : "Audit Trail"}
+            description="Ergebnisse pro Schritt prüfen."
+          >
+            {(nextStepHref || allStepsComplete) ? (
+              <div className="mb-4 flex justify-end">
+                {nextStepHref ? (
+                  <Link
+                    href={nextStepHref}
+                    prefetch={false}
+                    className="rounded-xl bg-teal-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-teal-700"
+                  >
+                    Weiter →
+                  </Link>
+                ) : (
+                  <RunCompletionAdvanceButton embed={embedAssistant} runId={run.id} />
+                )}
+              </div>
+            ) : null}
             <AuditTrailTabs
-              steps={[...runStepsLatest]
-                .sort((a, b) => {
-                  const orderA = steps.findIndex((s) => s.stepKey === a.stepKey);
-                  const orderB = steps.findIndex((s) => s.stepKey === b.stepKey);
-                  return (orderA === -1 ? 999 : orderA) - (orderB === -1 ? 999 : orderB);
-                })
-                .map((step) => ({
-                  id: step.id,
-                  stepKey: step.stepKey,
-                  stepLabel: steps.find((s) => s.stepKey === step.stepKey)?.label ?? step.stepKey,
-                  stepNum: steps.findIndex((s) => s.stepKey === step.stepKey) + 1,
-                  parsedOutputJson: step.parsedOutputJson,
-                  validationErrorsJson: step.validationErrorsJson,
-                  schemaValidationPassed: step.schemaValidationPassed,
-                  verifiedByUser: step.verifiedByUser ?? false,
-                  userPastedResponse: step.userPastedResponse,
-                  verificationNotes: step.verificationNotes,
-                }))}
+              steps={steps.map((cfg, idx) => {
+                const step = runStepsDisplay.find((s) => s.stepKey === cfg.stepKey);
+                return {
+                  id: step?.id ?? `missing-${cfg.stepKey}`,
+                  stepKey: cfg.stepKey,
+                  stepLabel: cfg.label,
+                  stepNum: idx + 1,
+                  isSaved: Boolean(step),
+                  parsedOutputJson: step?.parsedOutputJson ?? null,
+                  validationErrorsJson: step?.validationErrorsJson ?? null,
+                  schemaValidationPassed: step?.schemaValidationPassed ?? false,
+                  verifiedByUser: step?.verifiedByUser ?? false,
+                  userPastedResponse: step?.userPastedResponse ?? null,
+                  verificationNotes: step?.verificationNotes ?? null,
+                };
+              })}
               runId={run.id}
               schemaKeyByStepKey={Object.fromEntries(
                 (workflowSteps[run.workflowKey] ?? []).map((s) => [s.stepKey, s.schemaKey])
@@ -533,21 +570,6 @@ export default async function RunDetailPage({
           </Section>
         </div>
       )}
-      {nextStepHref ? (
-        <div className="flex justify-end">
-          <Link
-            href={nextStepHref}
-            prefetch={false}
-            className="rounded-xl bg-teal-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-teal-700"
-          >
-            Weiter →
-          </Link>
-        </div>
-      ) : allProcessStepsValid ? (
-        <div className="flex justify-end">
-          <RunCompletionAdvanceButton embed={embedAssistant} runId={run.id} />
-        </div>
-      ) : null}
     </div>
   );
 }

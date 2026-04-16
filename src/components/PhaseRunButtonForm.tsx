@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { getTranslations } from "@/lib/i18n";
-import { workflowSteps, MANUAL_STEP_KEYS } from "@/lib/workflowSteps";
 import { LLM_BATCH_STEP_REQUEST_MS, llmBatchStepRequestMinutes } from "@/lib/llmClientTimeouts";
+import { formatRunStepExecuteError, postRunStepExecute } from "@/lib/runStepExecuteClient";
+import { buildWorkflowRunQueue } from "@/lib/workflowRunQueueClient";
 
 type PhaseRunButtonFormProps = {
   formId: string;
@@ -17,6 +18,7 @@ type PhaseRunButtonFormProps = {
 
 export function PhaseRunButtonForm({ formId, phaseId, buttonLabel, workflows }: PhaseRunButtonFormProps) {
   const router = useRouter();
+  const [, startRefreshTransition] = useTransition();
   const searchParams = useSearchParams();
   const { locale } = useLanguage();
   const tDash = getTranslations(locale).dashboard;
@@ -26,16 +28,55 @@ export function PhaseRunButtonForm({ formId, phaseId, buttonLabel, workflows }: 
   const [openManualModal, setOpenManualModal] = useState(false);
   const [execProgress, setExecProgress] = useState<{ current: number; total: number } | null>(null);
 
+  function collectSelectedWorkflowKeys(): string[] {
+    // 1) Inputs outside <form> but associated via HTML5 `form="formId"` (Dashboard execution view).
+    const byFormAttr = Array.from(
+      document.querySelectorAll<HTMLInputElement>(`input[form="${formId}"][name="workflow_keys"]:checked`)
+    )
+      .map((input) => input.value)
+      .filter(Boolean);
+
+    // 2) Inputs inside <form id="formId">` (e.g. /workflow-overview) — they do not repeat `form="..."`.
+    let byOwningForm: string[] = [];
+    try {
+      const owning = document.getElementById(formId);
+      if (owning instanceof HTMLFormElement) {
+        byOwningForm = Array.from(
+          owning.querySelectorAll<HTMLInputElement>('input[name="workflow_keys"]:checked')
+        )
+          .map((input) => input.value)
+          .filter(Boolean);
+      }
+    } catch {
+      /* ignore */
+    }
+
+    const merged = [...new Set([...byFormAttr, ...byOwningForm])];
+    return merged;
+  }
+
   async function runAutomatically() {
     setLoading(true);
     setMessage(null);
     setExecProgress(null);
 
-    const checkedInputs = Array.from(
-      document.querySelectorAll<HTMLInputElement>(`input[form="${formId}"][name="workflow_keys"]:checked`)
-    );
-    const checkedKeys = checkedInputs.map((input) => input.value).filter(Boolean);
-    const workflowKeys = checkedKeys;
+    const hasFormAttrControls = document.querySelectorAll(`input[form="${formId}"][name="workflow_keys"]`).length > 0;
+    let owningForm: HTMLFormElement | null = null;
+    try {
+      const el = document.getElementById(formId);
+      owningForm = el instanceof HTMLFormElement ? el : null;
+    } catch {
+      owningForm = null;
+    }
+    const hasOwningFormControls =
+      !!owningForm && owningForm.querySelectorAll('input[name="workflow_keys"]').length > 0;
+
+    let workflowKeys = collectSelectedWorkflowKeys();
+
+    // Dashboard "overview" PhaseRunButtonForm: no inputs use this formId — still run all workflows for this button.
+    if (workflowKeys.length === 0 && !hasFormAttrControls && !hasOwningFormControls && workflows.length > 0) {
+      workflowKeys = workflows.map((w) => w.key);
+    }
 
     if (workflowKeys.length === 0) {
       setMessage({ tone: "warn", text: tDash.phaseRunsNoneSelected });
@@ -44,46 +85,10 @@ export function PhaseRunButtonForm({ formId, phaseId, buttonLabel, workflows }: 
     }
 
     try {
-      const runIdsByWf: Record<string, string> = {};
-      for (const wf of workflowKeys) {
-        const ensureRes = await fetch("/api/runs/ensure", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ workflowKey: wf, onlyOpen: true }),
-        });
-        const ensureData = (await ensureRes.json()) as {
-          runId?: string;
-          error?: string;
-          debugId?: string;
-          skipped?: string;
-        };
-        if (ensureData.skipped === "completed_exists") {
-          continue;
-        }
-        if (!ensureRes.ok || !ensureData.runId) {
-          const debugSuffix = ensureData.debugId ? ` (debug: ${ensureData.debugId})` : "";
-          setMessage({
-            tone: "error",
-            text: (ensureData.error ?? "Prozess-Lauf konnte nicht bereitgestellt werden.") + debugSuffix,
-          });
-          setLoading(false);
-          return;
-        }
-        runIdsByWf[wf] = ensureData.runId;
-      }
-
-      type WorkflowRunItem = { runId: string; wf: string; stepKey: string; label: string };
-      const workflowsToRun: WorkflowRunItem[] = [];
-      for (const wf of workflowKeys) {
-        const runId = runIdsByWf[wf];
-        if (!runId) continue;
-        const autoSteps = (workflowSteps[wf] ?? []).filter((s) => !MANUAL_STEP_KEYS.has(s.stepKey));
-        // Single-call mode: execute exactly one primary step per workflow.
-        // We choose the last non-manual step as the workflow's culmination step.
-        const primary = autoSteps.at(-1);
-        if (!primary) continue;
-        workflowsToRun.push({ runId, wf, stepKey: primary.stepKey, label: primary.label });
-      }
+      const workflowsToRun = await buildWorkflowRunQueue({
+        workflowKeys,
+        onlyOpen: true,
+      });
 
       if (workflowsToRun.length === 0) {
         setMessage({ tone: "warn", text: tDash.phaseRunsAllAlreadyActive });
@@ -104,22 +109,16 @@ export function PhaseRunButtonForm({ formId, phaseId, buttonLabel, workflows }: 
       for (let i = 0; i < workflowsToRun.length; i++) {
         const it = workflowsToRun[i];
         setExecProgress({ current: i + 1, total: workflowsToRun.length });
-        const execRes = await fetch("/api/run-step/execute", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ runId: it.runId, stepKey: it.stepKey }),
+        const execResult = await postRunStepExecute({
+          runId: it.runId,
+          stepKey: it.stepKey,
           signal: AbortSignal.timeout(LLM_BATCH_STEP_REQUEST_MS),
         });
-        const execData = (await execRes.json()) as { error?: string; validationErrors?: string[]; debugId?: string };
-        if (!execRes.ok) {
-          const schemaHint =
-            execRes.status === 422 && Array.isArray(execData.validationErrors) && execData.validationErrors.length > 0
-              ? ` ${execData.validationErrors.slice(0, 3).join("; ")}`
-              : "";
-          const debugSuffix = execData.debugId ? ` (debug: ${execData.debugId})` : "";
+        if (!execResult.ok) {
+          const errText = formatRunStepExecuteError(execResult.status, execResult.data);
           setMessage({
             tone: "error",
-            text: `${it.wf} / ${it.label}: ${execData.error ?? "Ausführung fehlgeschlagen"}${schemaHint}${debugSuffix}`,
+            text: `${it.wf} / ${it.label}: ${errText}`,
           });
           setLoading(false);
           setExecProgress(null);
@@ -134,7 +133,12 @@ export function PhaseRunButtonForm({ formId, phaseId, buttonLabel, workflows }: 
           ? "KI-Analyse abgeschlossen."
           : "AI analysis completed.";
       setMessage({ tone: "ok", text: doneText });
-      router.refresh();
+      startRefreshTransition(() => {
+        void router.refresh();
+      });
+      window.setTimeout(() => {
+        window.location.reload();
+      }, 180);
     } catch (e) {
       const timedOut =
         (e instanceof Error && (e.name === "TimeoutError" || e.name === "AbortError")) ||
@@ -224,7 +228,7 @@ export function PhaseRunButtonForm({ formId, phaseId, buttonLabel, workflows }: 
               </div>
               <div className="pt-1">
                 <Link
-                  href={`/assistant/?phase=${phaseId}`}
+                  href={`/assistant/workflows?phase=${phaseId}&start=1`}
                   className="inline-block rounded-lg bg-teal-600 px-3 py-2 text-xs font-semibold text-white hover:bg-teal-700"
                 >
                   Assistent für diese Phase öffnen

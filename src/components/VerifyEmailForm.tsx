@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { getTranslations } from "@/lib/i18n";
+import { fetchApi } from "@/lib/apiClient";
 import { SUBMIT_BUTTON_PENDING_CLASS } from "@/lib/submitButtonStyle";
 
 export function VerifyEmailForm() {
@@ -31,7 +32,7 @@ export function VerifyEmailForm() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/auth/verify-email", {
+      const res = await fetchApi("/api/auth/verify-email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.trim(), code: code.replace(/\s/g, "") }),
@@ -55,7 +56,7 @@ export function VerifyEmailForm() {
     setResendMessage(null);
     setError(null);
     try {
-      const res = await fetch("/api/auth/resend-verification", {
+      const res = await fetchApi("/api/auth/resend-verification", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.trim(), password, locale }),

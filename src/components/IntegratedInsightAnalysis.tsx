@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { fetchApi } from "@/lib/apiClient";
 
 type Props = {
   locale: "de" | "en";
@@ -20,10 +21,9 @@ export function IntegratedInsightAnalysis({ locale, labels }: Props) {
     setError(null);
     setText(null);
     try {
-      const res = await fetch("/api/insights/integrated-analysis", {
+      const res = await fetchApi("/api/insights/integrated-analysis", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({ locale }),
       });
       const data = (await res.json()) as { analysis?: string; error?: string };

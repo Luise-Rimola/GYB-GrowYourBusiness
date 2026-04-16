@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { getTranslations } from "@/lib/i18n";
+import { fetchApi } from "@/lib/apiClient";
 import { SUBMIT_BUTTON_PENDING_CLASS } from "@/lib/submitButtonStyle";
 
 export function RegisterForm() {
@@ -23,7 +24,7 @@ export function RegisterForm() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/auth/register", {
+      const res = await fetchApi("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

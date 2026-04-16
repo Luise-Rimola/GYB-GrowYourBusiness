@@ -1,27 +1,27 @@
 "use client";
 
-import {
-  useSearchParams,
-  useRouter,
-  usePathname,
-  unstable_rethrow,
-} from "next/navigation";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { CopyButton } from "@/components/CopyButton";
 import { getWorkflowStepStatus } from "@/lib/workflowStepStatus";
 import { LLM_SINGLE_REQUEST_MS, llmSingleRequestMinutes } from "@/lib/llmClientTimeouts";
-import { postLlmComplete } from "@/lib/fetchLlmCompleteClient";
+import { formatRunStepExecuteError, postRunStepExecute } from "@/lib/runStepExecuteClient";
 
-function createLlmAbortSignal(): { signal: AbortSignal; cancel?: () => void } {
-  if (typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function") {
-    return { signal: AbortSignal.timeout(LLM_SINGLE_REQUEST_MS) };
-  }
+// Guard should never fire before the actual request timeout.
+const UI_STUCK_GUARD_MS = LLM_SINGLE_REQUEST_MS + 10_000;
+
+function createLlmAbortController(): {
+  signal: AbortSignal;
+  abort: () => void;
+  cancelTimer: () => void;
+} {
   const ac = new AbortController();
   const tid = window.setTimeout(() => ac.abort(), LLM_SINGLE_REQUEST_MS);
   return {
     signal: ac.signal,
-    cancel: () => window.clearTimeout(tid),
+    abort: () => ac.abort(),
+    cancelTimer: () => window.clearTimeout(tid),
   };
 }
 
@@ -30,25 +30,62 @@ function RunLlmButton({
   onResponse,
   loading,
   setLoading,
+  runExecute,
+  disabled,
 }: {
   prompt: string;
   onResponse: (content: string) => void | Promise<void>;
   loading: boolean;
   setLoading: (v: boolean) => void;
+  runExecute: { runId: string; stepKey: string };
+  disabled?: boolean;
 }) {
   const [inlineError, setInlineError] = useState<string>("");
+  const [inlineInfo, setInlineInfo] = useState<string>("");
 
   async function handleRun() {
-    if (!prompt.trim()) return;
+    // Prompt is rendered server-side in /api/run-step/execute; do not block if the preview is empty.
     setLoading(true);
     setInlineError("");
-    const { signal, cancel } = createLlmAbortSignal();
+    setInlineInfo("Bereite Anfrage vor");
+    const { signal, abort, cancelTimer } = createLlmAbortController();
+    let guardTid: number | undefined;
+    guardTid = window.setTimeout(() => {
+      abort();
+      setInlineError(
+        `Der Lauf wurde aus Sicherheitsgründen beendet, weil der Request zu lange im Ladezustand blieb. Bitte erneut ausführen.`
+      );
+      setLoading(false);
+    }, UI_STUCK_GUARD_MS);
     try {
-      const content = await postLlmComplete(prompt, { signal });
+      setInlineInfo("Warte auf Server- und KI-Antwort");
+      const execResult = await postRunStepExecute({
+        runId: runExecute.runId,
+        stepKey: runExecute.stepKey,
+        signal,
+      });
+      if (!execResult.ok) {
+        const errText = formatRunStepExecuteError(execResult.status, execResult.data);
+        setInlineError(
+          `${errText} Hinweis: Du kannst den Prompt manuell kopieren, in ChatGPT/Kimi einfügen und die JSON-Antwort hier einfügen.`
+        );
+        if (execResult.data.persisted) {
+          // Server already saved a new raw response (often invalid JSON shape).
+          // Force refresh so UI shows the latest saved state instead of stale "verified" data.
+          window.setTimeout(() => {
+            window.location.reload();
+          }, 180);
+        }
+        return;
+      }
+      const content = execResult.data.largeResponseSaved
+        ? ""
+        : (typeof execResult.data.userPastedResponse === "string" ? execResult.data.userPastedResponse : "");
+      setInlineInfo("Speichere Ergebnis");
       try {
         await Promise.resolve(onResponse(content));
+        setInlineInfo("Fertig");
       } catch (applyErr) {
-        unstable_rethrow(applyErr);
         console.error("[RunLlmButton] onResponse:", applyErr);
         setInlineError(
           applyErr instanceof Error
@@ -57,7 +94,6 @@ function RunLlmButton({
         );
       }
     } catch (err) {
-      unstable_rethrow(err);
       const aborted =
         (err instanceof Error && err.name === "AbortError") ||
         (typeof DOMException !== "undefined" && err instanceof DOMException && err.name === "AbortError");
@@ -70,7 +106,8 @@ function RunLlmButton({
         `${errorText} Hinweis: Du kannst den Prompt manuell kopieren, in ChatGPT/Kimi einfügen und die JSON-Antwort hier einfügen.`
       );
     } finally {
-      cancel?.();
+      if (guardTid != null) window.clearTimeout(guardTid);
+      cancelTimer();
       setLoading(false);
     }
   }
@@ -78,15 +115,32 @@ function RunLlmButton({
     <div className="relative inline-flex flex-col items-end">
       <button
         type="button"
-        onClick={handleRun}
-        disabled={loading}
+        onPointerDown={(e) => {
+          // Keep event inside the control container, but do not cancel native click synthesis.
+          e.stopPropagation();
+        }}
+        onMouseDown={(e) => {
+          e.stopPropagation();
+        }}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          if (disabled) return;
+          void handleRun();
+        }}
+        disabled={loading || disabled}
         className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-blue-700 disabled:opacity-50 dark:hover:bg-blue-500"
       >
-        {loading ? "…" : "Ausführen des KI-Prozesses"}
+        {loading ? "…" : disabled ? "Bereits gespeichert" : "Ausführen des KI-Prozesses"}
       </button>
       {inlineError ? (
         <p className="absolute right-0 top-full z-20 mt-2 w-[34rem] max-w-[75vw] rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-800 shadow-md dark:border-amber-700 dark:bg-amber-950/90 dark:text-amber-200">
           {inlineError}
+        </p>
+      ) : null}
+      {!inlineError && inlineInfo ? (
+        <p className="absolute right-0 top-full z-20 mt-2 w-[34rem] max-w-[75vw] rounded-lg border border-teal-200 bg-teal-50 px-3 py-2 text-xs leading-relaxed text-teal-800 shadow-md dark:border-teal-700 dark:bg-teal-950/80 dark:text-teal-200">
+          {inlineInfo}
         </p>
       ) : null}
     </div>
@@ -171,6 +225,7 @@ export function RunWizard({
   const [submitFromLlm, setSubmitFromLlm] = useState(false);
   const [runLoading, setRunLoading] = useState(false);
   const [answerOpen, setAnswerOpen] = useState(false);
+  const [processOpen, setProcessOpen] = useState(true);
   const [userNotes, setUserNotes] = useState(run.userNotes ?? "");
   const [ideaMode, setIdeaMode] = useState<"existing" | "new">(
     (run.ideaMode === "existing" ? "existing" : "new") as "existing" | "new"
@@ -193,6 +248,7 @@ export function RunWizard({
   );
 
   const stepConfig = stepsConfig[stepIndex];
+  const isEmbed = searchParams.get("embed") === "1";
   const savedStep = stepConfig
     ? run.steps.find((s) => s.stepKey === stepConfig.stepKey)
     : undefined;
@@ -205,6 +261,12 @@ export function RunWizard({
   useEffect(() => {
     setSubmitFromLlm(false);
   }, [stepConfig?.stepKey]);
+  useEffect(() => {
+    setProcessOpen(!savedStep);
+  }, [stepConfig?.stepKey, savedStep?.id]);
+  useEffect(() => {
+    if (runLoading) setProcessOpen(true);
+  }, [runLoading]);
 
   if (stepsConfig.length === 0) {
     return (
@@ -225,6 +287,7 @@ export function RunWizard({
       : (savedStep?.verifiedByUser ?? false);
   const hasValidationErrors =
     savedStep && !savedStep.schemaValidationPassed;
+  const disableLlmRetrigger = isEmbed && Boolean(savedStep?.schemaValidationPassed);
   const useUpdateForm = hasValidationErrors && updateStep;
 
   const getStepStatus = (idx: number) =>
@@ -276,7 +339,16 @@ export function RunWizard({
       {/* KI-Prozess: ein Block in der äußeren Karte — kein zweiter Kasten um die Summary */}
       <details
         className={`group ${showStepList ? "border-t border-[var(--card-border)] pt-5" : ""}`}
-        open={!savedStep}
+        open={processOpen}
+        onToggle={(e) => {
+          const nextOpen = (e.currentTarget as HTMLDetailsElement).open;
+          if (runLoading && !nextOpen) {
+            // Keep the block visible while a request is running, so progress/errors stay visible.
+            setProcessOpen(true);
+            return;
+          }
+          setProcessOpen(nextOpen);
+        }}
       >
         <summary className="cursor-pointer list-none rounded-lg px-0 py-3 text-sm font-semibold text-[var(--foreground)] transition hover:bg-slate-50/80 dark:hover:bg-slate-900/20 [&::-webkit-details-marker]:hidden">
           <span className="flex items-center justify-between gap-3">
@@ -469,7 +541,13 @@ export function RunWizard({
             </span>
             <div
               className="flex shrink-0 items-center gap-2"
-              onClick={(e) => e.stopPropagation()}
+              onPointerDown={(e) => {
+                // Keep pointer events local to action controls.
+                e.stopPropagation();
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+              }}
             >
               <CopyButton
                 text={prompt}
@@ -482,31 +560,20 @@ export function RunWizard({
               />
               <RunLlmButton
                 prompt={prompt}
+                runExecute={{ runId: run.id, stepKey: stepConfig.stepKey }}
+                disabled={disableLlmRetrigger}
                 onResponse={async (content) => {
                   flushSync(() => {
-                    setResponseDraft(content);
+                    if (content.trim().length > 0) {
+                      setResponseDraft(content);
+                    }
                     setAnswerOpen(true);
                   });
-                  const fd = new FormData();
-                  fd.append("from_llm_auto", "1");
-                  fd.append("user_response", content);
-                  fd.append("step", String(stepIndex));
-                  if (appDevelopmentConfig) {
-                    fd.append("notes", userNotes);
-                    fd.append("idea_mode", ideaMode);
-                    fd.append("idea_artifact_id", ideaMode === "existing" ? selectedArtifactId : "");
-                  }
-                  if (useUpdateForm && savedStep && updateStep) {
-                    fd.append("step_id", savedStep.id);
-                    fd.append("run_id", run.id);
-                    fd.append("schema_key", stepConfig.schemaKey);
-                    await updateStep(fd);
-                  } else {
-                    fd.append("run_id", run.id);
-                    fd.append("step_key", stepConfig.stepKey);
-                    fd.append("schema_key", stepConfig.schemaKey);
-                    await saveStep(fd);
-                  }
+                  router.refresh();
+                  // Hard reload ensures the user immediately sees persisted DB state even if the route gets stuck.
+                  window.setTimeout(() => {
+                    window.location.reload();
+                  }, 180);
                 }}
                 loading={runLoading}
                 setLoading={setRunLoading}
@@ -630,13 +697,13 @@ export function RunWizard({
 
         {/* Verify form */}
         {/* Navigation buttons */}
-        <div className="flex items-center justify-between pt-4 border-t border-[var(--card-border)]">
+        <div className="flex items-center justify-between border-t border-[var(--card-border)] pt-4">
           <div>
-            {stepIndex > 0 ? (
+            {stepIndex > 0 && showStepList ? (
               <button
                 type="button"
                 onClick={() => navigateToStep(stepIndex - 1)}
-                className="rounded-xl border border-[var(--card-border)] px-4 py-2 text-xs font-medium text-[var(--foreground)] transition hover:bg-teal-50 hover:border-teal-200 dark:hover:bg-teal-950/30 dark:hover:border-teal-800"
+                className="rounded-xl border border-[var(--card-border)] bg-slate-100 px-4 py-2 text-xs font-medium text-[var(--foreground)] transition hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700"
               >
                 ← Zurück
               </button>

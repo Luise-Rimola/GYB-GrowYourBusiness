@@ -1,7 +1,8 @@
 /**
  * Gleiche Logik wie im Workflow-Assistenten (/assistant/workflows):
  * Ein Lauf gilt als vollständig, wenn für jeden konfigurierten Schritt
- * der jeweils neueste gespeicherte Schritt `schemaValidationPassed` hat.
+ * der bevorzugte sichtbare Stand `schemaValidationPassed` hat
+ * (letzte gültige Antwort, sonst letzter Versuch).
  */
 export function isRunProcessFullyComplete(
   configuredSteps: { stepKey: string }[],

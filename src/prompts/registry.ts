@@ -40,7 +40,7 @@ export const promptTemplates: PromptTemplate[] = [
     key: "P1",
     workflowKey: "WF_BASELINE",
     stepKey: "business_model_inference",
-    version: 1,
+    version: 2,
     outputSchemaKey: "business_model_inference",
     templateText: `You are an expert business model classifier.
 ${ARTIFACT_INSTRUCTION}
@@ -373,15 +373,33 @@ Output schema:
     version: 1,
     outputSchemaKey: "supplier_list",
     templateText: `You are a supplier research analyst. Based on menu_card (items with components) and company_profile from CONTEXT_JSON, research suppliers for EACH component/material individually.
+HARD OUTPUT CONTRACT (must pass exactly):
+1) Return ONLY valid JSON (no prose, no markdown).
+2) Root must be an object with key "suppliers" (never a top-level array).
+3) suppliers must contain at least 1 row (never empty).
+4) Each supplier row must include: material, supplier, price_per_unit (>0 number), unit.
 ${ARTIFACT_INSTRUCTION}
 CRITICAL: Use menu_card from CONTEXT_JSON – it contains actual items and components from the prior workflow. List EVERY component from menu_card.menu_full.items[].components as a separate supplier entry. Adapt to company_profile.industry. If no menu_card, use company_profile products/materials.
 Return ONLY valid JSON, no prose.
+IMPORTANT: Root must be a JSON object with a "suppliers" array — never a bare top-level array.
+MANDATORY QUALITY RULES:
+- suppliers must contain at least 1 row (never empty).
+- For every supplier row, material, supplier, price_per_unit, unit are required.
+- price_per_unit must be a numeric value > 0 (no strings like "n/a", "unknown", "-" ).
+- If exact values are uncertain, provide realistic market estimates and note uncertainty in notes.
+- NEVER return {"suppliers": []}. If context is sparse, infer likely core materials from company_profile/menu and still return usable estimate rows.
+- Prefer at least one supplier row per distinct component/material from menu_card.
+- Use plausible local/regional suppliers and realistic market prices so downstream cost calculation can run.
 ${JSON_STRICT}
 ${SOURCE_REFERENCE_INSTRUCTION}
 CONTEXT_JSON:
 {{CONTEXT_JSON}}
 Output schema:
-{ "suppliers": [ { "material": "...", "supplier": "...", "price_per_unit": number, "unit": "...", "notes": "...", "sources": ["..."] } ], "whitelabel_options": [...], "ingredients_options": [...], "sources_used": ["Title (URL)", "..."] }`,
+{ "suppliers": [ { "material": "...", "supplier": "...", "price_per_unit": number, "unit": "...", "notes": "...", "sources": ["..."] } ], "whitelabel_options": [...], "ingredients_options": [...], "sources_used": ["Title (URL)", "..."] }
+FINAL SELF-CHECK BEFORE YOU ANSWER:
+- Is the answer pure JSON only?
+- Is suppliers present and non-empty?
+- Does every row include material, supplier, price_per_unit (>0 number), unit?`,
   },
   {
     key: "P12b",
@@ -450,6 +468,12 @@ Output schema:
 ${ARTIFACT_INSTRUCTION}
 CRITICAL: Use menu_card from CONTEXT_JSON – it contains actual items and components. List EVERY component from menu_card.menu_full.items[].components as a separate supplier entry. Adapt to company_profile.industry. If no menu_card, use company_profile products/materials.
 Return ONLY valid JSON, no prose.
+IMPORTANT: Root must be a JSON object with a "suppliers" array — never a bare top-level array.
+MANDATORY QUALITY RULES:
+- suppliers must contain at least 1 row (never empty).
+- For every supplier row, material, supplier, price_per_unit, unit are required.
+- price_per_unit must be a numeric value > 0 (no strings like "n/a", "unknown", "-" ).
+- If exact values are uncertain, provide realistic market estimates and note uncertainty in notes.
 ${JSON_STRICT}
 ${SOURCE_REFERENCE_INSTRUCTION}
 CONTEXT_JSON:
@@ -682,7 +706,13 @@ Output schema:
     templateText: `You are a strategic advisor for corporate development. Assess options for renewal, exit, or transformation. Adapt to company_profile.industry – exit readiness and options differ by sector.
 ${ARTIFACT_INSTRUCTION}
 Use company_profile, market_research, industry_research, business_plan from CONTEXT_JSON – use their actual data.
-Optionen: neue Geschäftsmodelle, neue Märkte, M&A (kaufen/verkaufen), Börsengang, Nachfolgeplanung.
+MANDATORY coverage:
+- company valuation estimate (range + method hint + key drivers)
+- where to sell (channels/platform examples, e.g. M&A advisors, business marketplaces, sector-specific buyers)
+- IPO suitability
+- legal form change options (e.g., GmbH -> AG) with prerequisites
+- expansion options (new regions/markets and entry model)
+Optionen: new business models, new markets, expansion, M&A (buy/sell), IPO, succession, transformation, legal form change.
 Planungsschwerpunkte: Innovationsstrategie, Portfolioanpassung, Unternehmenswert steigern.
 Kennzahlen: Unternehmensbewertung, Wachstumspotenzial, strategischer Fit.
 Return ONLY valid JSON, no prose.
@@ -691,7 +721,7 @@ ${SOURCE_REFERENCE_INSTRUCTION}
 CONTEXT_JSON:
 {{CONTEXT_JSON}}
 Output schema:
-{ "strategic_options": [ { "option": "...", "type": "new_business_model|new_market|ma_acquisition|ma_sale|ipo|succession|transformation", "description": "...", "fit_score": 0.0-1.0, "key_considerations": ["..."] } ], "exit_readiness": { "readiness_score": 0.0-1.0, "gaps": ["..."], "recommendations": ["..."] }, "recommendations": ["..."], "sources_used": ["Title (URL)", "..."] }`,
+{ "strategic_options": [ { "option": "...", "type": "new_business_model|new_market|expansion|ma_acquisition|ma_sale|ipo|succession|transformation|legal_form_change", "description": "...", "fit_score": 0.0-1.0, "key_considerations": ["..."] } ], "company_valuation_estimate": { "valuation_range": "...", "method_hint": "...", "key_drivers": ["..."], "assumptions": ["..."] }, "exit_channels": [ { "channel": "...", "platform_examples": ["..."], "suitability": "...", "notes": "..." } ], "legal_form_change_options": [ { "from_form": "...", "to_form": "...", "when_useful": "...", "prerequisites": ["..."], "risks": ["..."] } ], "expansion_options": [ { "target_market_or_region": "...", "entry_model": "...", "rationale": "...", "prerequisites": ["..."], "risks": ["..."] } ], "exit_readiness": { "readiness_score": 0.0-1.0, "gaps": ["..."], "recommendations": ["..."] }, "recommendations": ["..."], "sources_used": ["Title (URL)", "..."] }`,
   },
   {
     key: "P19",
@@ -1519,6 +1549,148 @@ CONTEXT_JSON:
 {{CONTEXT_JSON}}
 Output schema:
 { "phase_market_entry_recap": "...", "efficiency_upgrades": [ { "current_method": "...", "upgrade_equipment": "...", "benefit": "...", "estimated_investment_eur_band": "...", "example_product_url": "https://...", "typical_when_after_launch": "..." } ], "scaling_phase_notes": "...", "recommendations": ["..."], "sources_used": ["..."] }`,
+  },
+  {
+    key: "P_G1",
+    workflowKey: "WF_GROWTH_BUSINESS_SUMMARY",
+    stepKey: "growth_business_summary",
+    version: 1,
+    outputSchemaKey: "growth_business_summary",
+    templateText: `You are a senior e-commerce and growth strategy analyst.
+${ARTIFACT_INSTRUCTION}
+Create a concise but structured business summary from CONTEXT_JSON (especially company_profile, baseline, market_research, related_analysis_outputs).
+Use existing context data first. If data is missing, state assumptions clearly.
+Return ONLY valid JSON, no prose.
+${JSON_STRICT}
+CONTEXT_JSON:
+{{CONTEXT_JSON}}
+Output schema:
+{ "company_summary": { "business_model": "", "core_offer": "", "target_market": "", "brand_positioning": "", "growth_stage": "", "primary_growth_levers": [], "main_constraints": [], "key_risks": [], "strategic_summary": "" }, "sources_used": ["..."] }`,
+  },
+  {
+    key: "P_G2",
+    workflowKey: "WF_GROWTH_OFFER_AUDIENCE_FUNNEL",
+    stepKey: "growth_offer_audience_funnel",
+    version: 1,
+    outputSchemaKey: "growth_offer_audience_funnel",
+    templateText: `You are a growth strategist for D2C execution.
+${ARTIFACT_INSTRUCTION}
+Build one integrated output with:
+1) offer_positioning_analysis
+2) audience_analysis
+3) funnel_analysis
+Use CONTEXT_JSON (company_profile, market_research, market_snapshot, marketing_strategy, conversion_funnel_analysis, related_analysis_outputs). Reuse existing findings, do not invent duplicate analyses.
+Return ONLY valid JSON, no prose.
+${JSON_STRICT}
+CONTEXT_JSON:
+{{CONTEXT_JSON}}
+Output schema:
+{ "offer_positioning_analysis": { "offer_clarity_score": 0, "positioning_strength_score": 0, "usp_clarity": "", "differentiation_assessment": "", "pricing_fit_assessment": "", "trust_signal_assessment": "", "main_positioning_gaps": [], "improvement_recommendations": [], "recommended_angles": [] }, "audience_analysis": { "primary_personas": [ { "name": "", "description": "", "pain_points": [], "buying_triggers": [], "objections": [], "best_channels": [], "creative_angles": [] } ], "secondary_personas": [], "audience_prioritization": [], "messaging_recommendations": [] }, "funnel_analysis": { "awareness_stage": "", "consideration_stage": "", "conversion_stage": "", "retention_stage": "", "main_dropoff_points": [], "main_conversion_barriers": [], "priority_fixes": [], "recommended_tests": [] }, "sources_used": ["..."] }`,
+  },
+  {
+    key: "P_G3",
+    workflowKey: "WF_GROWTH_PAID_ADS",
+    stepKey: "growth_paid_ads",
+    version: 1,
+    outputSchemaKey: "growth_paid_ads",
+    templateText: `You are a paid media strategist for Google Ads and Meta Ads.
+${ARTIFACT_INSTRUCTION}
+Evaluate paid-media readiness and define campaign priorities/account structure.
+Use CONTEXT_JSON (company_profile, go_to_market, marketing_strategy, conversion_funnel_analysis, related_analysis_outputs). Align recommendations to budget and tracking maturity.
+MANDATORY: Add implementation-ready code snippets and a clear setup guide for non-technical clients.
+MANDATORY: Add KPI explanations in simple language (what KPI means, why it matters, how often to check).
+Code snippets must be copy-paste ready and wrapped as plain strings.
+Return ONLY valid JSON, no prose.
+${JSON_STRICT}
+CONTEXT_JSON:
+{{CONTEXT_JSON}}
+Output schema:
+{ "paid_media_readiness": { "readiness_score": 0, "google_ads_recommendation": "", "meta_ads_recommendation": "", "budget_fit_assessment": "", "tracking_readiness": "", "creative_readiness": "", "campaign_priorities": [], "campaign_structure_recommendation": [], "key_risks": [], "next_steps": [] }, "kpi_framework_for_client": { "priority_kpis": [ { "kpi_key": "", "name": "", "what_it_is": "", "why_it_matters": "", "target_hint": "", "check_frequency": "" } ], "tracking_validation_checklist": [] }, "implementation_guide": { "setup_steps": [], "qa_steps": [], "rollout_plan_30_days": [], "common_pitfalls": [] }, "implementation_code": { "gtag_base_snippet": "", "gtag_conversion_event_snippet": "", "google_ads_conversion_snippet": "", "meta_pixel_base_snippet": "", "meta_pixel_purchase_event_snippet": "", "cta_event_tracking_snippet": "", "utm_naming_template": [] }, "sources_used": ["..."] }`,
+  },
+  {
+    key: "P_G4",
+    workflowKey: "WF_GROWTH_SEO",
+    stepKey: "growth_seo",
+    version: 1,
+    outputSchemaKey: "growth_seo",
+    templateText: `You are a technical and content SEO strategist for e-commerce.
+${ARTIFACT_INSTRUCTION}
+Assess SEO opportunities and likely weaknesses with practical priority actions.
+Use CONTEXT_JSON (company_profile, market_research, related_analysis_outputs). If website-level data is missing, provide assumptions and highest-leverage first actions.
+MANDATORY: Add implementation-ready SEO code snippets and a clear setup guide for non-technical clients.
+MANDATORY: Add KPI explanations in simple language (what KPI means, why it matters, how often to check).
+Code snippets must be copy-paste ready and wrapped as plain strings.
+Return ONLY valid JSON, no prose.
+${JSON_STRICT}
+CONTEXT_JSON:
+{{CONTEXT_JSON}}
+Output schema:
+{ "seo_analysis": { "technical_seo_assessment": "", "onpage_seo_assessment": "", "content_seo_assessment": "", "collection_page_opportunities": [], "product_page_opportunities": [], "blog_content_opportunities": [], "keyword_cluster_suggestions": [], "main_seo_gaps": [], "priority_actions": [] }, "kpi_framework_for_client": { "priority_kpis": [ { "kpi_key": "", "name": "", "what_it_is": "", "why_it_matters": "", "target_hint": "", "check_frequency": "" } ], "tracking_validation_checklist": [] }, "implementation_guide": { "setup_steps": [], "qa_steps": [], "rollout_plan_30_days": [], "common_pitfalls": [] }, "implementation_code": { "title_template_examples": [], "meta_description_template_examples": [], "product_json_ld_snippet": "", "faq_json_ld_snippet": "", "robots_txt_example": "", "sitemap_guidance_snippet": "", "canonical_tag_snippet": "", "internal_linking_block_template": "" }, "sources_used": ["..."] }`,
+  },
+  {
+    key: "P_G5",
+    workflowKey: "WF_GROWTH_RETENTION_CONTENT",
+    stepKey: "growth_retention_content",
+    version: 1,
+    outputSchemaKey: "growth_retention_content",
+    templateText: `You are an e-commerce retention and creative strategist.
+${ARTIFACT_INSTRUCTION}
+Create one integrated output with:
+1) retention_analysis (email/SMS lifecycle)
+2) content_strategy (acquisition, trust, retention)
+3) creative_strategy (UGC/ad testing basis)
+Use CONTEXT_JSON (company_profile, marketing_strategy, conversion_funnel_analysis, social_media_content_plan, related_analysis_outputs).
+Return ONLY valid JSON, no prose.
+${JSON_STRICT}
+CONTEXT_JSON:
+{{CONTEXT_JSON}}
+Output schema:
+{ "retention_analysis": { "maturity_score": 0, "existing_flow_gaps": [], "recommended_flows": [], "segmentation_opportunities": [], "sms_recommendation": "", "campaign_recommendation": "", "deliverability_risks": [], "priority_actions": [] }, "content_strategy": { "content_pillars": [], "channel_strategy": [], "hook_categories": [], "trust_building_content": [], "conversion_content": [], "retention_content": [], "plan_30_day_outline": [] }, "creative_strategy": { "creative_angles": [], "hook_frameworks": [], "ugc_brief_suggestions": [], "creator_requirements": [], "ad_concept_suggestions": [], "test_matrix": [] }, "sources_used": ["..."] }`,
+  },
+  {
+    key: "P_G6",
+    workflowKey: "WF_GROWTH_EXECUTION_PLAN",
+    stepKey: "growth_execution_plan",
+    version: 1,
+    outputSchemaKey: "growth_execution_plan",
+    templateText: `You are a growth operator and marketing analytics strategist.
+${ARTIFACT_INSTRUCTION}
+Build one integrated execution package with:
+1) kpi_framework (north star, primary/secondary and channel KPIs)
+2) strategy_30_60_90 (prioritized roadmap)
+3) draft_artifacts (Meta ads, Google ads, email, SEO, content, UGC)
+Use CONTEXT_JSON and reuse all available prior analyses from related_analysis_outputs.
+Return ONLY valid JSON, no prose.
+${JSON_STRICT}
+CONTEXT_JSON:
+{{CONTEXT_JSON}}
+Output schema:
+{ "kpi_framework": { "north_star_metric": "", "primary_kpis": [], "secondary_kpis": [], "channel_kpis": { "meta_ads": [], "google_ads": [], "seo": [], "email_sms": [] }, "measurement_requirements": [], "dashboard_sections": [] }, "strategy_30_60_90": { "first_30_days": [], "days_31_60": [], "days_61_90": [], "dependencies": [], "quick_wins": [], "high_impact_projects": [], "critical_risks": [] }, "draft_artifacts": { "meta_ad_concepts": [], "google_ad_concepts": [], "email_flow_plan": [], "seo_plan": [], "content_calendar": [], "ugc_briefs": [] }, "sources_used": ["..."] }`,
+  },
+  {
+    key: "P_SUB1",
+    workflowKey: "WF_SUBSIDY_RESEARCH",
+    stepKey: "subsidy_research",
+    version: 1,
+    outputSchemaKey: "subsidy_research",
+    templateText: `You are a funding and grants research specialist for German companies.
+${ARTIFACT_INSTRUCTION}
+Task: list all realistic public subsidies/funding programs that fit this company (state, city/municipality, federal where applicable).
+Use CONTEXT_JSON (company_profile, industry_research, financial_planning, startup_consulting/capital strategy via related_analysis_outputs).
+For each program provide:
+- name
+- valid_in (where it is applicable)
+- benefit_summary (what the company gets)
+- prerequisites
+- application_how_to (clear practical steps)
+- official_link when available
+Return ONLY valid JSON, no prose.
+${JSON_STRICT}
+${SOURCE_REFERENCE_INSTRUCTION}
+CONTEXT_JSON:
+{{CONTEXT_JSON}}
+Output schema:
+{ "subsidies": [ { "name": "", "valid_in": "", "benefit_summary": "", "prerequisites": [], "application_how_to": [], "official_link": "" } ], "recommendations": [], "sources_used": ["..."] }`,
   },
   {
     key: "P7",

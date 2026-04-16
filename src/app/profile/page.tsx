@@ -7,7 +7,7 @@ import { getServerLocale } from "@/lib/locale";
 import { getTranslations } from "@/lib/i18n";
 import { ProfileSavedNotifier } from "@/components/ProfileSavedNotifier";
 import { WIZARD_WORKFLOW_ORDER } from "@/lib/planningFramework";
-import { executePrimaryWorkflowStepForCompany } from "@/lib/runStepExecution";
+import { executeWorkflowForCompany } from "@/lib/runStepExecution";
 
 function startAllWorkflowsInBackground(companyId: string) {
   // Fire-and-forget on purpose: user should continue immediately.
@@ -15,7 +15,7 @@ function startAllWorkflowsInBackground(companyId: string) {
     for (const workflowKey of WIZARD_WORKFLOW_ORDER) {
       if (workflowKey === "WF_BUSINESS_FORM") continue;
       try {
-        await executePrimaryWorkflowStepForCompany({ companyId, workflowKey });
+        await executeWorkflowForCompany({ companyId, workflowKey });
       } catch (err) {
         console.error("[profile/background-start]", workflowKey, err);
       }

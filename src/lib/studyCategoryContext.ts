@@ -25,8 +25,8 @@ export const STUDY_CATEGORY_LABELS: Record<StudyCategoryKey, string> = {
   launch_marketing_investition: "Marketing & Investition / Strategie",
   wachstum_expansion: "Wachstum & Expansion",
   technologie_digitalisierung: "Technologie & Digitalisierung",
-  reifephase: "Reifephase",
-  erneuerung_exit: "Erneuerung / Exit / Transformation",
+  reifephase: "Strategiephase",
+  erneuerung_exit: "Strategische Optionen / Exit / Transformation",
 };
 
 export const STUDY_CATEGORY_LABELS_EN: Record<StudyCategoryKey, string> = {
@@ -132,8 +132,8 @@ const STUDY_CATEGORY_CONTEXT_DE: Record<StudyCategoryKey, StudyCategoryLocaleBlo
   },
   wachstum_expansion: {
     phase: "Wachstumsphase",
-    workflowKeys: ["WF_SCALING_STRATEGY", "WF_GROWTH_MARGIN_OPTIMIZATION", "WF_NEXT_BEST_ACTIONS"],
-    fb2WorkflowKeys: ["WF_SCALING_STRATEGY", "WF_GROWTH_MARGIN_OPTIMIZATION", "WF_NEXT_BEST_ACTIONS"],
+    workflowKeys: ["WF_SCALING_STRATEGY", "WF_GROWTH_MARGIN_OPTIMIZATION", "WF_GROWTH_OFFER_AUDIENCE_FUNNEL", "WF_GROWTH_PAID_ADS", "WF_GROWTH_SEO", "WF_GROWTH_RETENTION_CONTENT", "WF_GROWTH_EXECUTION_PLAN", "WF_NEXT_BEST_ACTIONS"],
+    fb2WorkflowKeys: ["WF_SCALING_STRATEGY", "WF_GROWTH_MARGIN_OPTIMIZATION", "WF_GROWTH_OFFER_AUDIENCE_FUNNEL", "WF_GROWTH_PAID_ADS", "WF_GROWTH_SEO", "WF_GROWTH_RETENTION_CONTENT", "WF_GROWTH_EXECUTION_PLAN", "WF_NEXT_BEST_ACTIONS"],
     description:
       "Wir befinden uns in der Wachstumsphase. Diese Phase ist wichtig, weil jetzt klare Prioritäten und umsetzbare nächste Schritte gebraucht werden.",
     important: [
@@ -167,31 +167,55 @@ const STUDY_CATEGORY_CONTEXT_DE: Record<StudyCategoryKey, StudyCategoryLocaleBlo
       "Bewerten Sie, wie aufwendig und unsicher dieser Prozess ohne KI-Unterstützung wäre — bevor Sie die KI-gestützten Prozesse nutzen.",
   },
   reifephase: {
-    phase: "Reifephase / Erneuerung",
-    workflowKeys: ["WF_PROCESS_OPTIMIZATION", "WF_PORTFOLIO_MANAGEMENT", "WF_STRATEGIC_OPTIONS"],
-    fb2WorkflowKeys: ["WF_PROCESS_OPTIMIZATION", "WF_PORTFOLIO_MANAGEMENT", "WF_STRATEGIC_OPTIONS"],
+    phase: "Strategiephase / Erneuerung",
+    workflowKeys: [
+      "WF_DIAGNOSTIC",
+      "WF_GROWTH_MARGIN_OPTIMIZATION",
+      "WF_SCALING_STRATEGY",
+      "WF_PROCESS_OPTIMIZATION",
+      "WF_TECH_DIGITALIZATION",
+      "WF_AUTOMATION_ROI",
+      "WF_PHYSICAL_AUTOMATION",
+      "WF_APP_DEVELOPMENT",
+      "WF_PORTFOLIO_MANAGEMENT",
+      "WF_SUBSIDY_RESEARCH",
+      "WF_STRATEGIC_OPTIONS",
+    ],
+    fb2WorkflowKeys: [
+      "WF_DIAGNOSTIC",
+      "WF_GROWTH_MARGIN_OPTIMIZATION",
+      "WF_SCALING_STRATEGY",
+      "WF_PROCESS_OPTIMIZATION",
+      "WF_TECH_DIGITALIZATION",
+      "WF_AUTOMATION_ROI",
+      "WF_PHYSICAL_AUTOMATION",
+      "WF_APP_DEVELOPMENT",
+      "WF_PORTFOLIO_MANAGEMENT",
+      "WF_SUBSIDY_RESEARCH",
+      "WF_STRATEGIC_OPTIONS",
+    ],
     description:
-      "Wir befinden uns in der Reifephase. Diese Phase ist wichtig, weil Effizienz, Portfolioentscheidungen und strategische Erneuerung systematisch vorbereitet werden.",
+      "Wir befinden uns in der Strategiephase. Diese Phase ist wichtig, weil Effizienz, Portfolioentscheidungen, Foerderhebel und strategische Erneuerung systematisch vorbereitet werden.",
     important: [
       "Operative Effizienz und Profitabilität erhöhen",
       "Portfolio- und Markenentscheidungen nachvollziehbar treffen",
       "Strategische Optionen inkl. Risiken transparent gegenüberstellen",
     ],
     fb3Description:
-      "Bewerte die Reifephasen-Outputs in Bezug auf Entscheidungsqualität, strategische Belastbarkeit und Umsetzbarkeit.",
+      "Bewerte die Outputs der Strategiephase in Bezug auf Entscheidungsqualität, strategische Belastbarkeit und Umsetzbarkeit.",
     fb2WithoutToolScenario:
       "Stellen Sie sich vor, Sie analysieren Optimierungs- und Erneuerungsoptionen ohne KI-Unterstützung — mit manueller Datenaufbereitung, Workshops, Szenariovergleich, Portfolioanalysen und Entscheidungsdokumenten.\n\n" +
       "Typische Schritte: Ineffizienzen und Kostentreiber identifizieren; Produkt-/Leistungsportfolio bewerten; strategische Alternativen inklusive Exit-/Transformationspfaden vergleichen; Risiken und Abhängigkeiten dokumentieren; priorisierte Maßnahmen mit Zeit- und Ressourcenplan festhalten.\n\n" +
       "Bewerten Sie, wie komplex und belastend dieser Prozess ohne KI-Unterstützung wäre — bevor Sie die KI-gestützten Prozesse einsetzen.",
   },
   erneuerung_exit: {
-    phase: "Erneuerung / Exit / Transformation",
+    phase: "Strategische Optionen / Exit / Transformation",
     workflowKeys: ["WF_STRATEGIC_OPTIONS"],
     fb2WorkflowKeys: ["WF_STRATEGIC_OPTIONS"],
     description:
-      "Wir befinden uns in der Phase Erneuerung / Exit / Transformation. Diese Phase ist wichtig, weil grundlegende strategische Weichenstellungen vorbereitet werden.",
+      "Wir befinden uns in der Phase Strategische Optionen / Exit / Transformation. Diese Phase ist wichtig, weil grundlegende strategische Weichenstellungen vorbereitet werden.",
     important: [
-      "Strategische Optionen strukturiert vergleichen",
+      "Strategische Optionen inkl. Unternehmenswert, Exit-Kanälen und Expansion strukturiert vergleichen",
       "Risiken und Abhängigkeiten offen bewerten",
       "Klare Entscheidungslogik für Transformation oder Exit dokumentieren",
     ],
@@ -273,8 +297,8 @@ const STUDY_CATEGORY_CONTEXT_EN: Record<StudyCategoryKey, StudyCategoryLocaleBlo
   },
   wachstum_expansion: {
     phase: "Growth phase",
-    workflowKeys: ["WF_SCALING_STRATEGY", "WF_GROWTH_MARGIN_OPTIMIZATION", "WF_NEXT_BEST_ACTIONS"],
-    fb2WorkflowKeys: ["WF_SCALING_STRATEGY", "WF_GROWTH_MARGIN_OPTIMIZATION", "WF_NEXT_BEST_ACTIONS"],
+    workflowKeys: ["WF_SCALING_STRATEGY", "WF_GROWTH_MARGIN_OPTIMIZATION", "WF_GROWTH_OFFER_AUDIENCE_FUNNEL", "WF_GROWTH_PAID_ADS", "WF_GROWTH_SEO", "WF_GROWTH_RETENTION_CONTENT", "WF_GROWTH_EXECUTION_PLAN", "WF_NEXT_BEST_ACTIONS"],
+    fb2WorkflowKeys: ["WF_SCALING_STRATEGY", "WF_GROWTH_MARGIN_OPTIMIZATION", "WF_GROWTH_OFFER_AUDIENCE_FUNNEL", "WF_GROWTH_PAID_ADS", "WF_GROWTH_SEO", "WF_GROWTH_RETENTION_CONTENT", "WF_GROWTH_EXECUTION_PLAN", "WF_NEXT_BEST_ACTIONS"],
     description:
       "You are in the growth phase. This phase is important because priorities, scaling, and operations are aligned.",
     important: [
@@ -309,17 +333,41 @@ const STUDY_CATEGORY_CONTEXT_EN: Record<StudyCategoryKey, StudyCategoryLocaleBlo
   },
   reifephase: {
     phase: "Maturity / renewal",
-    workflowKeys: ["WF_PROCESS_OPTIMIZATION", "WF_PORTFOLIO_MANAGEMENT", "WF_STRATEGIC_OPTIONS"],
-    fb2WorkflowKeys: ["WF_PROCESS_OPTIMIZATION", "WF_PORTFOLIO_MANAGEMENT", "WF_STRATEGIC_OPTIONS"],
+    workflowKeys: [
+      "WF_DIAGNOSTIC",
+      "WF_GROWTH_MARGIN_OPTIMIZATION",
+      "WF_SCALING_STRATEGY",
+      "WF_PROCESS_OPTIMIZATION",
+      "WF_TECH_DIGITALIZATION",
+      "WF_AUTOMATION_ROI",
+      "WF_PHYSICAL_AUTOMATION",
+      "WF_APP_DEVELOPMENT",
+      "WF_PORTFOLIO_MANAGEMENT",
+      "WF_SUBSIDY_RESEARCH",
+      "WF_STRATEGIC_OPTIONS",
+    ],
+    fb2WorkflowKeys: [
+      "WF_DIAGNOSTIC",
+      "WF_GROWTH_MARGIN_OPTIMIZATION",
+      "WF_SCALING_STRATEGY",
+      "WF_PROCESS_OPTIMIZATION",
+      "WF_TECH_DIGITALIZATION",
+      "WF_AUTOMATION_ROI",
+      "WF_PHYSICAL_AUTOMATION",
+      "WF_APP_DEVELOPMENT",
+      "WF_PORTFOLIO_MANAGEMENT",
+      "WF_SUBSIDY_RESEARCH",
+      "WF_STRATEGIC_OPTIONS",
+    ],
     description:
-      "You are in the maturity phase. This phase is important because efficiency, portfolio decisions, and strategic renewal are prepared systematically.",
+      "You are in the optimization phase. This phase is important because efficiency, portfolio decisions, subsidy opportunities, and strategic renewal are prepared systematically.",
     important: [
       "Increase efficiency and profitability",
       "Make portfolio decisions traceable",
       "Compare strategic options including risks transparently",
     ],
     fb3Description:
-      "Rate maturity-phase outputs by decision quality, strategic robustness, and practical applicability.",
+      "Rate optimization-phase outputs by decision quality, strategic robustness, and practical applicability.",
     fb2WithoutToolScenario:
       "Imagine you evaluate optimization and renewal options without AI support — using manual data preparation, workshops, scenario comparisons, portfolio analyses, and decision documents.\n\n" +
       "Typical steps: identify inefficiencies and cost drivers; evaluate product/service portfolio; compare strategic alternatives including transformation or exit paths; document risks and dependencies; define prioritized actions with timeline and ownership.\n\n" +
@@ -330,7 +378,7 @@ const STUDY_CATEGORY_CONTEXT_EN: Record<StudyCategoryKey, StudyCategoryLocaleBlo
     workflowKeys: ["WF_STRATEGIC_OPTIONS"],
     fb2WorkflowKeys: ["WF_STRATEGIC_OPTIONS"],
     description:
-      "You are in the renewal/exit/transformation phase. This phase is important because foundational strategic directions are prepared.",
+      "You are in the strategic options / exit / transformation phase. This phase is important because foundational strategic directions are prepared.",
     important: [
       "Compare strategic options structurally",
       "Assess risks and dependencies transparently",

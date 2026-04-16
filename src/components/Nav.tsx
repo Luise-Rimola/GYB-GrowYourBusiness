@@ -106,22 +106,20 @@ export default function Nav({ userEmail }: { userEmail?: string | null }) {
               )}
             </svg>
           </button>
-          <Link
+          <a
             href={isAuthed ? "/home" : "/"}
-            prefetch={false}
             className="text-lg font-semibold tracking-tight text-[var(--foreground)] transition hover:text-teal-600 dark:hover:text-teal-400"
           >
             Grow Your Business
-          </Link>
+          </a>
         </div>
 
         {/* Desktop nav + Settings */}
         {!isAuthed && (
           <div className="hidden items-center gap-2 md:flex">
             <div className="inline-flex rounded-xl border border-[var(--card-border)] bg-[var(--background)]/70 p-1">
-              <Link
+              <a
                 href="/login?next=%2Fhome"
-                prefetch={false}
                 className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
                   !pathname.startsWith("/dashboard/mosaic")
                     ? "bg-teal-600 text-white"
@@ -129,10 +127,9 @@ export default function Nav({ userEmail }: { userEmail?: string | null }) {
                 }`}
               >
                 {studyTabLabel}
-              </Link>
-              <Link
+              </a>
+              <a
                 href="/login?next=%2Fdashboard%2Fmosaic"
-                prefetch={false}
                 className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
                   pathname.startsWith("/dashboard/mosaic")
                     ? "bg-teal-600 text-white"
@@ -140,7 +137,7 @@ export default function Nav({ userEmail }: { userEmail?: string | null }) {
                 }`}
               >
                 {dashboardTabLabel}
-              </Link>
+              </a>
             </div>
           </div>
         )}
@@ -148,9 +145,8 @@ export default function Nav({ userEmail }: { userEmail?: string | null }) {
         {isAuthed && (
           <div className="hidden items-center gap-2 md:flex">
             <div className="inline-flex rounded-xl border border-[var(--card-border)] bg-[var(--background)]/70 p-1">
-              <Link
+              <a
                 href="/home"
-                prefetch={false}
                 className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
                   !pathname.startsWith("/dashboard/mosaic")
                     ? "bg-teal-600 text-white"
@@ -158,10 +154,9 @@ export default function Nav({ userEmail }: { userEmail?: string | null }) {
                 }`}
               >
                 {studyTabLabel}
-              </Link>
-              <Link
+              </a>
+              <a
                 href="/dashboard/mosaic"
-                prefetch={false}
                 className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
                   pathname.startsWith("/dashboard/mosaic")
                     ? "bg-teal-600 text-white"
@@ -169,7 +164,7 @@ export default function Nav({ userEmail }: { userEmail?: string | null }) {
                 }`}
               >
                 {dashboardTabLabel}
-              </Link>
+              </a>
             </div>
           </div>
         )}

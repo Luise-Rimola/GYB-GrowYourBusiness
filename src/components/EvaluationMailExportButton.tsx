@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { fetchApi } from "@/lib/apiClient";
 
 type Props = {
   locale: "de" | "en";
@@ -60,7 +61,7 @@ export function EvaluationMailExportButton({ locale, scenarioCount, useCaseCount
     setSendMessage("");
     setSending(true);
     try {
-      const res = await fetch("/api/evaluation/send-anonymized-email", {
+      const res = await fetchApi("/api/evaluation/send-anonymized-email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ locale }),

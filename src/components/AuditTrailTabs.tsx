@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ReadableDataView } from "@/components/ReadableDataView";
 import { ConfirmDeleteForm } from "@/components/ConfirmDeleteForm";
 
@@ -10,6 +10,7 @@ type StepData = {
   stepKey: string;
   stepLabel: string;
   stepNum: number;
+  isSaved: boolean;
   parsedOutputJson: unknown;
   validationErrorsJson: unknown;
   schemaValidationPassed: boolean;
@@ -35,6 +36,8 @@ export function AuditTrailTabs({
   deleteStep,
   updateStep,
 }: AuditTrailTabsProps) {
+  const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const [activeIndex, setActiveIndex] = useState(0);
   const active = steps[activeIndex];
@@ -69,7 +72,12 @@ export function AuditTrailTabs({
           <button
             key={step.id}
             type="button"
-            onClick={() => setActiveIndex(i)}
+            onClick={() => {
+              setActiveIndex(i);
+              const params = new URLSearchParams(searchParams.toString());
+              params.set("step", String(Math.max(0, step.stepNum - 1)));
+              router.replace(`${pathname}?${params.toString()}`);
+            }}
             className={`flex items-center gap-2 px-4 py-3 text-sm font-medium transition ${
               i === activeIndex
                 ? "border-b-2 border-teal-600 bg-[var(--card)] text-[var(--foreground)] dark:border-teal-500"
@@ -89,14 +97,14 @@ export function AuditTrailTabs({
         <div className="p-5">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-2">
-              {active.verifiedByUser && (
+              {active.isSaved && active.verifiedByUser && (
                 <span className="text-xs font-medium text-teal-600 dark:text-teal-400">
                   ✓ Verifiziert
                 </span>
               )}
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              {!active.verifiedByUser && active.schemaValidationPassed && (
+              {active.isSaved && !active.verifiedByUser && active.schemaValidationPassed && (
                 <form action={verifyStep} className="inline">
                   <input type="hidden" name="step_id" value={active.id} />
                   <input type="hidden" name="run_id" value={runId} />
@@ -110,7 +118,7 @@ export function AuditTrailTabs({
                   </button>
                 </form>
               )}
-              {!active.schemaValidationPassed && (
+              {active.isSaved && !active.schemaValidationPassed && (
                 <ConfirmDeleteForm
                   action={deleteStep}
                   confirmMessage="Diesen Schritt löschen? Die Antwort wird entfernt und kann danach neu eingegeben werden."
@@ -128,7 +136,12 @@ export function AuditTrailTabs({
               )}
             </div>
           </div>
-          {!active.schemaValidationPassed && active.validationErrorsJson ? (
+          {!active.isSaved ? (
+            <div className="mb-4 rounded-xl border border-[var(--card-border)] bg-slate-50 p-3 text-xs text-[var(--muted)] dark:bg-slate-900/30">
+              Für diesen Schritt ist noch kein Ergebnis gespeichert.
+            </div>
+          ) : null}
+          {active.isSaved && !active.schemaValidationPassed && active.validationErrorsJson ? (
             <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700 dark:border-rose-800 dark:bg-rose-950/30 dark:text-rose-300">
               Validierungsfehler:{" "}
               {Array.isArray(active.validationErrorsJson)
@@ -136,7 +149,7 @@ export function AuditTrailTabs({
                 : String(JSON.stringify(active.validationErrorsJson))}
             </div>
           ) : null}
-          {!active.schemaValidationPassed && active.userPastedResponse && (
+          {active.isSaved && !active.schemaValidationPassed && active.userPastedResponse && (
             <div className="mb-4 space-y-2">
               <form
                 id={`update-step-${active.id}`}
@@ -185,14 +198,16 @@ export function AuditTrailTabs({
               </div>
             </div>
           )}
-          {active.verificationNotes && (
+          {active.isSaved && active.verificationNotes && (
             <p className="mb-4 text-xs text-[var(--muted)]">
               Notizen: {active.verificationNotes}
             </p>
           )}
           <ReadableDataView
             data={
-              active.parsedOutputJson ?? { errors: active.validationErrorsJson }
+              active.isSaved
+                ? (active.parsedOutputJson ?? { errors: active.validationErrorsJson })
+                : { info: "Noch kein Ergebnis gespeichert." }
             }
             collapsible={false}
           />

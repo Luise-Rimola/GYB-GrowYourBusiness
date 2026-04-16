@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { fetchApi } from "@/lib/apiClient";
 
 export type ChecklistClientLabels = {
   addCategory: string;
@@ -70,7 +71,7 @@ export function ChecklistClient({ companyId, stages, labels, locale }: Props) {
   const normalizeLabel = (value: string) => (locale === "de" ? DE_LABELS[value] ?? value : value);
 
   async function toggleStep(stepId: string, done: boolean) {
-    await fetch("/api/checklist/step", {
+    await fetchApi("/api/checklist/step", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ stepId, done }),
@@ -79,7 +80,7 @@ export function ChecklistClient({ companyId, stages, labels, locale }: Props) {
   }
 
   async function setStageAllNo(stageId: string) {
-    await fetch("/api/checklist/stage-reset", {
+    await fetchApi("/api/checklist/stage-reset", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ stageId, done: false }),
@@ -90,7 +91,7 @@ export function ChecklistClient({ companyId, stages, labels, locale }: Props) {
   async function addStage() {
     const name = newStageName.trim();
     if (!name) return;
-    await fetch("/api/checklist/stage", {
+    await fetchApi("/api/checklist/stage", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ companyId, name }),
@@ -102,7 +103,7 @@ export function ChecklistClient({ companyId, stages, labels, locale }: Props) {
   async function addStep(stageId: string) {
     const label = (newStepByStage[stageId] ?? "").trim();
     if (!label) return;
-    await fetch("/api/checklist/step", {
+    await fetchApi("/api/checklist/step", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ stageId, label }),

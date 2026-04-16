@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { fetchApi } from "@/lib/apiClient";
 import { getIntakeFormCopy } from "@/lib/intakeFormLocale";
 
 export type ProductRow = { name: string; sku?: string; price: string; unit?: string; notes?: string };
@@ -122,7 +123,7 @@ export function IntakeForm({
     }
     setEnrichBusy(true);
     try {
-      const res = await fetch("/api/profile/enrich-company", {
+      const res = await fetchApi("/api/profile/enrich-company", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ company_name, website, location }),

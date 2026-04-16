@@ -133,7 +133,7 @@ function formatValue(val: unknown): React.ReactNode {
   if (typeof val === "boolean") return val ? "Ja" : "Nein";
   if (typeof val === "number") return val.toLocaleString("de-DE");
   if (Array.isArray(val)) {
-    if (val.length === 0) return null;
+    if (val.length === 0) return <span className="text-[var(--muted)]">(leer)</span>;
     if (val.every((v) => typeof v === "string")) {
       return (
         <ul className="mt-1 list-inside list-disc space-y-0.5 text-sm">
@@ -170,7 +170,6 @@ function ReadableDataContent({ data }: { data: Record<string, unknown> }) {
       v !== null &&
       v !== undefined &&
       v !== "" &&
-      !(Array.isArray(v) && v.length === 0) &&
       !(typeof v === "object" && !Array.isArray(v) && Object.keys(v).length === 0)
   );
   if (entries.length === 0) return <span className="text-[var(--muted)]">—</span>;

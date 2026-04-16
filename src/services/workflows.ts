@@ -1,4 +1,5 @@
 import { $Enums, Prisma } from "@prisma/client";
+import { after } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { randomUUID } from "crypto";
 import { validateStrictJson } from "@/lib/validators";
@@ -46,7 +47,13 @@ async function createArtifactWithEnumFallback(params: {
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    if (msg.includes("Invalid value") || msg.includes("Expected ArtifactType") || msg.includes("PrismaClientValidationError")) {
+    if (
+      msg.includes("Invalid value") ||
+      msg.includes("Expected ArtifactType") ||
+      msg.includes("PrismaClientValidationError") ||
+      msg.includes("invalid input value for enum") ||
+      msg.includes("22P02")
+    ) {
       const id = "c" + randomUUID().replace(/-/g, "").slice(0, 24);
       const contentStr = JSON.stringify(params.contentJson);
       const exportVal = params.exportHtml ?? "";
@@ -233,6 +240,13 @@ import {
   growthLoopsSchema,
   capitalStrategySchema,
   growthMarginOptimizationSchema,
+  growthBusinessSummarySchema,
+  growthOfferAudienceFunnelSchema,
+  growthPaidAdsSchema,
+  growthSeoSchema,
+  growthRetentionContentSchema,
+  growthExecutionPlanSchema,
+  subsidyResearchSchema,
   marketingStrategySchema,
   portfolioManagementSchema,
   scenarioAnalysisSchema,
@@ -258,7 +272,8 @@ export const WorkflowService = {
       data: {
         companyId,
         workflowKey,
-        status: "draft",
+        status: "running",
+        startedAt: new Date(),
         inputSnapshotJson: inputSnapshot as object,
         createdBy: createdByUser,
       },
@@ -274,6 +289,11 @@ export const WorkflowService = {
     promptTemplateVersion?: number;
     /** When true (e.g. /api/run-step/execute), mark step verified if JSON validates — no extra manual click. */
     autoVerify?: boolean;
+    /**
+     * When true (API route only): RunStep row is written synchronously; artifacts / HTML / follow-up DB work
+     * runs in `after()` so the HTTP response returns before heavy post-processing (Kimi is already done).
+     */
+    deferSideEffects?: boolean;
   }) {
     const validation = validateStrictJson(params.userResponse, params.schemaKey);
 
@@ -284,15 +304,21 @@ export const WorkflowService = {
       orderBy: { createdAt: "desc" },
     });
 
+    let storedUserResponse: string;
+    if (validation.ok && validation.data != null) {
+      const compact = JSON.stringify(validation.data);
+      storedUserResponse = compact.length > 80_000 ? compact : JSON.stringify(validation.data, null, 2);
+    } else {
+      storedUserResponse = params.userResponse;
+    }
+
     const stepData = {
       promptRendered: params.promptRendered,
       promptTemplateVersion: params.promptTemplateVersion,
-      userPastedResponse: validation.ok
-        ? JSON.stringify(validation.data, null, 2)
-        : params.userResponse,
-      parsedOutputJson: validation.ok ? (validation.data as object) : undefined,
+      userPastedResponse: storedUserResponse,
+      parsedOutputJson: validation.ok ? (validation.data as object) : Prisma.JsonNull,
       schemaValidationPassed: validation.ok,
-      validationErrorsJson: validation.ok ? undefined : (validation.errors as object),
+      validationErrorsJson: validation.ok ? Prisma.JsonNull : (validation.errors as object),
       verifiedByUser: validation.ok && params.autoVerify === true,
     };
 
@@ -303,6 +329,7 @@ export const WorkflowService = {
         });
 
     if (validation.ok) {
+      const execSideEffects = async () => {
       const run = await prisma.run.findUnique({ where: { id: params.runId }, include: { steps: true } });
       if (run) {
         const strategyIndicatorPayload =
@@ -678,12 +705,16 @@ export const WorkflowService = {
         } else if (params.stepKey === "startup_consulting") {
           const parsed = startupConsultingSchema.safeParse(validation.data);
           if (parsed.success) {
+            const startupGuideTitle =
+              run.workflowKey === "WF_LEGAL_FOUNDATION"
+                ? "Rechtliche Vorgaben & Unternehmensform"
+                : "Funding";
             await prisma.artifact.create({
               data: {
                 companyId: run.companyId,
                 runId: run.id,
                 type: "startup_guide",
-                title: "Funding",
+                title: startupGuideTitle,
                 version: 1,
                 contentJson: parsed.data as object,
                 exportHtml: this.renderStartupConsultingHtml(parsed.data),
@@ -778,12 +809,16 @@ export const WorkflowService = {
         } else if (params.stepKey === "strategic_options") {
           const parsed = strategicOptionsSchema.safeParse(validation.data);
           if (parsed.success) {
+            const strategicOptionsTitle =
+              run.workflowKey === "WF_PATENT_CHECK"
+                ? "Patentrecht & Schutzfähigkeit"
+                : "Strategic Options";
             await prisma.artifact.create({
               data: {
                 companyId: run.companyId,
                 runId: run.id,
                 type: "strategic_options",
-                title: "Strategic Options",
+                title: strategicOptionsTitle,
                 version: 1,
                 contentJson: parsed.data as object,
                 exportHtml: this.renderStrategicOptionsHtml(parsed.data),
@@ -810,11 +845,15 @@ export const WorkflowService = {
         } else if (params.stepKey === "value_proposition") {
           const parsed = valuePropositionSchema.safeParse(validation.data);
           if (parsed.success) {
+            const valuePropositionTitle =
+              run.workflowKey === "WF_IDEA_USP_VALIDATION"
+                ? "Idee- & USP-Validierung"
+                : "Value Proposition & Problem-Solution-Fit";
             const artifactData = {
               companyId: run.companyId,
               runId: run.id,
               type: $Enums.ArtifactType.value_proposition,
-              title: "Value Proposition & Problem-Solution-Fit",
+              title: valuePropositionTitle,
               version: 1,
               contentJson: toPrismaJson(parsed.data),
               exportHtml: this.renderValuePropositionHtml(parsed.data) ?? undefined,
@@ -950,6 +989,97 @@ export const WorkflowService = {
                 contentJson: parsed.data as object,
                 exportHtml: this.renderGrowthMarginOptimizationHtml(parsed.data),
               },
+            });
+            await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
+          }
+        } else if (params.stepKey === "growth_business_summary") {
+          const parsed = growthBusinessSummarySchema.safeParse(validation.data);
+          if (parsed.success) {
+            await createArtifactWithEnumFallback({
+              companyId: run.companyId,
+              runId: run.id,
+              type: "growth_business_summary",
+              title: "Growth Business Summary",
+              contentJson: parsed.data as object,
+              exportHtml: null,
+            });
+            await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
+          }
+        } else if (params.stepKey === "growth_offer_audience_funnel") {
+          const parsed = growthOfferAudienceFunnelSchema.safeParse(validation.data);
+          if (parsed.success) {
+            await createArtifactWithEnumFallback({
+              companyId: run.companyId,
+              runId: run.id,
+              type: "growth_offer_audience_funnel",
+              title: "Offer, Audience & Funnel Analysis",
+              contentJson: parsed.data as object,
+              exportHtml: null,
+            });
+            await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
+          }
+        } else if (params.stepKey === "growth_paid_ads") {
+          const parsed = growthPaidAdsSchema.safeParse(validation.data);
+          if (parsed.success) {
+            await createArtifactWithEnumFallback({
+              companyId: run.companyId,
+              runId: run.id,
+              type: "growth_paid_ads",
+              title: "Meta & Google Ads Readiness",
+              contentJson: parsed.data as object,
+              exportHtml: null,
+            });
+            await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
+          }
+        } else if (params.stepKey === "growth_seo") {
+          const parsed = growthSeoSchema.safeParse(validation.data);
+          if (parsed.success) {
+            await createArtifactWithEnumFallback({
+              companyId: run.companyId,
+              runId: run.id,
+              type: "growth_seo",
+              title: "SEO Analysis",
+              contentJson: parsed.data as object,
+              exportHtml: null,
+            });
+            await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
+          }
+        } else if (params.stepKey === "growth_retention_content") {
+          const parsed = growthRetentionContentSchema.safeParse(validation.data);
+          if (parsed.success) {
+            await createArtifactWithEnumFallback({
+              companyId: run.companyId,
+              runId: run.id,
+              type: "growth_retention_content",
+              title: "Retention, Content & UGC Strategy",
+              contentJson: parsed.data as object,
+              exportHtml: null,
+            });
+            await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
+          }
+        } else if (params.stepKey === "growth_execution_plan") {
+          const parsed = growthExecutionPlanSchema.safeParse(validation.data);
+          if (parsed.success) {
+            await createArtifactWithEnumFallback({
+              companyId: run.companyId,
+              runId: run.id,
+              type: "growth_execution_plan",
+              title: "KPI & 30/60/90 Execution Plan",
+              contentJson: parsed.data as object,
+              exportHtml: null,
+            });
+            await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
+          }
+        } else if (params.stepKey === "subsidy_research") {
+          const parsed = subsidyResearchSchema.safeParse(validation.data);
+          if (parsed.success) {
+            await createArtifactWithEnumFallback({
+              companyId: run.companyId,
+              runId: run.id,
+              type: "subsidy_research",
+              title: "Zuschuesse & Foerderprogramme",
+              contentJson: parsed.data as object,
+              exportHtml: null,
             });
             await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
           }
@@ -1156,11 +1286,10 @@ export const WorkflowService = {
             await createArtifactWithEnumFallback({
               companyId: run.companyId,
               runId: run.id,
-              // Fallback to a stable enum in DB environments where pestel_analysis is not migrated yet.
-              type: "trend_analysis",
+              type: "pestel_analysis",
               title: "PESTEL-Analyse",
               contentJson: parsed.data as object,
-              exportHtml: null,
+              exportHtml: this.renderPestelAnalysisHtml(parsed.data),
             });
             await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
           }
@@ -1303,6 +1432,17 @@ export const WorkflowService = {
           }
         }
       }
+      };
+
+      if (params.deferSideEffects) {
+        after(() => {
+          void execSideEffects().catch((err) =>
+            console.error("[WorkflowService.saveStep] deferred side effects failed:", err)
+          );
+        });
+      } else {
+        await execSideEffects();
+      }
     }
 
     return { step, validation };
@@ -1392,9 +1532,9 @@ export const WorkflowService = {
       where: { id: params.stepId },
       data: {
         userPastedResponse: params.userResponse,
-        parsedOutputJson: validation.ok ? (validation.data as object) : undefined,
+        parsedOutputJson: validation.ok ? (validation.data as object) : Prisma.JsonNull,
         schemaValidationPassed: validation.ok,
-        validationErrorsJson: validation.ok ? undefined : (validation.errors as object),
+        validationErrorsJson: validation.ok ? Prisma.JsonNull : (validation.errors as object),
         verifiedByUser: validation.ok && params.autoVerify === true,
       },
     });
@@ -1735,12 +1875,16 @@ export const WorkflowService = {
       } else if (step.stepKey === "startup_consulting") {
         const parsed = startupConsultingSchema.safeParse(validation.data);
         if (parsed.success) {
+          const startupGuideTitle =
+            run.workflowKey === "WF_LEGAL_FOUNDATION"
+              ? "Rechtliche Vorgaben & Unternehmensform"
+              : "Funding";
           await prisma.artifact.create({
             data: {
               companyId: run.companyId,
               runId: run.id,
               type: "startup_guide",
-              title: "Funding",
+              title: startupGuideTitle,
               version: 1,
               contentJson: parsed.data as object,
               exportHtml: this.renderStartupConsultingHtml(parsed.data),
@@ -1835,12 +1979,16 @@ export const WorkflowService = {
       } else if (step.stepKey === "strategic_options") {
         const parsed = strategicOptionsSchema.safeParse(validation.data);
         if (parsed.success) {
+          const strategicOptionsTitle =
+            run.workflowKey === "WF_PATENT_CHECK"
+              ? "Patentrecht & Schutzfähigkeit"
+              : "Strategic Options";
           await prisma.artifact.create({
             data: {
               companyId: run.companyId,
               runId: run.id,
               type: "strategic_options",
-              title: "Strategic Options",
+              title: strategicOptionsTitle,
               version: 1,
               contentJson: parsed.data as object,
               exportHtml: this.renderStrategicOptionsHtml(parsed.data),
@@ -1867,12 +2015,16 @@ export const WorkflowService = {
       } else if (step.stepKey === "value_proposition") {
         const parsed = valuePropositionSchema.safeParse(validation.data);
         if (parsed.success) {
+          const valuePropositionTitle =
+            run.workflowKey === "WF_IDEA_USP_VALIDATION"
+              ? "Idee- & USP-Validierung"
+              : "Value Proposition & Problem-Solution-Fit";
           await prisma.artifact.create({
             data: {
               companyId: run.companyId,
               runId: run.id,
               type: $Enums.ArtifactType.value_proposition,
-              title: "Value Proposition & Problem-Solution-Fit",
+              title: valuePropositionTitle,
               version: 1,
               contentJson: toPrismaJson(parsed.data),
               exportHtml: this.renderValuePropositionHtml(parsed.data),
@@ -2003,6 +2155,97 @@ export const WorkflowService = {
               contentJson: parsed.data as object,
               exportHtml: this.renderGrowthMarginOptimizationHtml(parsed.data),
             },
+          });
+          await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
+        }
+      } else if (step.stepKey === "growth_business_summary") {
+        const parsed = growthBusinessSummarySchema.safeParse(validation.data);
+        if (parsed.success) {
+          await createArtifactWithEnumFallback({
+            companyId: run.companyId,
+            runId: run.id,
+            type: "growth_business_summary",
+            title: "Growth Business Summary",
+            contentJson: parsed.data as object,
+            exportHtml: null,
+          });
+          await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
+        }
+      } else if (step.stepKey === "growth_offer_audience_funnel") {
+        const parsed = growthOfferAudienceFunnelSchema.safeParse(validation.data);
+        if (parsed.success) {
+          await createArtifactWithEnumFallback({
+            companyId: run.companyId,
+            runId: run.id,
+            type: "growth_offer_audience_funnel",
+            title: "Offer, Audience & Funnel Analysis",
+            contentJson: parsed.data as object,
+            exportHtml: null,
+          });
+          await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
+        }
+      } else if (step.stepKey === "growth_paid_ads") {
+        const parsed = growthPaidAdsSchema.safeParse(validation.data);
+        if (parsed.success) {
+          await createArtifactWithEnumFallback({
+            companyId: run.companyId,
+            runId: run.id,
+            type: "growth_paid_ads",
+            title: "Meta & Google Ads Readiness",
+            contentJson: parsed.data as object,
+            exportHtml: null,
+          });
+          await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
+        }
+      } else if (step.stepKey === "growth_seo") {
+        const parsed = growthSeoSchema.safeParse(validation.data);
+        if (parsed.success) {
+          await createArtifactWithEnumFallback({
+            companyId: run.companyId,
+            runId: run.id,
+            type: "growth_seo",
+            title: "SEO Analysis",
+            contentJson: parsed.data as object,
+            exportHtml: null,
+          });
+          await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
+        }
+      } else if (step.stepKey === "growth_retention_content") {
+        const parsed = growthRetentionContentSchema.safeParse(validation.data);
+        if (parsed.success) {
+          await createArtifactWithEnumFallback({
+            companyId: run.companyId,
+            runId: run.id,
+            type: "growth_retention_content",
+            title: "Retention, Content & UGC Strategy",
+            contentJson: parsed.data as object,
+            exportHtml: null,
+          });
+          await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
+        }
+      } else if (step.stepKey === "growth_execution_plan") {
+        const parsed = growthExecutionPlanSchema.safeParse(validation.data);
+        if (parsed.success) {
+          await createArtifactWithEnumFallback({
+            companyId: run.companyId,
+            runId: run.id,
+            type: "growth_execution_plan",
+            title: "KPI & 30/60/90 Execution Plan",
+            contentJson: parsed.data as object,
+            exportHtml: null,
+          });
+          await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
+        }
+      } else if (step.stepKey === "subsidy_research") {
+        const parsed = subsidyResearchSchema.safeParse(validation.data);
+        if (parsed.success) {
+          await createArtifactWithEnumFallback({
+            companyId: run.companyId,
+            runId: run.id,
+            type: "subsidy_research",
+            title: "Zuschuesse & Foerderprogramme",
+            contentJson: parsed.data as object,
+            exportHtml: null,
           });
           await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
         }
@@ -2271,11 +2514,10 @@ export const WorkflowService = {
           await createArtifactWithEnumFallback({
             companyId: run.companyId,
             runId: run.id,
-            // Fallback to a stable enum in DB environments where pestel_analysis is not migrated yet.
-            type: "trend_analysis",
+            type: "pestel_analysis",
             title: "PESTEL-Analyse",
             contentJson: parsed.data as object,
-            exportHtml: null,
+            exportHtml: this.renderPestelAnalysisHtml(parsed.data),
           });
           await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
         }
@@ -2839,12 +3081,27 @@ export const WorkflowService = {
     `;
   },
 
-  renderStrategicOptionsHtml(data: { strategic_options?: Array<{ option: string; type: string; description: string }>; recommendations?: string[] }) {
+  renderStrategicOptionsHtml(data: {
+    strategic_options?: Array<{ option: string; type: string; description: string }>;
+    company_valuation_estimate?: { valuation_range?: string; method_hint?: string; key_drivers?: string[] };
+    exit_channels?: Array<{ channel: string; platform_examples?: string[]; suitability?: string }>;
+    legal_form_change_options?: Array<{ from_form?: string; to_form: string; when_useful: string }>;
+    expansion_options?: Array<{ target_market_or_region: string; entry_model: string; rationale?: string }>;
+    recommendations?: string[];
+  }) {
     const options = data.strategic_options ?? [];
+    const valuation = data.company_valuation_estimate;
+    const exitChannels = data.exit_channels ?? [];
+    const legalFormChanges = data.legal_form_change_options ?? [];
+    const expansionOptions = data.expansion_options ?? [];
     const recs = data.recommendations ?? [];
     return `
       <h3>Strategic Options</h3>
       <ul>${options.map((o) => `<li><strong>${o.option}</strong> (${o.type}): ${o.description}</li>`).join("")}</ul>
+      ${valuation ? `<h3>Unternehmenswert-Schätzung</h3><p><strong>Range:</strong> ${valuation.valuation_range ?? "—"}<br/><strong>Methode:</strong> ${valuation.method_hint ?? "—"}</p>${(valuation.key_drivers ?? []).length ? `<ul>${(valuation.key_drivers ?? []).map((k) => `<li>${k}</li>`).join("")}</ul>` : ""}` : ""}
+      ${exitChannels.length ? `<h3>Verkaufsoptionen & Plattformen</h3><ul>${exitChannels.map((c) => `<li><strong>${c.channel}</strong>${(c.platform_examples ?? []).length ? ` – Plattformen: ${(c.platform_examples ?? []).join(", ")}` : ""}${c.suitability ? ` (${c.suitability})` : ""}</li>`).join("")}</ul>` : ""}
+      ${legalFormChanges.length ? `<h3>Unternehmensformwechsel</h3><ul>${legalFormChanges.map((l) => `<li>${l.from_form ? `${l.from_form} → ` : ""}<strong>${l.to_form}</strong>: ${l.when_useful}</li>`).join("")}</ul>` : ""}
+      ${expansionOptions.length ? `<h3>Expansion</h3><ul>${expansionOptions.map((e) => `<li><strong>${e.target_market_or_region}</strong> (${e.entry_model})${e.rationale ? `: ${e.rationale}` : ""}</li>`).join("")}</ul>` : ""}
       ${recs.length ? `<h3>Recommendations</h3><ul>${recs.map((r) => `<li>${r}</li>`).join("")}</ul>` : ""}
     `;
   },
@@ -3109,6 +3366,34 @@ export const WorkflowService = {
     `;
   },
 
+  renderPestelAnalysisHtml(data: {
+    political?: Array<{ factor: string; impact: string; risk_level?: string }>;
+    economic?: Array<{ factor: string; impact: string; risk_level?: string }>;
+    social?: Array<{ factor: string; impact: string; risk_level?: string }>;
+    technological?: Array<{ factor: string; impact: string; risk_level?: string }>;
+    environmental?: Array<{ factor: string; impact: string; risk_level?: string }>;
+    legal?: Array<{ factor: string; impact: string; risk_level?: string }>;
+    key_implications?: string[];
+    recommendations?: string[];
+  }) {
+    const section = (title: string, items: Array<{ factor: string; impact: string; risk_level?: string }> = []) =>
+      `<h3>${title}</h3><ul>${items
+        .map((it) => `<li><strong>${it.factor}</strong>: ${it.impact}${it.risk_level ? ` (${it.risk_level})` : ""}</li>`)
+        .join("")}</ul>`;
+    const implications = data.key_implications ?? [];
+    const recommendations = data.recommendations ?? [];
+    return `
+      ${section("Political", data.political)}
+      ${section("Economic", data.economic)}
+      ${section("Social", data.social)}
+      ${section("Technological", data.technological)}
+      ${section("Environmental", data.environmental)}
+      ${section("Legal", data.legal)}
+      ${implications.length ? `<h3>Key implications</h3><ul>${implications.map((i) => `<li>${i}</li>`).join("")}</ul>` : ""}
+      ${recommendations.length ? `<h3>Recommendations</h3><ul>${recommendations.map((r) => `<li>${r}</li>`).join("")}</ul>` : ""}
+    `;
+  },
+
   async verifyStep(stepId: string, notes?: string) {
     return prisma.runStep.update({
       where: { id: stepId },
@@ -3181,6 +3466,7 @@ export const WorkflowService = {
         schemaKey: "growth_margin_optimization",
         type: "growth_margin_optimization",
       },
+      WF_SUBSIDY_RESEARCH: { stepKey: "subsidy_research", schemaKey: "subsidy_research", type: "subsidy_research" },
       WF_PORTFOLIO_MANAGEMENT: { stepKey: "portfolio_management", schemaKey: "portfolio_management", type: "portfolio_management" },
       WF_SCENARIO_ANALYSIS: { stepKey: "scenario_analysis", schemaKey: "scenario_analysis", type: "scenario_analysis" },
       WF_OPERATIVE_PLAN: { stepKey: "operative_plan", schemaKey: "operative_plan", type: "operative_plan" },
@@ -3196,9 +3482,9 @@ export const WorkflowService = {
       { stepKey: "best_practices", type: "best_practices" },
       { stepKey: "failure_reasons", type: "failure_analysis" },
     ];
-    const wfTrendSteps: Array<{ stepKey: string; type: "trend_analysis" }> = [
+    const wfTrendSteps: Array<{ stepKey: string; type: "trend_analysis" | "pestel_analysis" }> = [
       { stepKey: "trend_analysis", type: "trend_analysis" },
-      { stepKey: "pestel_analysis", type: "trend_analysis" },
+      { stepKey: "pestel_analysis", type: "pestel_analysis" },
     ];
 
     const wfFinancialSteps: Array<{ stepKey: string; type: "work_processes" | "personnel_plan" | "financial_planning" }> = [
@@ -3459,13 +3745,12 @@ export const WorkflowService = {
             await createArtifactWithEnumFallback({
               companyId: run.companyId,
               runId: run.id,
-              // Fallback to a stable enum in DB environments where pestel_analysis is not migrated yet.
-              type: "trend_analysis",
+              type: "pestel_analysis",
               title: "PESTEL-Analyse",
               contentJson: parsed.data as object,
-              exportHtml: null,
+              exportHtml: this.renderPestelAnalysisHtml(parsed.data),
             });
-            created.push("trend_analysis");
+            created.push("pestel_analysis");
           }
         }
       }

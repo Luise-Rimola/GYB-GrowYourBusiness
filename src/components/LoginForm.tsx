@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { getTranslations } from "@/lib/i18n";
+import { fetchApi } from "@/lib/apiClient";
 import { SUBMIT_BUTTON_PENDING_CLASS } from "@/lib/submitButtonStyle";
 
 export function LoginForm() {
@@ -24,7 +25,7 @@ export function LoginForm() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/auth/login", {
+      const res = await fetchApi("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.trim(), password }),

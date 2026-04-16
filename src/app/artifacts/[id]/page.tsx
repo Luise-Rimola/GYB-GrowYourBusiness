@@ -12,6 +12,7 @@ import { submitKpiAnswersAction, updateArtifactAction } from "@/app/actions";
 import { ArtifactEditor } from "@/components/ArtifactEditor";
 import { SourcesFooter } from "@/components/SourcesFooter";
 import { ArtifactContentMode } from "@/components/ArtifactContentMode";
+import { GrowthArtifactTabs } from "@/components/GrowthArtifactTabs";
 import { getEarlyWarningDetails, getEarlyWarningPrimaryRiskText, hasEarlyWarningSignal } from "@/lib/earlyWarning";
 import { EarlyWarningPopover } from "@/components/EarlyWarningPopover";
 import { getArtifactDocumentIntroDe } from "@/lib/artifactDocumentIntroDe";
@@ -43,8 +44,40 @@ export default async function ArtifactDetailPage({
 
   const content = await prepareArtifactReportContent(artifact);
   const primaryRiskText = getEarlyWarningPrimaryRiskText({ type: artifact.type, title: artifact.title, contentJson: content });
+  const artifactType = String(artifact.type);
 
   const ReportView = ARTIFACT_REPORT_VIEW_MAP[artifact.type] ?? null;
+  const isGrowthGuidedArtifact = artifactType === "growth_paid_ads" || artifactType === "growth_seo";
+  const isLegacyPestelStoredAsTrend = artifactType === "trend_analysis" && /pestel/i.test(artifact.title ?? "");
+  const pestelFallbackHtml = (() => {
+    const asRecord = (content ?? {}) as Record<string, unknown>;
+    const sections = ["political", "economic", "social", "technological", "environmental", "legal"] as const;
+    const hasPestelShape = sections.some((k) => Array.isArray(asRecord[k]));
+    if (!(artifactType === "pestel_analysis" || isLegacyPestelStoredAsTrend) || !hasPestelShape) return null;
+    const toList = (items: unknown) =>
+      Array.isArray(items)
+        ? items
+            .map((item) => {
+              const row = (item ?? {}) as Record<string, unknown>;
+              const factor = String(row.factor ?? "").trim();
+              const impact = String(row.impact ?? "").trim();
+              const risk = String(row.risk_level ?? "").trim();
+              if (!factor && !impact) return "";
+              return `<li><strong>${factor || "Faktor"}</strong>: ${impact || "—"}${risk ? ` (${risk})` : ""}</li>`;
+            })
+            .filter(Boolean)
+            .join("")
+        : "";
+    return sections
+      .map((k) => {
+        const entries = toList(asRecord[k]);
+        if (!entries) return "";
+        const title = k.charAt(0).toUpperCase() + k.slice(1);
+        return `<h3>${title}</h3><ul>${entries}</ul>`;
+      })
+      .join("");
+  })();
+  const reportHtml = artifact.exportHtml ?? pestelFallbackHtml;
 
   // For data_collection_plan with runId: fetch answers and show editable form
   let kpiAnswersSection: ReactNode = null;
@@ -158,11 +191,17 @@ export default async function ArtifactDetailPage({
             <>
               {ReportView ? (
                 <ReportView content={content} />
+              ) : isGrowthGuidedArtifact ? (
+                <GrowthArtifactTabs
+                  artifactType={artifactType as "growth_paid_ads" | "growth_seo"}
+                  content={content as Record<string, unknown>}
+                  locale={locale}
+                />
               ) : (
                 <div
                   className="max-w-none text-sm leading-relaxed text-slate-800 [&_h1]:mb-2 [&_h1]:text-lg [&_h1]:font-semibold [&_h2]:mb-2 [&_h2]:text-base [&_h2]:font-semibold [&_p]:mb-2 [&_ul]:mb-2 [&_ul]:list-disc [&_ul]:pl-5"
                   dangerouslySetInnerHTML={{
-                    __html: artifact.exportHtml ?? (isDe ? "<p><em>Kein Inhalt</em></p>" : "<p><em>No content</em></p>"),
+                    __html: reportHtml ?? (isDe ? "<p><em>Kein Inhalt</em></p>" : "<p><em>No content</em></p>"),
                   }}
                 />
               )}

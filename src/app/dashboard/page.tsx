@@ -21,6 +21,9 @@ function getWorkflowArtifactLabel(workflowKey: string, artifactType: string, loc
   if (workflowKey === "WF_IDEA_USP_VALIDATION" && artifactType === "value_proposition") {
     return locale === "de" ? "Idee- & USP-Validierung" : "Idea & USP validation";
   }
+  if (workflowKey === "WF_PATENT_CHECK" && artifactType === "strategic_options") {
+    return locale === "de" ? "Patentrecht & Schutzfähigkeit" : "Patents & protectability";
+  }
   if (workflowKey === "WF_LEGAL_FOUNDATION" && artifactType === "startup_guide") {
     return locale === "de" ? "Rechtliche Vorgaben & Unternehmensform" : "Legal requirements & legal form";
   }
@@ -47,8 +50,8 @@ export default async function DashboardPage({
     launch: "Founding / Launch Phase",
     scaling: "Growth Phase",
     tech_digital: "Technology & Digitalization",
-    maturity: "Maturity Phase",
-    renewal: "Renewal / Exit / Transformation",
+    maturity: "Strategy Phase",
+    renewal: "Strategic Options / Exit / Transformation",
   };
   const phaseGoalsEn: Record<string, string> = {
     ideation: "Validate whether a business idea is fundamentally viable.",
@@ -56,8 +59,8 @@ export default async function DashboardPage({
     launch: "Officially launch the company and generate first revenues.",
     scaling: "Increase revenue and gain market share.",
     tech_digital: "Identify suitable technology tools and automation options.",
-    maturity: "Maximize profitability and efficiency.",
-    renewal: "Reposition, transform, or prepare strategic exit options.",
+    maturity: "Optimize profitability, efficiency, and operational resilience.",
+    renewal: "Evaluate strategic options for value growth, legal setup changes, expansion, or exit.",
   };
   const phaseInstrumentsEn: Record<string, string[]> = {
     ideation: ["Problem-solution fit", "Market analysis", "Trend analysis", "Competitor analysis", "SWOT analysis", "Target-group analysis", "Value proposition design"],
@@ -65,8 +68,8 @@ export default async function DashboardPage({
     launch: ["Business plan", "Financial planning", "Legal form", "Pricing strategy", "Go-to-market strategy", "Marketing strategy", "Sales channels"],
     scaling: ["Business model scaling", "Automation", "Team building", "Marketing scale-up", "Sales systems"],
     tech_digital: ["POS system", "Document archiving", "Accounting", "RPA", "Physical automation", "Own app"],
-    maturity: ["Process optimization", "Cost management", "Portfolio management", "Brand strategy", "Internationalization"],
-    renewal: ["New business models", "New markets", "M&A", "IPO", "Succession planning"],
+    maturity: ["Root-cause analysis", "Margin and cost optimization", "Scaling readiness", "Process optimization", "Technology and digitalization", "Automation and app implementation", "Portfolio strategy", "Subsidies and funding programs"],
+    renewal: ["Company valuation estimate", "Exit channels & platforms", "M&A", "IPO", "Legal form change", "Expansion", "Succession planning"],
   };
   const workflowNamesEn: Record<string, string> = {
     WF_BASELINE: "Baseline analysis",
@@ -86,8 +89,15 @@ export default async function DashboardPage({
     WF_NEXT_BEST_ACTIONS: "Top decisions",
     WF_SCALING_STRATEGY: "Scaling strategy",
     WF_GROWTH_MARGIN_OPTIMIZATION: "Margin, offer & cost optimization",
+    WF_GROWTH_BUSINESS_SUMMARY: "Growth business summary",
+    WF_GROWTH_OFFER_AUDIENCE_FUNNEL: "Offer, audience & funnel",
+    WF_GROWTH_PAID_ADS: "Meta & Google Ads",
+    WF_GROWTH_SEO: "SEO analysis",
+    WF_GROWTH_RETENTION_CONTENT: "Retention, content & UGC",
+    WF_GROWTH_EXECUTION_PLAN: "KPI & 30/60/90 execution",
     WF_PROCESS_OPTIMIZATION: "Process optimization",
     WF_PORTFOLIO_MANAGEMENT: "Portfolio management",
+    WF_SUBSIDY_RESEARCH: "Subsidies & funding programs",
     WF_STRATEGIC_OPTIONS: "Strategic options",
     WF_KPI_ESTIMATION: "KPI estimation",
     WF_DATA_COLLECTION_PLAN: "Data collection plan",
@@ -124,14 +134,21 @@ export default async function DashboardPage({
     WF_DATA_COLLECTION_PLAN: ["Data collection plan"],
     WF_STARTUP_CONSULTING: ["Funding"],
     WF_CUSTOMER_VALIDATION: ["MVP", "Customer interviews", "Landing page tests", "Pilot customers", "Prototypes"],
-    WF_STRATEGIC_OPTIONS: ["New business models", "New markets", "M&A", "IPO", "Succession planning"],
+    WF_STRATEGIC_OPTIONS: ["Valuation estimate", "Exit channels/platforms", "Legal form change", "Expansion", "M&A", "IPO", "Succession planning"],
     WF_VALUE_PROPOSITION: ["Value proposition & problem-solution fit"],
     WF_GO_TO_MARKET: ["Go-to-market & pricing"],
     WF_MARKETING_STRATEGY: ["Marketing strategy"],
     WF_SCALING_STRATEGY: ["Scalability", "Automation", "Marketing scale-up", "Sales systems"],
     WF_GROWTH_MARGIN_OPTIMIZATION: ["Contribution margin", "Offer & packaging logic", "Marketing & ROI levers", "Costs, people, procurement & energy"],
+    WF_GROWTH_BUSINESS_SUMMARY: ["Business model", "Target market", "Growth levers"],
+    WF_GROWTH_OFFER_AUDIENCE_FUNNEL: ["Offer positioning", "Audience personas", "Funnel priorities"],
+    WF_GROWTH_PAID_ADS: ["Readiness score", "Meta campaign priorities", "Google campaign priorities"],
+    WF_GROWTH_SEO: ["Technical SEO", "On-page SEO", "Keyword clusters"],
+    WF_GROWTH_RETENTION_CONTENT: ["Email/SMS retention", "Content pillars", "UGC creative matrix"],
+    WF_GROWTH_EXECUTION_PLAN: ["KPI framework", "30/60/90 plan", "Draft artifacts"],
     WF_PROCESS_OPTIMIZATION: ["Process optimization", "Cost management", "Brand strategy", "Internationalization"],
     WF_PORTFOLIO_MANAGEMENT: ["Optimize product portfolio", "Expand market segments", "Strategic partnerships"],
+    WF_SUBSIDY_RESEARCH: ["Program fit", "Eligibility criteria", "Application process"],
     WF_SCENARIO_ANALYSIS: ["Scenario & risk analysis"],
     WF_OPERATIVE_PLAN: ["Operational plan"],
     WF_COMPETITOR_ANALYSIS: ["Competitor analysis"],
@@ -180,11 +197,11 @@ export default async function DashboardPage({
     }),
   ]);
 
-  // Fehlende Dokumente aus Läufen erstellen (z.B. work_processes bei WF_FINANCIAL_PLANNING, competitor_analysis bei WF_COMPETITOR_ANALYSIS)
-  const completeFinancialRun = recentRuns.find((r) => r.workflowKey === "WF_FINANCIAL_PLANNING" && r.status === "complete");
-  const competitorRun = runs.find((r) => r.workflowKey === "WF_COMPETITOR_ANALYSIS" && ["draft", "complete", "incomplete"].includes(r.status));
+  // Fehlende Dokumente aus vorhandenen (abgeschlossenen) Läufen nachziehen.
+  // Grund: In Altbeständen kann Step-Output existieren, aber Artefakte fehlen noch.
+  const runsNeedingArtifactBackfill = runs.filter((r) => r.status === "complete" || r.status === "approved");
   let anyCreated = false;
-  for (const runToFix of [completeFinancialRun, competitorRun].filter(Boolean)) {
+  for (const runToFix of runsNeedingArtifactBackfill) {
     if (!runToFix) continue;
     try {
       const { created } = await WorkflowService.createMissingArtifactsForRun(runToFix.id);
@@ -206,6 +223,91 @@ export default async function DashboardPage({
       runs.filter((r) => r.workflowKey === key).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
     ])
   );
+  function latestRunForWorkflow(workflowKey: string) {
+    const list = runsByWorkflow[workflowKey] ?? [];
+    return list[0];
+  }
+  function latestCompletedRunForWorkflow(workflowKey: string) {
+    const list = runsByWorkflow[workflowKey] ?? [];
+    return list.find((r) => r.status === "complete" || r.status === "approved");
+  }
+  function latestRunIsComplete(workflowKey: string) {
+    const latest = latestRunForWorkflow(workflowKey);
+    return Boolean(latest && (latest.status === "complete" || latest.status === "approved"));
+  }
+  function latestRunIsInProgress(workflowKey: string) {
+    const latest = latestRunForWorkflow(workflowKey);
+    return Boolean(latest && ["draft", "running", "incomplete"].includes(latest.status));
+  }
+  const workflowKeyByRunId = new Map<string, string>();
+  for (const run of runs) {
+    workflowKeyByRunId.set(run.id, run.workflowKey);
+  }
+  function findArtifactForWorkflowType(workflowKey: string, artifactType: string) {
+    const workflowRunIds = new Set((runsByWorkflow[workflowKey] ?? []).map((run) => run.id));
+    if (workflowKey === "WF_TREND_ANALYSIS") {
+      if (artifactType === "trend_analysis") {
+        const trendOnly = artifacts.find(
+          (a) =>
+            a.type === "trend_analysis" &&
+            a.runId &&
+            workflowRunIds.has(a.runId) &&
+            !/pestel/i.test(a.title ?? "")
+        );
+        if (trendOnly) return trendOnly;
+      }
+      if (artifactType === "pestel_analysis") {
+        const nativePestel = artifacts.find(
+          (a) => a.type === "pestel_analysis" && a.runId && workflowRunIds.has(a.runId)
+        );
+        if (nativePestel) return nativePestel;
+        // Compatibility: older PESTEL outputs can be stored as trend_analysis with "PESTEL" in title.
+        const pestelFallback = artifacts.find(
+          (a) =>
+            a.type === "trend_analysis" &&
+            a.runId &&
+            workflowRunIds.has(a.runId) &&
+            /pestel/i.test(a.title ?? "")
+        );
+        if (pestelFallback) return pestelFallback;
+      }
+    }
+    const scoped = artifacts.find(
+      (a) => a.type === artifactType && a.runId && workflowRunIds.has(a.runId)
+    );
+    if (scoped) return scoped;
+    return null;
+  }
+  function workflowHasPersistedOutput(workflowKey: string) {
+    if (workflowKey === "WF_BUSINESS_FORM") return hasProfile;
+    const wfArtifactTypes = WORKFLOW_TO_ARTIFACTS[workflowKey] ?? [];
+    return wfArtifactTypes.some((artifactType) => Boolean(findArtifactForWorkflowType(workflowKey, artifactType)));
+  }
+  function collectPhaseArtifacts(phase: (typeof PLANNING_PHASES)[number]) {
+    const result: Array<{ workflowKey: string; artifactType: string; artifact: (typeof artifacts)[number] }> = [];
+    for (const workflowKey of phase.workflowKeys) {
+      if (workflowKey === "WF_BUSINESS_FORM") continue;
+      const wfArtifactTypes = WORKFLOW_TO_ARTIFACTS[workflowKey] ?? [];
+      for (const artifactType of wfArtifactTypes) {
+        const artifact = findArtifactForWorkflowType(workflowKey, artifactType);
+        if (!artifact) continue;
+        result.push({ workflowKey, artifactType, artifact });
+      }
+    }
+    return result;
+  }
+  function artifactChipLabel(workflowKey: string, type: string, artifact: (typeof artifacts)[number]) {
+    if (workflowKey === "WF_IDEA_USP_VALIDATION" && type === "value_proposition") {
+      return getWorkflowArtifactLabel(workflowKey, type, locale);
+    }
+    if (workflowKey === "WF_PATENT_CHECK" && type === "strategic_options") {
+      return getWorkflowArtifactLabel(workflowKey, type, locale);
+    }
+    if (workflowKey === "WF_LEGAL_FOUNDATION" && type === "startup_guide") {
+      return getWorkflowArtifactLabel(workflowKey, type, locale);
+    }
+    return artifact.title || getWorkflowArtifactLabel(workflowKey ?? "", type, locale);
+  }
   const hasBaseline = !!baselineArtifact;
   const hasKpiSet = !!kpiSet;
   const hasProfile = !!profile && (profile.completenessScore ?? 0) >= 0.5;
@@ -242,7 +344,14 @@ export default async function DashboardPage({
     WF_GO_TO_MARKET: !hasBaseline || !hasMarketSnapshot,
     WF_SCALING_STRATEGY: !hasBaseline,
     WF_GROWTH_MARGIN_OPTIMIZATION: !hasBaseline,
+    WF_GROWTH_BUSINESS_SUMMARY: !hasProfile,
+    WF_GROWTH_OFFER_AUDIENCE_FUNNEL: !hasBaseline || !hasMarketSnapshot,
+    WF_GROWTH_PAID_ADS: !hasBaseline || !hasMarketSnapshot,
+    WF_GROWTH_SEO: !hasBaseline || !hasMarketSnapshot,
+    WF_GROWTH_RETENTION_CONTENT: !hasBaseline,
+    WF_GROWTH_EXECUTION_PLAN: !hasBaseline,
     WF_PORTFOLIO_MANAGEMENT: !hasBaseline,
+    WF_SUBSIDY_RESEARCH: !hasProfile,
     WF_SCENARIO_ANALYSIS: !hasBaseline,
     WF_OPERATIVE_PLAN: !hasBaseline,
     WF_COMPETITOR_ANALYSIS: !hasBaseline || !hasMarketSnapshot,
@@ -320,7 +429,8 @@ export default async function DashboardPage({
     ? PLANNING_PHASES.filter((p) => p.id === assistantPhaseId)
     : PLANNING_PHASES;
 
-  const workflowsInOrder = WIZARD_WORKFLOW_ORDER.filter((k) => WORKFLOW_BY_KEY[k]);
+  // Gesamtfortschritt nur über die tatsächlichen Phasen-Workflows (ohne Profil-Intake).
+  const workflowsInOrder = WIZARD_WORKFLOW_ORDER.filter((k) => k !== "WF_BUSINESS_FORM" && WORKFLOW_BY_KEY[k]);
   /** Abgeschlossener Run = für die Ausführungs-Ansicht „validiert“; manuelle Bestätigung nur im Run-/Audit-Detail. */
   function isRunValidated(run: { status: string; steps?: { stepKey: string; schemaValidationPassed: boolean; verifiedByUser: boolean; createdAt: Date }[] }): boolean {
     if (run.status === "approved") return true;
@@ -331,11 +441,7 @@ export default async function DashboardPage({
     return false;
   }
   function isWorkflowComplete(key: string): boolean {
-    if (key === "WF_BUSINESS_FORM") return hasProfile;
-    const list = runsByWorkflow[key] ?? [];
-    if (list.length === 0) return false;
-    const latest = list[0];
-    return latest.status === "complete" || latest.status === "approved";
+    return workflowHasPersistedOutput(key);
   }
   function isPhasePlanningComplete(phase: (typeof PLANNING_PHASES)[number]): boolean {
     const keys = phase.workflowKeys.filter((k) => k !== "WF_BUSINESS_FORM");
@@ -350,8 +456,7 @@ export default async function DashboardPage({
     const keys = phase.workflowKeys.filter((k) => k !== "WF_BUSINESS_FORM");
     const completed = keys.filter((k) => isWorkflowComplete(k)).length;
     const total = Math.max(1, keys.length);
-    const artifactTypes = [...new Set(phase.workflowKeys.flatMap((k) => WORKFLOW_TO_ARTIFACTS[k] ?? []))];
-    const docs = artifactTypes.filter((type) => artifacts.some((a) => a.type === type)).length;
+    const docs = collectPhaseArtifacts(phase).length;
     return {
       phase,
       completed,
@@ -363,6 +468,7 @@ export default async function DashboardPage({
   });
   const selectedOverviewSummary =
     phaseSummaries.find((p) => p.phase.id === selectedOverviewPhaseId) ?? phaseSummaries[0];
+  const selectedOverviewArtifacts = selectedOverviewSummary ? collectPhaseArtifacts(selectedOverviewSummary.phase) : [];
   const phaseToStudyCategory: Record<string, StudyCategoryKey> = {
     ideation: "markt_geschaeftsmodell",
     validation: "produktstrategie",
@@ -396,7 +502,7 @@ export default async function DashboardPage({
     maturity:
       "Die KI analysiert Prozessqualität, Kostenhebel, Portfolio-Performance und Optimierungspotenziale. Ziel ist ein priorisierter Verbesserungsplan mit klarer wirtschaftlicher Wirkung.",
     renewal:
-      "Die KI analysiert strategische Optionen für Erneuerung, Transformation oder Exit inklusive Szenarien, Chancen und Risiken. Ergebnis ist eine belastbare Entscheidungsbasis für die nächste Richtung.",
+      "Die KI analysiert strategische Optionen inkl. Unternehmenswert-Schätzung, Exit-Kanäle/Plattformen, Börsengang, Unternehmensformwechsel und Expansion. Ergebnis ist eine belastbare Entscheidungsbasis für die nächste Richtung.",
   };
   const assistantPhaseDetailEn: Record<string, string> = {
     ideation:
@@ -412,7 +518,7 @@ export default async function DashboardPage({
     maturity:
       "Here the AI analyzes process quality, cost levers, portfolio performance, and optimization potential. The goal is a prioritized improvement plan with measurable impact.",
     renewal:
-      "Here the AI analyzes strategic options for renewal, transformation, or exit including scenarios, opportunities, and risks. The output is a decision-ready strategic view.",
+      "Here the AI analyzes strategic options including valuation estimate, exit channels/platforms, IPO suitability, legal form change, and expansion paths. The output is a decision-ready strategic view.",
   };
 
   return (
@@ -542,9 +648,24 @@ export default async function DashboardPage({
             <div className="rounded-2xl border border-[var(--card-border)] bg-[var(--card)] p-6 shadow-sm space-y-4">
               <div className="rounded-lg border border-[var(--card-border)] bg-[var(--background)]/30 p-4">
                 <div className="">
-                  <h4 className="text-base font-semibold text-[var(--foreground)]">
-                    {isDe ? selectedOverviewSummary.phase.name : (phaseNamesEn[selectedOverviewSummary.phase.id] ?? selectedOverviewSummary.phase.name)}
-                  </h4>
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <h4 className="text-base font-semibold text-[var(--foreground)]">
+                      {isDe ? selectedOverviewSummary.phase.name : (phaseNamesEn[selectedOverviewSummary.phase.id] ?? selectedOverviewSummary.phase.name)}
+                    </h4>
+                    <PhaseRunButtonForm
+                      formId={`overview-phase-run-${selectedOverviewSummary.phase.id}`}
+                      phaseId={selectedOverviewSummary.phase.id}
+                      buttonLabel={isDe ? "Ausführen" : "Run"}
+                      workflows={selectedOverviewSummary.phase.workflowKeys
+                        .filter((k) => k !== "WF_BUSINESS_FORM")
+                        .map((k) => ({
+                          key: k,
+                          name: isDe
+                            ? (WORKFLOW_BY_KEY[k]?.name ?? k)
+                            : (workflowNamesEn[k] ?? WORKFLOW_BY_KEY[k]?.name ?? k),
+                        }))}
+                    />
+                  </div>
                   <p className="mt-1 text-sm text-[var(--muted)]">
                     {isDe ? selectedOverviewSummary.phase.goal : (phaseGoalsEn[selectedOverviewSummary.phase.id] ?? selectedOverviewSummary.phase.goal)}
                   </p>
@@ -579,11 +700,19 @@ export default async function DashboardPage({
                       .filter((k) => k !== "WF_BUSINESS_FORM")
                       .map((key, idx) => {
                         const locked = isLocked[key];
-                        const hasComplete = runsByWorkflow[key]?.some((r) => r.status === "complete" || r.status === "approved");
-                        const hasInProgress = runsByWorkflow[key]?.some((r) => ["draft", "running", "incomplete"].includes(r.status));
-                        const completeRun = runsByWorkflow[key]?.find((r) => r.status === "complete" || r.status === "approved");
-                        const statusLabel = locked ? (isDe ? "Gesperrt" : "Locked") : hasInProgress ? (isDe ? "In Bearbeitung" : "In progress") : hasComplete ? (isDe ? "Abgeschlossen" : "Complete") : (isDe ? "Offen" : "Open");
-                        const statusClass = locked ? "bg-zinc-100 text-zinc-600 dark:bg-zinc-800/60 dark:text-zinc-300" : hasInProgress ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300" : hasComplete ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300" : "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300";
+                        const hasComplete = isWorkflowComplete(key);
+                        const hasInProgress = !hasComplete && latestRunIsInProgress(key);
+                        const completeRun = latestCompletedRunForWorkflow(key);
+                        const statusLabel = locked
+                          ? (isDe ? "Gesperrt" : "Locked")
+                          : hasComplete
+                            ? (isDe ? "Abgeschlossen" : "Complete")
+                            : (isDe ? "Offen" : "Open");
+                        const statusClass = locked
+                          ? "bg-zinc-100 text-zinc-600 dark:bg-zinc-800/60 dark:text-zinc-300"
+                          : hasComplete
+                            ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
+                            : "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300";
                         return (
                           <div key={key} className="rounded-xl border border-[var(--card-border)] bg-[var(--background)]/30 p-3">
                             <div className="flex items-start justify-between gap-2">
@@ -642,18 +771,13 @@ export default async function DashboardPage({
                 <div className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-4 shadow-sm">
                   <p className="mb-2 text-xs font-medium text-[var(--muted)]">{isDe ? "Dokumente" : "Documents"}</p>
                   <div className="flex flex-wrap gap-2">
-                    {[...new Set(selectedOverviewSummary.phase.workflowKeys.flatMap((k) => WORKFLOW_TO_ARTIFACTS[k] ?? []))]
-                      .map((type) => artifacts.find((a) => a.type === type))
-                      .filter(Boolean)
-                      .slice(0, 6)
-                      .map((artifact) => (
-                        <Link key={artifact!.id} href={`/artifacts/${artifact!.id}`} className="rounded-lg border border-teal-200 bg-teal-50/50 px-2.5 py-1.5 text-xs font-medium text-teal-800 hover:bg-teal-100 dark:border-teal-800 dark:bg-teal-950/30 dark:text-teal-200">
-                          {artifact!.title}
+                    {selectedOverviewArtifacts
+                      .map(({ workflowKey, artifactType, artifact }) => (
+                        <Link key={`${workflowKey}:${artifactType}:${artifact.id}`} href={`/artifacts/${artifact.id}`} className="rounded-lg border border-teal-200 bg-teal-50/50 px-2.5 py-1.5 text-xs font-medium text-teal-800 hover:bg-teal-100 dark:border-teal-800 dark:bg-teal-950/30 dark:text-teal-200">
+                          {artifactChipLabel(workflowKey, artifactType, artifact)}
                         </Link>
                       ))}
-                    {[...new Set(selectedOverviewSummary.phase.workflowKeys.flatMap((k) => WORKFLOW_TO_ARTIFACTS[k] ?? []))]
-                      .map((type) => artifacts.find((a) => a.type === type))
-                      .filter(Boolean).length === 0 && (
+                    {selectedOverviewArtifacts.length === 0 && (
                       <p className="text-xs text-[var(--muted)]">{isDe ? "Noch keine Dokumente in dieser Phase." : "No documents in this phase yet."}</p>
                     )}
                   </div>
@@ -796,16 +920,16 @@ export default async function DashboardPage({
                       </div>
                       {phaseWorkflows.map((wf) => {
                       const locked = isLocked[wf.key];
-                      const hasComplete = runsByWorkflow[wf.key]?.some((r) => r.status === "complete" || r.status === "approved");
-                      const hasInProgress = runsByWorkflow[wf.key]?.some((r) => ["draft", "running", "incomplete"].includes(r.status));
-                      const completeRun = runsByWorkflow[wf.key]?.find((r) => r.status === "complete" || r.status === "approved");
+                      const hasComplete = isWorkflowComplete(wf.key);
+                      const hasInProgress = !hasComplete && latestRunIsInProgress(wf.key);
+                      const completeRun = latestCompletedRunForWorkflow(wf.key);
                       const wfArtifactTypes = WORKFLOW_TO_ARTIFACTS[wf.key] ?? [];
                       const wfArtifactItems = wfArtifactTypes.map((artifactType) => {
                         const workflowRunIds = new Set((runsByWorkflow[wf.key] ?? []).map((run) => run.id));
                         const scoped = artifacts.find(
                           (a) => a.type === artifactType && a.runId && workflowRunIds.has(a.runId)
                         );
-                        let artifact = scoped ?? artifacts.find((a) => a.type === artifactType);
+                        let artifact = scoped;
                         // Hotfix compatibility: in some DBs PESTEL is persisted as trend_analysis fallback.
                         if (!artifact && wf.key === "WF_TREND_ANALYSIS" && artifactType === "pestel_analysis") {
                           const scopedPestelFallback = artifacts.find(
@@ -815,9 +939,7 @@ export default async function DashboardPage({
                               workflowRunIds.has(a.runId) &&
                               /pestel/i.test(a.title ?? "")
                           );
-                          artifact =
-                            scopedPestelFallback ??
-                            artifacts.find((a) => a.type === "trend_analysis" && /pestel/i.test(a.title ?? ""));
+                          artifact = scopedPestelFallback;
                         }
                         return { type: artifactType, artifact };
                       });

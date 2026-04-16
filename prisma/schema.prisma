@@ -142,6 +142,13 @@ enum ArtifactType {
   app_mvp_guide
   app_page_specs
   app_db_schema
+  growth_business_summary
+  growth_offer_audience_funnel
+  growth_paid_ads
+  growth_seo
+  growth_retention_content
+  growth_execution_plan
+  subsidy_research
 }
 
 enum DecisionLever {
@@ -539,7 +546,7 @@ model Run {
   id                 String       @id @default(cuid())
   companyId          String
   workflowKey        String
-  status             WorkflowStatus @default(draft)
+  status             WorkflowStatus @default(running)
   inputSnapshotJson  Json
   kbVersionUsed      String?
   promptBundleVersion String?

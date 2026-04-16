@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { fetchApi } from "@/lib/apiClient";
 
 type ChatTitleAutoSaveFieldProps = {
   threadId: string;
@@ -15,7 +16,7 @@ export function ChatTitleAutoSaveField({ threadId, initialTitle }: ChatTitleAuto
     const trimmed = nextValue.trim().slice(0, 120);
     if (!trimmed || trimmed === lastSavedRef.current) return;
     try {
-      await fetch("/api/chat/thread-title", {
+      await fetchApi("/api/chat/thread-title", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ threadId, title: trimmed }),

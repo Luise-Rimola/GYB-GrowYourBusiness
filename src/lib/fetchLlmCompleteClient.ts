@@ -1,14 +1,18 @@
+import { fetchApi } from "@/lib/apiClient";
+
 /**
  * Browser: POST /api/llm/complete mit sicherem JSON-Parsing (kein Hängen bei HTML-/Fehlerseiten).
+ *
+ * @deprecated Für Workflow-Schritte mit Run-Kontext immer `executeRunStepOrThrow` aus
+ * `@/lib/runStepExecuteClient` nutzen (einheitlicher `/api/run-step/execute`-Pfad).
  */
 export async function postLlmComplete(
   prompt: string,
   init?: { signal?: AbortSignal }
 ): Promise<string> {
-  const res = await fetch("/api/llm/complete", {
+  const res = await fetchApi("/api/llm/complete", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    credentials: "same-origin",
     body: JSON.stringify({ prompt }),
     signal: init?.signal,
   });

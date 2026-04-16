@@ -318,21 +318,32 @@ export const menuCardSchema = z
   })
   .strict();
 
-export const supplierListSchema = z
-  .object({
-    suppliers: z.array(z.object({
-      material: z.string(),
-      supplier: z.string().optional(),
-      price_per_unit: z.number().optional(),
-      unit: z.string().optional(),
-      notes: z.string().optional(),
-      sources: z.array(z.string()).optional(),
-    })),
-    whitelabel_options: z.array(z.record(z.unknown())).optional(),
-    ingredients_options: z.array(z.record(z.unknown())).optional(),
-    sources_used: z.array(z.string()).optional(),
-  })
-  .strict();
+/** Single row; LLMs sometimes return a root JSON array of these instead of `{ suppliers: [...] }`. */
+const supplierListRowSchema = z.object({
+  material: z.string(),
+  supplier: z.string().min(1, "Lieferantenname ist erforderlich."),
+  price_per_unit: z.number().positive("Preis pro Einheit muss > 0 sein."),
+  unit: z.string().min(1, "Einheit ist erforderlich."),
+  notes: z.string().optional(),
+  sources: z.array(z.string()).optional(),
+});
+
+export const supplierListSchema = z.preprocess(
+  (raw) => {
+    if (Array.isArray(raw)) {
+      return { suppliers: raw };
+    }
+    return raw;
+  },
+  z
+    .object({
+      suppliers: z.array(supplierListRowSchema).min(1, "Mindestens ein Lieferant muss enthalten sein."),
+      whitelabel_options: z.array(z.record(z.unknown())).optional(),
+      ingredients_options: z.array(z.record(z.unknown())).optional(),
+      sources_used: z.array(z.string()).optional(),
+    })
+    .strict()
+);
 
 /** Warenkosten: Menu items with cost per component from supplier list */
 export const menuCostSchema = z
@@ -482,6 +493,32 @@ export const strategicOptionsSchema = z
       fit_score: z.number().min(0).max(1).optional(),
       key_considerations: z.array(z.string()).optional(),
     })),
+    company_valuation_estimate: z.object({
+      valuation_range: z.string().optional(),
+      method_hint: z.string().optional(),
+      key_drivers: z.array(z.string()).optional(),
+      assumptions: z.array(z.string()).optional(),
+    }).optional(),
+    exit_channels: z.array(z.object({
+      channel: z.string(),
+      platform_examples: z.array(z.string()).optional(),
+      suitability: z.string().optional(),
+      notes: z.string().optional(),
+    })).optional(),
+    legal_form_change_options: z.array(z.object({
+      from_form: z.string().optional(),
+      to_form: z.string(),
+      when_useful: z.string(),
+      prerequisites: z.array(z.string()).optional(),
+      risks: z.array(z.string()).optional(),
+    })).optional(),
+    expansion_options: z.array(z.object({
+      target_market_or_region: z.string(),
+      entry_model: z.string(),
+      rationale: z.string().optional(),
+      prerequisites: z.array(z.string()).optional(),
+      risks: z.array(z.string()).optional(),
+    })).optional(),
     exit_readiness: z.object({
       readiness_score: z.number().min(0).max(1).optional(),
       gaps: z.array(z.string()).optional(),
@@ -1543,6 +1580,222 @@ export const appDbSchemaSchema = z.object({
   recommendations: z.array(z.string()).optional(),
 }).strict();
 
+export const growthBusinessSummarySchema = z.object({
+  company_summary: z.object({
+    business_model: z.string(),
+    core_offer: z.string(),
+    target_market: z.string(),
+    brand_positioning: z.string(),
+    growth_stage: z.string(),
+    primary_growth_levers: z.array(z.string()),
+    main_constraints: z.array(z.string()),
+    key_risks: z.array(z.string()),
+    strategic_summary: z.string(),
+  }).strict(),
+  sources_used: z.array(z.string()).optional(),
+}).strict();
+
+export const growthOfferAudienceFunnelSchema = z.object({
+  offer_positioning_analysis: z.object({
+    offer_clarity_score: z.number().min(0).max(10),
+    positioning_strength_score: z.number().min(0).max(10),
+    usp_clarity: z.string(),
+    differentiation_assessment: z.string(),
+    pricing_fit_assessment: z.string(),
+    trust_signal_assessment: z.string(),
+    main_positioning_gaps: z.array(z.string()),
+    improvement_recommendations: z.array(z.string()),
+    recommended_angles: z.array(z.string()),
+  }).strict(),
+  audience_analysis: z.object({
+    primary_personas: z.array(z.object({
+      name: z.string(),
+      description: z.string(),
+      pain_points: z.array(z.string()),
+      buying_triggers: z.array(z.string()),
+      objections: z.array(z.string()),
+      best_channels: z.array(z.string()),
+      creative_angles: z.array(z.string()),
+    }).strict()),
+    secondary_personas: z.array(z.record(z.unknown())),
+    audience_prioritization: z.array(z.string()),
+    messaging_recommendations: z.array(z.string()),
+  }).strict(),
+  funnel_analysis: z.object({
+    awareness_stage: z.string(),
+    consideration_stage: z.string(),
+    conversion_stage: z.string(),
+    retention_stage: z.string(),
+    main_dropoff_points: z.array(z.string()),
+    main_conversion_barriers: z.array(z.string()),
+    priority_fixes: z.array(z.string()),
+    recommended_tests: z.array(z.string()),
+  }).strict(),
+  sources_used: z.array(z.string()).optional(),
+}).strict();
+
+export const growthPaidAdsSchema = z.object({
+  paid_media_readiness: z.object({
+    readiness_score: z.number().min(0).max(10),
+    google_ads_recommendation: z.string(),
+    meta_ads_recommendation: z.string(),
+    budget_fit_assessment: z.string(),
+    tracking_readiness: z.string(),
+    creative_readiness: z.string(),
+    campaign_priorities: z.array(z.string()),
+    campaign_structure_recommendation: z.array(z.string()),
+    key_risks: z.array(z.string()),
+    next_steps: z.array(z.string()),
+  }).strict(),
+  kpi_framework_for_client: z.object({
+    priority_kpis: z.array(z.object({
+      kpi_key: z.string(),
+      name: z.string(),
+      what_it_is: z.string(),
+      why_it_matters: z.string(),
+      target_hint: z.string().optional(),
+      check_frequency: z.string().optional(),
+    }).strict()),
+    tracking_validation_checklist: z.array(z.string()),
+  }).strict(),
+  implementation_guide: z.object({
+    setup_steps: z.array(z.string()),
+    qa_steps: z.array(z.string()),
+    rollout_plan_30_days: z.array(z.string()),
+    common_pitfalls: z.array(z.string()),
+  }).strict(),
+  implementation_code: z.object({
+    gtag_base_snippet: z.string(),
+    gtag_conversion_event_snippet: z.string(),
+    google_ads_conversion_snippet: z.string(),
+    meta_pixel_base_snippet: z.string(),
+    meta_pixel_purchase_event_snippet: z.string(),
+    cta_event_tracking_snippet: z.string(),
+    utm_naming_template: z.array(z.string()),
+  }).strict(),
+  sources_used: z.array(z.string()).optional(),
+}).strict();
+
+export const growthSeoSchema = z.object({
+  seo_analysis: z.object({
+    technical_seo_assessment: z.string(),
+    onpage_seo_assessment: z.string(),
+    content_seo_assessment: z.string(),
+    collection_page_opportunities: z.array(z.string()),
+    product_page_opportunities: z.array(z.string()),
+    blog_content_opportunities: z.array(z.string()),
+    keyword_cluster_suggestions: z.array(z.string()),
+    main_seo_gaps: z.array(z.string()),
+    priority_actions: z.array(z.string()),
+  }).strict(),
+  kpi_framework_for_client: z.object({
+    priority_kpis: z.array(z.object({
+      kpi_key: z.string(),
+      name: z.string(),
+      what_it_is: z.string(),
+      why_it_matters: z.string(),
+      target_hint: z.string().optional(),
+      check_frequency: z.string().optional(),
+    }).strict()),
+    tracking_validation_checklist: z.array(z.string()),
+  }).strict(),
+  implementation_guide: z.object({
+    setup_steps: z.array(z.string()),
+    qa_steps: z.array(z.string()),
+    rollout_plan_30_days: z.array(z.string()),
+    common_pitfalls: z.array(z.string()),
+  }).strict(),
+  implementation_code: z.object({
+    title_template_examples: z.array(z.string()),
+    meta_description_template_examples: z.array(z.string()),
+    product_json_ld_snippet: z.string(),
+    faq_json_ld_snippet: z.string(),
+    robots_txt_example: z.string(),
+    sitemap_guidance_snippet: z.string(),
+    canonical_tag_snippet: z.string(),
+    internal_linking_block_template: z.string(),
+  }).strict(),
+  sources_used: z.array(z.string()).optional(),
+}).strict();
+
+export const growthRetentionContentSchema = z.object({
+  retention_analysis: z.object({
+    maturity_score: z.number().min(0).max(10),
+    existing_flow_gaps: z.array(z.string()),
+    recommended_flows: z.array(z.string()),
+    segmentation_opportunities: z.array(z.string()),
+    sms_recommendation: z.string(),
+    campaign_recommendation: z.string(),
+    deliverability_risks: z.array(z.string()),
+    priority_actions: z.array(z.string()),
+  }).strict(),
+  content_strategy: z.object({
+    content_pillars: z.array(z.string()),
+    channel_strategy: z.array(z.string()),
+    hook_categories: z.array(z.string()),
+    trust_building_content: z.array(z.string()),
+    conversion_content: z.array(z.string()),
+    retention_content: z.array(z.string()),
+    plan_30_day_outline: z.array(z.string()),
+  }).strict(),
+  creative_strategy: z.object({
+    creative_angles: z.array(z.string()),
+    hook_frameworks: z.array(z.string()),
+    ugc_brief_suggestions: z.array(z.string()),
+    creator_requirements: z.array(z.string()),
+    ad_concept_suggestions: z.array(z.string()),
+    test_matrix: z.array(z.string()),
+  }).strict(),
+  sources_used: z.array(z.string()).optional(),
+}).strict();
+
+export const growthExecutionPlanSchema = z.object({
+  kpi_framework: z.object({
+    north_star_metric: z.string(),
+    primary_kpis: z.array(z.string()),
+    secondary_kpis: z.array(z.string()),
+    channel_kpis: z.object({
+      meta_ads: z.array(z.string()),
+      google_ads: z.array(z.string()),
+      seo: z.array(z.string()),
+      email_sms: z.array(z.string()),
+    }).strict(),
+    measurement_requirements: z.array(z.string()),
+    dashboard_sections: z.array(z.string()),
+  }).strict(),
+  strategy_30_60_90: z.object({
+    first_30_days: z.array(z.string()),
+    days_31_60: z.array(z.string()),
+    days_61_90: z.array(z.string()),
+    dependencies: z.array(z.string()),
+    quick_wins: z.array(z.string()),
+    high_impact_projects: z.array(z.string()),
+    critical_risks: z.array(z.string()),
+  }).strict(),
+  draft_artifacts: z.object({
+    meta_ad_concepts: z.array(z.string()),
+    google_ad_concepts: z.array(z.string()),
+    email_flow_plan: z.array(z.string()),
+    seo_plan: z.array(z.string()),
+    content_calendar: z.array(z.string()),
+    ugc_briefs: z.array(z.string()),
+  }).strict(),
+  sources_used: z.array(z.string()).optional(),
+}).strict();
+
+export const subsidyResearchSchema = z.object({
+  subsidies: z.array(z.object({
+    name: z.string(),
+    valid_in: z.string(),
+    benefit_summary: z.string(),
+    prerequisites: z.array(z.string()),
+    application_how_to: z.array(z.string()),
+    official_link: z.string().optional(),
+  }).strict()),
+  recommendations: z.array(z.string()).optional(),
+  sources_used: z.array(z.string()).optional(),
+}).strict();
+
 export const schemaRegistry = {
   business_model_inference: businessModelInferenceSchema,
   kpi_set_selection: kpiSetSelectionSchema,
@@ -1616,6 +1869,13 @@ export const schemaRegistry = {
   app_mvp_guide: appMvpGuideSchema,
   app_page_specs: appPageSpecsSchema,
   app_db_schema: appDbSchemaSchema,
+  growth_business_summary: growthBusinessSummarySchema,
+  growth_offer_audience_funnel: growthOfferAudienceFunnelSchema,
+  growth_paid_ads: growthPaidAdsSchema,
+  growth_seo: growthSeoSchema,
+  growth_retention_content: growthRetentionContentSchema,
+  growth_execution_plan: growthExecutionPlanSchema,
+  subsidy_research: subsidyResearchSchema,
 } as const;
 
 export type SchemaKey = keyof typeof schemaRegistry;
