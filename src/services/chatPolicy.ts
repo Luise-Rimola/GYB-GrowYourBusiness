@@ -6,7 +6,7 @@ export const ChatPolicyService = {
       prisma.artifact.findMany({ where: { companyId, approved: true } }),
       prisma.kpiValue.findMany({ where: { companyId } }),
       prisma.source.findMany({ where: { companyId } }),
-      prisma.knowledgeObject.findMany({ where: { status: "active" } }),
+      prisma.knowledgeObject.findMany({ where: { status: "active", source: { companyId } } }),
     ]);
 
     return {

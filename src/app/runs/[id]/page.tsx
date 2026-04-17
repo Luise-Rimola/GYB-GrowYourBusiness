@@ -24,36 +24,47 @@ import { RunCompletionAdvanceButton } from "@/components/RunCompletionAdvanceBut
 
 async function verifyStep(formData: FormData) {
   "use server";
+  const { requireCompany } = await import("@/lib/companyContext");
+  const company = await requireCompany();
   const stepId = String(formData.get("step_id"));
   const notes = String(formData.get("notes") || "");
   const runId = String(formData.get("run_id"));
   const step = formData.get("step");
   if (!stepId) return;
+  const run = await prisma.run.findUnique({ where: { id: runId } });
+  if (!run || run.companyId !== company.id) return;
   await WorkflowService.verifyStep(stepId, notes || undefined);
   const currentStep = Math.max(0, Number(step) || 0);
-  const run = await prisma.run.findUnique({ where: { id: runId } });
-  const stepCount = run ? (workflowSteps[run.workflowKey] ?? []).length : 5;
+  const stepCount = (workflowSteps[run.workflowKey] ?? []).length;
   const nextStep = Math.min(currentStep + 1, Math.max(0, stepCount - 1));
   redirect(`/runs/${runId}?step=${nextStep}`);
 }
 
 async function deleteStep(formData: FormData) {
   "use server";
+  const { requireCompany } = await import("@/lib/companyContext");
+  const company = await requireCompany();
   const stepId = String(formData.get("step_id"));
   const runId = String(formData.get("run_id"));
   if (!stepId) return;
+  const run = await prisma.run.findUnique({ where: { id: runId } });
+  if (!run || run.companyId !== company.id) return;
   await WorkflowService.deleteStep(stepId);
   redirect(`/runs/${runId}`);
 }
 
 async function updateRunNotes(formData: FormData) {
   "use server";
+  const { requireCompany } = await import("@/lib/companyContext");
+  const company = await requireCompany();
   const runId = String(formData.get("run_id"));
   const ideaMode = String(formData.get("idea_mode") || "").trim();
   const ideaArtifactId = String(formData.get("idea_artifact_id") || "").trim();
   const notes = String(formData.get("notes") || "").trim();
 
   if (!runId) return;
+  const runCheck = await prisma.run.findUnique({ where: { id: runId } });
+  if (!runCheck || runCheck.companyId !== company.id) return;
 
   let userNotes: string | null = null;
 
@@ -118,12 +129,16 @@ async function updateRunNotes(formData: FormData) {
 
 async function updateStep(formData: FormData) {
   "use server";
+  const { requireCompany } = await import("@/lib/companyContext");
+  const company = await requireCompany();
   const stepId = String(formData.get("step_id"));
   const runId = String(formData.get("run_id"));
   const userResponse = String(formData.get("user_response"));
   const schemaKey = String(formData.get("schema_key")) as SchemaKey;
   const autoVerify = String(formData.get("from_llm_auto") || "") === "1";
   if (!stepId || !userResponse) return;
+  const run = await prisma.run.findUnique({ where: { id: runId } });
+  if (!run || run.companyId !== company.id) return;
   await WorkflowService.updateStep({ stepId, schemaKey, userResponse, autoVerify });
   const step = formData.get("step");
   const q = step != null ? `?step=${step}` : "";
@@ -132,9 +147,11 @@ async function updateStep(formData: FormData) {
 
 async function submitBusinessForm(formData: FormData) {
   "use server";
+  const { requireCompany } = await import("@/lib/companyContext");
+  const company = await requireCompany();
   const runId = String(formData.get("run_id"));
   const run = await prisma.run.findUnique({ where: { id: runId } });
-  if (!run) return;
+  if (!run || run.companyId !== company.id) return;
   await import("@/lib/intake").then((m) => m.processIntakeForm(run.companyId, formData));
   if (run.workflowKey === "WF_BUSINESS_FORM") {
     try {
@@ -173,6 +190,8 @@ async function submitBusinessForm(formData: FormData) {
 
 async function saveRunStep(formData: FormData) {
   "use server";
+  const { requireCompany } = await import("@/lib/companyContext");
+  const company = await requireCompany();
   const runId = String(formData.get("run_id"));
   const stepKey = String(formData.get("step_key"));
   const schemaKey = String(formData.get("schema_key")) as SchemaKey;
@@ -184,7 +203,7 @@ async function saveRunStep(formData: FormData) {
   const ideaArtifactId = String(formData.get("idea_artifact_id") || "").trim();
 
   const run = await prisma.run.findUnique({ where: { id: runId }, include: { steps: true } });
-  if (!run) return;
+  if (!run || run.companyId !== company.id) return;
   const runStepsLatest = run.steps.reduce<typeof run.steps>((acc, step) => {
     const existing = acc.find((s) => s.stepKey === step.stepKey);
     if (!existing || new Date(step.createdAt) > new Date(existing.createdAt)) {

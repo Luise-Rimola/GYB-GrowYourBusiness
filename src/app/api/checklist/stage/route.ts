@@ -1,16 +1,21 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getCompanyForApi } from "@/lib/companyContext";
 
 export async function POST(req: Request) {
   try {
-    const { companyId, name } = await req.json();
+    const auth = await getCompanyForApi();
+    if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const { company } = auth;
+
+    const { name } = await req.json();
     const stageName = typeof name === "string" ? name.trim() : "";
-    if (!companyId || !stageName) {
+    if (!stageName) {
       return NextResponse.json({ error: "Invalid input" }, { status: 400 });
     }
 
     const existing = await prisma.launchStage.findMany({
-      where: { companyId },
+      where: { companyId: company.id },
       select: { sortOrder: true },
       orderBy: { sortOrder: "desc" },
       take: 1,
@@ -19,13 +24,14 @@ export async function POST(req: Request) {
 
     await prisma.launchStage.create({
       data: {
-        companyId,
+        companyId: company.id,
         name: stageName,
         sortOrder: nextSort,
       },
     });
     return NextResponse.json({ ok: true });
   } catch (e) {
-    return NextResponse.json({ error: String(e) }, { status: 500 });
+    console.error("[checklist/stage]", e);
+    return NextResponse.json({ error: "Internal error" }, { status: 500 });
   }
 }

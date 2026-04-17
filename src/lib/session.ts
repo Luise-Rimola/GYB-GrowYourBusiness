@@ -72,7 +72,13 @@ export async function setSessionCookie(token: string) {
 
 export async function clearSessionCookie() {
   const jar = await cookies();
-  jar.set(COOKIE_NAME, "", { httpOnly: true, maxAge: 0, path: "/" });
+  jar.set(COOKIE_NAME, "", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 0,
+    path: "/",
+  });
 }
 
 export { COOKIE_NAME, MAX_AGE_SEC };

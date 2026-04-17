@@ -113,7 +113,7 @@ export default async function ScenarioEvaluationDetailPage({
               <div className="rounded-lg border border-[var(--card-border)]/50 p-3">
                 <p className="text-xs text-[var(--muted)]">{t.evaluation.evalUserConfidence ?? "User-Konfidenz (1–10)"}</p>
                 <p className="mt-1 text-sm font-medium text-[var(--foreground)]">
-                  {Math.max(1, Math.min(10, Math.round(ev.userConfidence / 10) || 1))}
+                  {Math.max(0, Math.min(10, Math.round(ev.userConfidence / 10)))}
                 </p>
               </div>
               {evalItems.map(({ key, label, q }) =>

@@ -109,7 +109,12 @@ export const TextCorrectionService = {
     const jsonMatch = content.match(/\{[\s\S]*\}/);
     if (!jsonMatch) return [];
 
-    const parsed = JSON.parse(jsonMatch[0]) as { corrections?: ExtractedCorrection[] };
+    let parsed: { corrections?: ExtractedCorrection[] };
+    try {
+      parsed = JSON.parse(jsonMatch[0]) as { corrections?: ExtractedCorrection[] };
+    } catch {
+      return [];
+    }
     const corrections = parsed.corrections ?? [];
     return corrections.filter(
       (c) =>
@@ -228,6 +233,23 @@ export const TextCorrectionService = {
         changes.push(`Miete: ${corr.new_value} €`);
         return { content: out, changed: true, changes };
       }
+    }
+
+    if (jsonPath === "monthly_projection" && corr.field_key === "revenue") {
+      const arr = (out.monthly_projection ?? []) as Array<{ month?: string; revenue_eur?: number }>;
+      if (!Array.isArray(arr) || arr.length === 0) return { content: out, changed: false, changes: [] };
+
+      const monthFilter = corr.month ? (m: { month?: string }) => m.month === corr.month : () => true;
+      let any = false;
+      for (let i = 0; i < arr.length; i++) {
+        if (monthFilter(arr[i])) {
+          arr[i] = { ...arr[i], revenue_eur: corr.new_value };
+          any = true;
+          changes.push(`${arr[i].month ?? i + 1}: Umsatz ${corr.new_value} €`);
+        }
+      }
+      if (any) out.monthly_projection = arr;
+      return { content: out, changed: any, changes };
     }
 
     return { content: out, changed: false, changes: [] };

@@ -1,15 +1,25 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getCompanyForApi } from "@/lib/companyContext";
 
 export async function POST(req: Request) {
   try {
+    const auth = await getCompanyForApi();
+    if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const { company } = auth;
+
     const body = await req.json();
 
     if (body?.stageId && typeof body?.label === "string") {
+      const stage = await prisma.launchStage.findFirst({
+        where: { id: body.stageId, companyId: company.id },
+      });
+      if (!stage) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
       const label = body.label.trim();
       if (!label) return NextResponse.json({ error: "Invalid label" }, { status: 400 });
       const existing = await prisma.launchStep.findMany({
-        where: { stageId: body.stageId },
+        where: { stageId: stage.id },
         select: { sortOrder: true },
         orderBy: { sortOrder: "desc" },
         take: 1,
@@ -17,7 +27,7 @@ export async function POST(req: Request) {
       const nextSort = (existing[0]?.sortOrder ?? -1) + 1;
       await prisma.launchStep.create({
         data: {
-          stageId: body.stageId,
+          stageId: stage.id,
           label,
           done: false,
           sortOrder: nextSort,
@@ -30,12 +40,18 @@ export async function POST(req: Request) {
     if (!stepId || typeof done !== "boolean") {
       return NextResponse.json({ error: "Invalid input" }, { status: 400 });
     }
+    const step = await prisma.launchStep.findFirst({
+      where: { id: stepId, stage: { companyId: company.id } },
+    });
+    if (!step) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
     await prisma.launchStep.update({
-      where: { id: stepId },
+      where: { id: step.id },
       data: { done },
     });
     return NextResponse.json({ ok: true });
   } catch (e) {
-    return NextResponse.json({ error: String(e) }, { status: 500 });
+    console.error("[checklist/step]", e);
+    return NextResponse.json({ error: "Internal error" }, { status: 500 });
   }
 }

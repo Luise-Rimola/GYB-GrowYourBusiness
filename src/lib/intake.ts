@@ -2,6 +2,15 @@ import { prisma } from "@/lib/prisma";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 
+function safeJsonParse(value: FormDataEntryValue | null, fallback: unknown): unknown {
+  if (!value) return fallback;
+  try {
+    return JSON.parse(String(value));
+  } catch {
+    return fallback;
+  }
+}
+
 /** Intake-Antworten und Profil-JSON zusammenführen (Profil gewinnt bei Überschneidungen). */
 export async function getMergedIntakeExisting(companyId: string): Promise<Record<string, unknown>> {
   const { existing } = await getIntakeFormState(companyId);
@@ -53,10 +62,10 @@ export async function processIntakeForm(
     usp: String(formData.get("usp") || ""),
     customers: String(formData.get("customers") || ""),
     market_reach: String(formData.get("market_reach") || "national"),
-    products: productsJson ? JSON.parse(String(productsJson)) : [],
-    suppliers: suppliersJson ? JSON.parse(String(suppliersJson)) : [],
+    products: safeJsonParse(productsJson, []),
+    suppliers: safeJsonParse(suppliersJson, []),
     production_steps: String(formData.get("production_steps") || ""),
-    team: teamJson ? JSON.parse(String(teamJson)) : [],
+    team: safeJsonParse(teamJson, []),
     revenue_last_month: parseFloat(String(formData.get("revenue_last_month") || "0")) || 0,
     marketing_spend: parseFloat(String(formData.get("marketing_spend") || "0")) || 0,
     fixed_costs: parseFloat(String(formData.get("fixed_costs") || "0")) || 0,

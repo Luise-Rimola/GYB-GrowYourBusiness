@@ -12,8 +12,7 @@ type StudyParticipantFlags = {
 const DEFAULT_STUDY_ID = "DSR-2025-01";
 
 function toDbBool(v: boolean) {
-  // SQLite stores booleans as 0/1
-  return v ? 1 : 0;
+  return v;
 }
 
 function fromDbBool(v: unknown) {
@@ -54,7 +53,7 @@ async function rawCreateStudyParticipant(companyId: string, studyId: string) {
       INSERT INTO "StudyParticipant"
         ("id","companyId","studyId","externalId","completedFb1","completedFb2BeforeRuns","completedFb3AfterRuns","completedFb3","completedFb5","completedLlmSetup")
       VALUES
-        (${id}, ${companyId}, ${studyId}, NULL, 0, 0, 0, 0, 0, 0)
+        (${id}, ${companyId}, ${studyId}, NULL, false, false, false, false, false, false)
     `;
   } catch (e) {
     // In case of race-condition: row might already exist.
@@ -77,30 +76,31 @@ async function rawCreateStudyParticipant(companyId: string, studyId: string) {
 async function rawUpdateStudyParticipantById(participantId: string, data: StudyParticipantFlags) {
   const sets: string[] = [];
   const values: any[] = [];
+  let paramIndex = 1;
 
   if (data.completedFb1 !== undefined) {
-    sets.push(`"completedFb1" = ?`);
-    values.push(toDbBool(data.completedFb1));
+    sets.push(`"completedFb1" = $${paramIndex++}`);
+    values.push(data.completedFb1);
   }
   if (data.completedFb2BeforeRuns !== undefined) {
-    sets.push(`"completedFb2BeforeRuns" = ?`);
-    values.push(toDbBool(data.completedFb2BeforeRuns));
+    sets.push(`"completedFb2BeforeRuns" = $${paramIndex++}`);
+    values.push(data.completedFb2BeforeRuns);
   }
   if (data.completedFb3AfterRuns !== undefined) {
-    sets.push(`"completedFb3AfterRuns" = ?`);
-    values.push(toDbBool(data.completedFb3AfterRuns));
+    sets.push(`"completedFb3AfterRuns" = $${paramIndex++}`);
+    values.push(data.completedFb3AfterRuns);
   }
   if (data.completedFb3 !== undefined) {
-    sets.push(`"completedFb3" = ?`);
-    values.push(toDbBool(data.completedFb3));
+    sets.push(`"completedFb3" = $${paramIndex++}`);
+    values.push(data.completedFb3);
   }
   if (data.completedFb5 !== undefined) {
-    sets.push(`"completedFb5" = ?`);
-    values.push(toDbBool(data.completedFb5));
+    sets.push(`"completedFb5" = $${paramIndex++}`);
+    values.push(data.completedFb5);
   }
   if (data.completedLlmSetup !== undefined) {
-    sets.push(`"completedLlmSetup" = ?`);
-    values.push(toDbBool(data.completedLlmSetup));
+    sets.push(`"completedLlmSetup" = $${paramIndex++}`);
+    values.push(data.completedLlmSetup);
   }
 
   if (sets.length === 0) return;
@@ -108,7 +108,7 @@ async function rawUpdateStudyParticipantById(participantId: string, data: StudyP
   const sql = `
     UPDATE "StudyParticipant"
     SET ${sets.join(", ")}
-    WHERE "id" = ?
+    WHERE "id" = $${paramIndex}
   `;
 
   const execUnsafe = (prisma as any).$executeRawUnsafe?.bind(prisma);
