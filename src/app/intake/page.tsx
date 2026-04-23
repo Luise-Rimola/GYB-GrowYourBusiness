@@ -5,11 +5,37 @@ import { IntakeForm } from "@/components/IntakeForm";
 import { getIntakeFormState, processIntakeForm } from "@/lib/intake";
 import { getServerLocale } from "@/lib/locale";
 import { getTranslations } from "@/lib/i18n";
+import { PLANNING_PHASES } from "@/lib/planningFramework";
+import { startPhaseRunJob } from "@/lib/phaseRunJobs";
+import type { Locale } from "@/lib/i18n";
+
+async function startBackgroundRunsPerPhase(companyId: string, locale: Locale): Promise<void> {
+  for (const phase of PLANNING_PHASES) {
+    const workflowKeys = phase.workflowKeys.filter((k) => k !== "WF_BUSINESS_FORM");
+    if (workflowKeys.length === 0) continue;
+    try {
+      await startPhaseRunJob({
+        companyId,
+        phaseId: phase.id,
+        workflowKeys,
+        mode: "continue",
+        locale,
+      });
+    } catch (err) {
+      console.error("[intake/background-start]", phase.id, err);
+    }
+  }
+}
 
 async function submitIntake(formData: FormData) {
   "use server";
   const company = await getOrCreateDemoCompany();
   await processIntakeForm(company.id, formData);
+  const profileFlow = String(formData.get("profile_flow") ?? "manual").trim();
+  if (profileFlow === "auto_web" || profileFlow === "auto_no_web") {
+    const locale = await getServerLocale();
+    await startBackgroundRunsPerPhase(company.id, locale);
+  }
   redirect("/profile");
 }
 

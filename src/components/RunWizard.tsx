@@ -199,6 +199,8 @@ type RunWizardProps = {
   };
   showStepList?: boolean;
   hideNextButton?: boolean;
+  /** If true, the wizard is embedded in an iframe (assistant). Preserved in redirects so the iframe keeps its slim embed view. */
+  embed?: boolean;
 };
 
 export function RunWizard({
@@ -216,6 +218,7 @@ export function RunWizard({
   appDevelopmentConfig,
   showStepList = true,
   hideNextButton = false,
+  embed = false,
 }: RunWizardProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -350,7 +353,7 @@ export function RunWizard({
           setProcessOpen(nextOpen);
         }}
       >
-        <summary className="cursor-pointer list-none rounded-lg px-0 py-3 text-sm font-semibold text-[var(--foreground)] transition hover:bg-slate-50/80 dark:hover:bg-slate-900/20 [&::-webkit-details-marker]:hidden">
+        <summary className="cursor-pointer list-none rounded-lg px-0 py-1.5 text-sm font-semibold text-[var(--foreground)] transition hover:bg-slate-50/80 dark:hover:bg-slate-900/20 [&::-webkit-details-marker]:hidden">
           <span className="flex items-center justify-between gap-3">
             <span className="inline-flex items-center gap-2">
               <span className="inline-block text-[var(--muted)] transition-transform duration-200 group-open:rotate-90">▸</span>
@@ -569,6 +572,20 @@ export function RunWizard({
                     }
                     setAnswerOpen(true);
                   });
+                  // Aktuellen Step explizit in der URL verankern, bevor wir reloaden.
+                  // Schützt davor, dass `router.refresh()` oder Nebenläufigkeit die URL
+                  // auf einen nachgeordneten Step "springen" lässt (User bleibt auf dem
+                  // gerade bearbeiteten Schritt, das Prüfprotokoll muss manuell mit
+                  // „Weiter →" weitergeschaltet werden).
+                  try {
+                    const pinnedParams = new URLSearchParams(searchParams.toString());
+                    pinnedParams.set("step", String(stepIndex));
+                    if (embed) pinnedParams.set("embed", "1");
+                    const pinnedUrl = `${pathname}?${pinnedParams.toString()}`;
+                    window.history.replaceState(null, "", pinnedUrl);
+                  } catch {
+                    /* no-op: URL-Sync darf Speichern nicht blockieren */
+                  }
                   router.refresh();
                   // Hard reload ensures the user immediately sees persisted DB state even if the route gets stuck.
                   window.setTimeout(() => {
@@ -610,6 +627,7 @@ export function RunWizard({
               <input type="hidden" name="run_id" value={run.id} />
               <input type="hidden" name="schema_key" value={stepConfig.schemaKey} />
               <input type="hidden" name="step" value={String(stepIndex)} />
+              {embed ? <input type="hidden" name="embed" value="1" /> : null}
               {appDevelopmentConfig && (
                 <>
                   <input type="hidden" name="notes" value={userNotes} />
@@ -660,6 +678,7 @@ export function RunWizard({
               <input type="hidden" name="step_key" value={stepConfig.stepKey} />
               <input type="hidden" name="schema_key" value={stepConfig.schemaKey} />
               <input type="hidden" name="step" value={String(stepIndex)} />
+              {embed ? <input type="hidden" name="embed" value="1" /> : null}
               {appDevelopmentConfig && (
                 <>
                   <input type="hidden" name="notes" value={userNotes} />

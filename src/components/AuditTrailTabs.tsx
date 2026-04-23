@@ -26,6 +26,8 @@ type AuditTrailTabsProps = {
   verifyStep: (formData: FormData) => Promise<void>;
   deleteStep: (formData: FormData) => Promise<void>;
   updateStep: (formData: FormData) => Promise<void>;
+  /** If true, the audit trail is rendered inside the assistant iframe. Preserved in redirects. */
+  embed?: boolean;
 };
 
 export function AuditTrailTabs({
@@ -35,6 +37,7 @@ export function AuditTrailTabs({
   verifyStep,
   deleteStep,
   updateStep,
+  embed = false,
 }: AuditTrailTabsProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -110,6 +113,7 @@ export function AuditTrailTabs({
                   <input type="hidden" name="run_id" value={runId} />
                   <input type="hidden" name="step" value={String(Math.max(0, active.stepNum - 1))} />
                   <input type="hidden" name="notes" value="" />
+                  {embed ? <input type="hidden" name="embed" value="1" /> : null}
                   <button
                     type="submit"
                     className="rounded-lg bg-teal-600 px-2.5 py-1 text-xs font-semibold text-white transition hover:bg-teal-700"
@@ -118,29 +122,30 @@ export function AuditTrailTabs({
                   </button>
                 </form>
               )}
-              {active.isSaved && !active.schemaValidationPassed && (
+              {active.isSaved && (
                 <ConfirmDeleteForm
                   action={deleteStep}
-                  confirmMessage="Diesen Schritt löschen? Die Antwort wird entfernt und kann danach neu eingegeben werden."
+                  confirmMessage={
+                    active.schemaValidationPassed
+                      ? "Diesen bereits gespeicherten Schritt verwerfen? Die KI kann danach erneut ausgefuehrt werden."
+                      : "Diesen Schritt löschen? Die Antwort wird entfernt und kann danach neu eingegeben werden."
+                  }
                   className="inline"
                 >
                   <input type="hidden" name="step_id" value={active.id} />
                   <input type="hidden" name="run_id" value={runId} />
+                  <input type="hidden" name="step" value={String(Math.max(0, active.stepNum - 1))} />
+                  {embed ? <input type="hidden" name="embed" value="1" /> : null}
                   <button
                     type="submit"
                     className="rounded-lg border border-rose-300 px-2.5 py-1 text-xs font-medium text-rose-600 transition hover:bg-rose-50 dark:border-rose-700 dark:hover:bg-rose-950/30"
                   >
-                    Loeschen
+                    {active.schemaValidationPassed ? "Verwerfen & neu" : "Loeschen"}
                   </button>
                 </ConfirmDeleteForm>
               )}
             </div>
           </div>
-          {!active.isSaved ? (
-            <div className="mb-4 rounded-xl border border-[var(--card-border)] bg-slate-50 p-3 text-xs text-[var(--muted)] dark:bg-slate-900/30">
-              Für diesen Schritt ist noch kein Ergebnis gespeichert.
-            </div>
-          ) : null}
           {active.isSaved && !active.schemaValidationPassed && active.validationErrorsJson ? (
             <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700 dark:border-rose-800 dark:bg-rose-950/30 dark:text-rose-300">
               Validierungsfehler:{" "}
@@ -165,6 +170,8 @@ export function AuditTrailTabs({
                     schemaKeyByStepKey[active.stepKey] ?? "kpi_questions"
                   }
                 />
+                <input type="hidden" name="step" value={String(Math.max(0, active.stepNum - 1))} />
+                {embed ? <input type="hidden" name="embed" value="1" /> : null}
                 <textarea
                   name="user_response"
                   rows={6}
@@ -188,6 +195,8 @@ export function AuditTrailTabs({
                 >
                   <input type="hidden" name="step_id" value={active.id} />
                   <input type="hidden" name="run_id" value={runId} />
+                  <input type="hidden" name="step" value={String(Math.max(0, active.stepNum - 1))} />
+                  {embed ? <input type="hidden" name="embed" value="1" /> : null}
                   <button
                     type="submit"
                     className="rounded-xl border border-rose-300 px-3 py-1.5 text-xs font-medium text-rose-600 transition hover:bg-rose-50 dark:border-rose-700 dark:hover:bg-rose-950/30"

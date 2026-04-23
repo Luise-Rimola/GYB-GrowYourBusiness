@@ -519,8 +519,10 @@ export function WorkflowAssistantFrame({
         const step = stepsRef.current[idx];
         const stepRid = step?.href ? parseRunIdFromAssistantHref(step.href) : null;
         if (rid && stepRid === rid) {
+          // Silently unlock "Erledigt & weiter". Do NOT open the modal — the user
+          // should be free to read the Prüfprotokoll inside the iframe first
+          // and advance manually when ready.
           setRunProcessUnlocked((m) => ({ ...m, [idx]: true }));
-          setProcessCompleteModalOpen(true);
         }
       }
     }
@@ -642,7 +644,13 @@ export function WorkflowAssistantFrame({
             Weiter im Formular unten wählen: mit Web-Infos oder nur manuell.
           </p>
         ) : (
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-3">
+            {runProcessUnlocked[index] && isRunAssistantStepHref(current.href) ? (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-teal-300 bg-teal-50 px-2.5 py-1 text-[11px] font-medium text-teal-800 dark:border-teal-700 dark:bg-teal-950/40 dark:text-teal-200">
+                <span aria-hidden className="inline-block h-1.5 w-1.5 rounded-full bg-teal-600" />
+                Prozess abgeschlossen — Prüfprotokoll ansehen oder weiter
+              </span>
+            ) : null}
             <button
               type="button"
               onClick={goNext}

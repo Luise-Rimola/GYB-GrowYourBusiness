@@ -1893,7 +1893,7 @@ type MarketingInitiative = {
   tracking?: string;
   expected_conversion?: string;
   budget_eur?: number | string;
-  effort_h_week?: string;
+  effort_h_week?: number | string;
   roi?: string;
 };
 
@@ -1939,7 +1939,7 @@ export function MarketingStrategyView({ content }: { content: Record<string, unk
                   {(init.budget_eur != null || init.effort_h_week) && (
                     <span>
                       {init.budget_eur != null && `Budget: ${typeof init.budget_eur === "number" ? `${init.budget_eur}€` : init.budget_eur}`}
-                      {init.effort_h_week && ` · Aufwand: ${init.effort_h_week}`}
+                      {init.effort_h_week != null && init.effort_h_week !== "" && ` · Aufwand: ${typeof init.effort_h_week === "number" ? `${init.effort_h_week}h` : init.effort_h_week}`}
                     </span>
                   )}
                   {init.roi && <span><span className="font-medium">ROI:</span> {init.roi}</span>}

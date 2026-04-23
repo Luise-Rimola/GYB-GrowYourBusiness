@@ -282,7 +282,10 @@ const stringOrObject = z.union([
 
 export const decisionPackSchema = z
   .object({
-    initiative_pool: z.array(z.record(z.unknown())).optional(),
+    // KI liefert Einträge mal als flache Strings („Pop-up Events …"),
+    // mal als strukturierte Objekte. stringOrObject normalisiert Strings auf
+    // { text }, damit Consumer sich auf Objekt-Form verlassen können.
+    initiative_pool: z.array(stringOrObject).optional(),
     decision_proposals: z.array(decisionProposalSchema).min(1).max(10),
     execution_plan_30_60_90: z.record(z.unknown()).optional(),
     guardrails: z.array(stringOrObject).optional(),
@@ -581,9 +584,16 @@ export const goToMarketSchema = z
   })
   .strict();
 
-const marketingInitiativeSchema = z.object({
-  name: z.string(),
-  goal: z.string(),
+const marketingInitiativeSchema = z.preprocess((val) => {
+  // Toleranz: manche LLM-Antworten liefern in der Liste nur Strings
+  // ("Instagram Local Awareness") statt Objekten.
+  if (typeof val === "string") return { name: val };
+  // Zahlen/Booleans NICHT auto-accepten — das führt zu Müll wie "name: 1",
+  // der fälschlich als verifiziert durchgeht.
+  return val;
+}, z.object({
+  name: z.string().min(3),
+  goal: z.string().min(3),
   actions: z.string().optional(),
   content: z.string().optional(),
   hashtags: z.string().optional(),
@@ -592,19 +602,22 @@ const marketingInitiativeSchema = z.object({
   tracking: z.string().optional(),
   expected_conversion: z.string().optional(),
   budget_eur: z.union([z.number(), z.string()]).optional(),
-  effort_h_week: z.string().optional(),
+  // Die KI liefert hier mal eine Zahl (z. B. 4) und mal einen String
+  // (z. B. "4h" / "2-3"). Wir akzeptieren beides, analog zu budget_eur.
+  effort_h_week: z.union([z.number(), z.string()]).optional(),
   roi: z.string().optional(),
-});
+}));
 
 const roadmapWeekSchema = z.object({
   week: z.string(),
   tasks: z.array(z.string()),
 });
 
-export const marketingStrategySchema = z
+export const marketingStrategySchema = wrapRootArrayAs("marketing_initiatives", z
   .object({
     constraints: z.string().optional(),
-    marketing_initiatives: z.array(marketingInitiativeSchema).optional(),
+    // Für Qualität: mindestens eine echte Initiative erforderlich.
+    marketing_initiatives: z.array(marketingInitiativeSchema).min(1).optional(),
     roadmap_30_days: z.array(roadmapWeekSchema).optional(),
     kpi_goals_30_days: z.array(z.object({
       target: z.string(),
@@ -636,7 +649,7 @@ export const marketingStrategySchema = z
     sources_used: z.array(z.string()).optional(),
     strategy_indicators: strategyIndicatorsSchema,
   })
-  .passthrough();
+  .passthrough());
 
 export const socialMediaContentPlanSchema = z
   .object({
@@ -657,11 +670,23 @@ export const socialMediaContentPlanSchema = z
       })),
     })),
     production_notes: z.array(z.string()).optional(),
-    kpi_tracking: z.array(z.object({
+    kpi_tracking: z.array(z.preprocess((val) => {
+      // Auto-Heal: LLM liefert gelegentlich KPI-Einträge ohne `metric`.
+      // Dann nutzen wir den Channel als sinnvollen Fallback, statt den
+      // gesamten Step wegen eines fehlenden Feldes scheitern zu lassen.
+      if (!val || typeof val !== "object" || Array.isArray(val)) return val;
+      const obj = { ...(val as Record<string, unknown>) };
+      const metric = typeof obj.metric === "string" ? obj.metric.trim() : "";
+      const channel = typeof obj.channel === "string" ? obj.channel.trim() : "";
+      if (!metric && channel) {
+        obj.metric = channel;
+      }
+      return obj;
+    }, z.object({
       channel: z.string(),
       metric: z.string(),
       target: z.string().optional(),
-    })).optional(),
+    }))).optional(),
     recommendations: z.array(z.string()).optional(),
     sources_used: z.array(z.string()).optional(),
   })
@@ -731,7 +756,17 @@ export const customerEconomicsLtvCacSchema = z
 export const pmfAssessmentSchema = z
   .object({
     pmf_stage: z.enum(["not_ready", "emerging", "validated", "scaling_ready"]),
-    pmf_score: z.number().min(0).max(1).optional(),
+    // PMF-Score soll intern 0..1 sein. LLM liefert aber teils 0..100 (z. B. 18).
+    // Wir normalisieren robust auf 0..1, statt den gesamten Step scheitern zu lassen.
+    pmf_score: z.preprocess((v) => {
+      const n = typeof v === "number" ? v : Number(v);
+      if (!Number.isFinite(n)) return v;
+      if (n > 1) {
+        const normalized = n <= 100 ? n / 100 : 1;
+        return Math.max(0, Math.min(1, normalized));
+      }
+      return Math.max(0, Math.min(1, n));
+    }, z.number().min(0).max(1)).optional(),
     signals_positive: z.array(z.string()),
     signals_negative: z.array(z.string()).optional(),
     key_gaps: z.array(z.string()).optional(),
@@ -898,8 +933,40 @@ export const capitalStrategySchema = z
   .strict();
 
 /** Wachstum: Marge, Angebots-/Packaging-Logik, Marketing-Hebel, Kosten & Personal – mit Branchen-Fallback bei dünnem Kontext */
-export const growthMarginOptimizationSchema = z
-  .object({
+export const growthMarginOptimizationSchema = z.preprocess(
+  (input) => {
+    // Auto-Heal: KI produziert gelegentlich nur die Inner-Felder von
+    // `people_and_overhead` (revenue_per_employee_current, benchmark_or_target,
+    // interpretation, levers) AM ROOT statt eingepackt. Wir wrappen sie hier,
+    // damit wenigstens dieser Teil gerettet wird und der Rest als klarer
+    // Validierungsfehler erscheint ("Required" pro fehlender Sektion).
+    if (input && typeof input === "object" && !Array.isArray(input)) {
+      const obj = input as Record<string, unknown>;
+      const rootHasPeopleKeys =
+        ("revenue_per_employee_current" in obj) ||
+        ("benchmark_or_target" in obj) ||
+        ("interpretation" in obj);
+      const rootHasActualSections =
+        ("situation_analysis" in obj) ||
+        ("margin_per_unit" in obj) ||
+        ("packaging_positioning" in obj);
+      if (rootHasPeopleKeys && !rootHasActualSections) {
+        const next: Record<string, unknown> = {};
+        const peo: Record<string, unknown> = {};
+        for (const [k, v] of Object.entries(obj)) {
+          if (k === "revenue_per_employee_current" || k === "benchmark_or_target" || k === "interpretation" || k === "levers") {
+            peo[k] = v;
+          } else {
+            next[k] = v;
+          }
+        }
+        next.people_and_overhead = peo;
+        return next;
+      }
+    }
+    return input;
+  },
+  z.object({
     situation_analysis: z.string(),
     margin_per_unit: z.array(z.object({
       offering: z.string(),
@@ -914,7 +981,10 @@ export const growthMarginOptimizationSchema = z
       scenario_without_offering: z.string(),
       pain_or_cost_without: z.string(),
       with_offering_benefit: z.string(),
-      ideas_to_increase_sales_or_price: z.array(z.string()),
+      ideas_to_increase_sales_or_price: z.preprocess(
+        (v) => (typeof v === "string" ? [v] : v),
+        z.array(z.string()),
+      ),
     })).min(1),
     marketing_promises_and_roi: z.array(z.object({
       lever: z.string(),
@@ -925,14 +995,20 @@ export const growthMarginOptimizationSchema = z
     cost_optimization: z.array(z.object({
       category: z.string(),
       too_high_assessment: z.string(),
-      reduction_or_alternatives: z.array(z.string()),
+      reduction_or_alternatives: z.preprocess(
+        (v) => (typeof v === "string" ? [v] : v),
+        z.array(z.string()),
+      ),
     })).min(1),
     people_and_overhead: z
       .object({
         revenue_per_employee_current: z.string().optional(),
         benchmark_or_target: z.string().optional(),
         interpretation: z.string().optional(),
-        levers: z.array(z.string()).optional(),
+        levers: z.preprocess(
+          (v) => (typeof v === "string" ? [v] : v),
+          z.array(z.string()),
+        ).optional(),
       })
       .optional(),
     supply_packaging_energy: z
@@ -946,12 +1022,22 @@ export const growthMarginOptimizationSchema = z
     industry_checklist_if_sparse_data: z.array(z.object({
       area: z.string(),
       what_to_check: z.string(),
-      example_actions: z.array(z.string()),
+      example_actions: z.preprocess(
+        (v) => (typeof v === "string" ? [v] : v),
+        z.array(z.string()),
+      ),
     })).min(1),
-    recommendations: z.array(z.string()).min(1),
-    sources_used: z.array(z.string()).optional(),
+    recommendations: z.preprocess(
+      (v) => (typeof v === "string" ? [v] : v),
+      z.array(z.string()).min(1),
+    ),
+    sources_used: z.preprocess(
+      (v) => (typeof v === "string" ? [v] : v),
+      z.array(z.string()),
+    ).optional(),
   })
-  .strict();
+  .strict(),
+);
 
 export const portfolioManagementSchema = z
   .object({
@@ -1399,45 +1485,80 @@ export const operativePlanSchema = z
   })
   .strict();
 
-export const techDigitalizationSchema = z.object({
-  tools: z.array(z.object({
-    name: z.string(),
-    category: z.string(),
-    description: z.string(),
-    typical_cost: z.string().optional(),
-    roi_notes: z.string().optional(),
-    recommendations: z.array(z.string()).optional(),
-  })),
-  recommendations: z.array(z.string()),
-  sources_used: z.array(z.string()).optional(),
-}).strict();
+// Helper: manche KI-Antworten liefern auf Root-Ebene direkt ein Array statt
+// ein Wrapper-Objekt `{ <listKey>: [...], recommendations: [...] }`. Wir
+// wrappen das tolerant vor der Validierung, damit ein sonst korrekter Output
+// nicht am fehlenden Außen-Objekt scheitert.
+function wrapRootArrayAs<T extends z.ZodTypeAny>(listKey: string, inner: T) {
+  return z.preprocess((val) => {
+    if (Array.isArray(val)) {
+      return { [listKey]: val, recommendations: [] };
+    }
+    return val;
+  }, inner);
+}
 
-export const automationRoiSchema = z.object({
-  processes: z.array(z.object({
-    process_name: z.string(),
-    automation_potential: z.string(),
-    estimated_cost: z.string().optional(),
-    roi_months: z.number().optional(),
-    roi_notes: z.string().optional(),
-    tools: z.array(z.string()).optional(),
-  })),
-  recommendations: z.array(z.string()),
-  sources_used: z.array(z.string()).optional(),
-}).strict();
+// Helper: Listeneinträge tolerant machen. Akzeptiert
+//   - einen flachen String → wird zu `{ [nameField]: str }` promoted
+//   - ein Objekt → bleibt unverändert
+// So fangen wir KI-Antworten ab, die die Detail-Struktur ignorieren und
+// stattdessen nur eine Kurzbeschreibung pro Eintrag liefern.
+function listItemStringOrObject<T extends z.ZodTypeAny>(nameField: string, inner: T) {
+  return z.preprocess((val) => {
+    if (typeof val === "string") {
+      return { [nameField]: val };
+    }
+    return val;
+  }, inner);
+}
 
-export const physicalAutomationSchema = z.object({
-  equipment: z.array(z.object({
-    name: z.string(),
-    category: z.string(),
-    description: z.string(),
-    estimated_cost: z.string().optional(),
-    roi_months: z.number().optional(),
-    makes_sense: z.boolean(),
-    rationale: z.string().optional(),
-  })),
+export const techDigitalizationSchema = wrapRootArrayAs("tools", z.object({
+  tools: z.array(
+    listItemStringOrObject("name", z.object({
+      name: z.string(),
+      // category/description sind häufig nur aus dem Tool-Namen ableitbar und
+      // werden von der KI gelegentlich weggelassen — optional genügt.
+      category: z.string().optional(),
+      description: z.string().optional(),
+      typical_cost: z.string().optional(),
+      roi_notes: z.string().optional(),
+      recommendations: z.array(z.string()).optional(),
+    })),
+  ),
   recommendations: z.array(z.string()),
   sources_used: z.array(z.string()).optional(),
-}).strict();
+}).strict());
+
+export const automationRoiSchema = wrapRootArrayAs("processes", z.object({
+  processes: z.array(
+    listItemStringOrObject("process_name", z.object({
+      process_name: z.string(),
+      automation_potential: z.string().optional(),
+      estimated_cost: z.string().optional(),
+      roi_months: z.number().optional(),
+      roi_notes: z.string().optional(),
+      tools: z.array(z.string()).optional(),
+    })),
+  ),
+  recommendations: z.array(z.string()),
+  sources_used: z.array(z.string()).optional(),
+}).strict());
+
+export const physicalAutomationSchema = wrapRootArrayAs("equipment", z.object({
+  equipment: z.array(
+    listItemStringOrObject("name", z.object({
+      name: z.string(),
+      category: z.string().optional(),
+      description: z.string().optional(),
+      estimated_cost: z.string().optional(),
+      roi_months: z.number().optional(),
+      makes_sense: z.boolean().optional(),
+      rationale: z.string().optional(),
+    })),
+  ),
+  recommendations: z.array(z.string()),
+  sources_used: z.array(z.string()).optional(),
+}).strict());
 
 /** Schritt 1: Bestandsliste Geräte & Material + Bezug zur Unternehmensform */
 export const inventoryBaselineSchema = z.object({
@@ -1634,9 +1755,50 @@ export const growthOfferAudienceFunnelSchema = z.object({
   sources_used: z.array(z.string()).optional(),
 }).strict();
 
+// Gemeinsames KPI-Entry-Schema für growth_paid_ads / growth_seo / ähnliche Outputs.
+// Die KI liefert gelegentlich den getippten Feldnamen `why_it_matter` (Singular)
+// statt `why_it_matters`. Wir normalisieren das via Preprocess, damit die
+// Ausführung nicht an einem Tippfehler scheitert.
+const priorityKpiEntrySchema = z.preprocess((val) => {
+  if (!val || typeof val !== "object" || Array.isArray(val)) return val;
+  const obj = { ...(val as Record<string, unknown>) };
+  if (obj.why_it_matter != null && obj.why_it_matters == null) {
+    obj.why_it_matters = obj.why_it_matter;
+    delete obj.why_it_matter;
+  }
+  return obj;
+}, z.object({
+  kpi_key: z.string(),
+  name: z.string(),
+  what_it_is: z.string(),
+  why_it_matters: z.string(),
+  target_hint: z.string().optional(),
+  check_frequency: z.string().optional(),
+}).strict());
+
+// Score auf der 0–10-Skala. Manche KI-Antworten rutschen auf die 0–100-Skala
+// (z. B. 15 oder 80). Wir clampen tolerant, damit ein sinnvoller Gesamtoutput
+// nicht an einem einzelnen Skalen-Missverständnis scheitert.
+const readinessScore0to10 = z.preprocess((v) => {
+  const n = typeof v === "number" ? v : Number(v);
+  if (!Number.isFinite(n)) return v;
+  return Math.max(0, Math.min(10, n));
+}, z.number().min(0).max(10));
+
+// „Listeneintrag"-Typ: akzeptiert sowohl einen flachen String
+// („Keep CAC below 12€") als auch ein strukturiertes Objekt
+// ({ name, target, rationale, … }). Die KI wechselt innerhalb derselben
+// Workflow-Familie häufig zwischen beiden Formaten; dieser Helper macht die
+// Schemas tolerant, ohne die inhaltliche Struktur zu verlieren.
+const stringOrObjectEntry = z.union([
+  z.string(),
+  z.object({}).passthrough(),
+]);
+const stringOrObjectEntryArray = z.array(stringOrObjectEntry);
+
 export const growthPaidAdsSchema = z.object({
   paid_media_readiness: z.object({
-    readiness_score: z.number().min(0).max(10),
+    readiness_score: readinessScore0to10,
     google_ads_recommendation: z.string(),
     meta_ads_recommendation: z.string(),
     budget_fit_assessment: z.string(),
@@ -1648,14 +1810,7 @@ export const growthPaidAdsSchema = z.object({
     next_steps: z.array(z.string()),
   }).strict(),
   kpi_framework_for_client: z.object({
-    priority_kpis: z.array(z.object({
-      kpi_key: z.string(),
-      name: z.string(),
-      what_it_is: z.string(),
-      why_it_matters: z.string(),
-      target_hint: z.string().optional(),
-      check_frequency: z.string().optional(),
-    }).strict()),
+    priority_kpis: z.array(priorityKpiEntrySchema),
     tracking_validation_checklist: z.array(z.string()),
   }).strict(),
   implementation_guide: z.object({
@@ -1684,19 +1839,17 @@ export const growthSeoSchema = z.object({
     collection_page_opportunities: z.array(z.string()),
     product_page_opportunities: z.array(z.string()),
     blog_content_opportunities: z.array(z.string()),
-    keyword_cluster_suggestions: z.array(z.string()),
+    // Die KI liefert hier manchmal Strings ("Rottweiler Restaurants"), manchmal
+    // Objekte ({ cluster, keywords, intent, … }). Beides ist semantisch sinnvoll,
+    // daher akzeptieren wir beide Formen (Objekte dürfen beliebige Felder haben).
+    keyword_cluster_suggestions: z.array(
+      z.union([z.string(), z.object({}).passthrough()]),
+    ),
     main_seo_gaps: z.array(z.string()),
     priority_actions: z.array(z.string()),
   }).strict(),
   kpi_framework_for_client: z.object({
-    priority_kpis: z.array(z.object({
-      kpi_key: z.string(),
-      name: z.string(),
-      what_it_is: z.string(),
-      why_it_matters: z.string(),
-      target_hint: z.string().optional(),
-      check_frequency: z.string().optional(),
-    }).strict()),
+    priority_kpis: z.array(priorityKpiEntrySchema),
     tracking_validation_checklist: z.array(z.string()),
   }).strict(),
   implementation_guide: z.object({
@@ -1714,6 +1867,87 @@ export const growthSeoSchema = z.object({
     sitemap_guidance_snippet: z.string(),
     canonical_tag_snippet: z.string(),
     internal_linking_block_template: z.string(),
+  }).strict(),
+  sources_used: z.array(z.string()).optional(),
+}).strict();
+
+/**
+ * AI Search / LLM Visibility Optimization (GEO + AEO + LLMO).
+ * GEO = Generative Engine Optimization (ChatGPT Search, Perplexity, Google AI Overviews, Bing Copilot, Gemini).
+ * AEO = Answer Engine Optimization (Featured Snippets, People Also Ask, zero-click).
+ * LLMO = Machen Inhalte zitierbar/crawlbar für LLMs (llms.txt, robots, Entity/E-E-A-T-Signale).
+ */
+export const growthAiSeoSchema = z.object({
+  ai_search_landscape: z.object({
+    relevant_ai_engines: z.array(z.string()),
+    target_user_intents: z.array(z.string()),
+    current_visibility_assessment: z.string(),
+    main_opportunities: z.array(z.string()),
+    main_risks: z.array(z.string()),
+  }).strict(),
+  geo_strategy: z.object({
+    positioning_as_source: z.string(),
+    quotable_content_angles: z.array(z.string()),
+    topical_authority_plan: z.array(z.string()),
+    citation_assets: z.array(z.string()),
+    priority_actions: z.array(z.string()),
+  }).strict(),
+  aeo_strategy: z.object({
+    target_questions: z.array(
+      z.object({
+        question: z.string(),
+        intent: z.string().optional(),
+        recommended_answer_format: z.string().optional(),
+      }),
+    ),
+    faq_candidates: z.array(z.string()),
+    zero_click_opportunities: z.array(z.string()),
+    priority_actions: z.array(z.string()),
+  }).strict(),
+  llm_optimization: z.object({
+    llms_txt_recommended: z.boolean().optional(),
+    // KI liefert hier teils strukturierte Einträge ({ bot, directive, reason })
+    // statt reiner Strings; wir akzeptieren beide Formen robust.
+    robots_directives_for_ai: stringOrObjectEntryArray,
+    content_licensing_note: z.string().optional(),
+    brand_entity_mentions_plan: z.array(z.string()),
+  }).strict(),
+  structured_data_plan: z.object({
+    // Oft als Objekte geliefert, z. B. { schema: "FAQPage", pages: [...] }.
+    recommended_schemas: stringOrObjectEntryArray,
+    priority_actions: z.array(z.string()),
+  }).strict(),
+  eeat_signals: z.object({
+    experience_signals: z.array(z.string()),
+    expertise_signals: z.array(z.string()),
+    authoritativeness_signals: z.array(z.string()),
+    trust_signals: z.array(z.string()),
+    author_pages_recommendation: z.string().optional(),
+  }).strict(),
+  content_blueprint: z.object({
+    flagship_articles: z.array(z.string()),
+    // Kann als Cluster-Objekte kommen ({ hub, spokes, intent }).
+    hub_and_spoke_topics: stringOrObjectEntryArray,
+    content_freshness_plan: z.array(z.string()),
+    multimodal_assets: z.array(z.string()),
+  }).strict(),
+  kpi_framework_for_client: z.object({
+    priority_kpis: z.array(priorityKpiEntrySchema),
+    tracking_validation_checklist: z.array(z.string()),
+  }).strict(),
+  implementation_guide: z.object({
+    setup_steps: z.array(z.string()),
+    qa_steps: z.array(z.string()),
+    rollout_plan_30_60_90: z.array(z.string()),
+    common_pitfalls: z.array(z.string()),
+  }).strict(),
+  implementation_code: z.object({
+    llms_txt_example: z.string(),
+    robots_txt_ai_bot_example: z.string(),
+    faq_json_ld_snippet: z.string(),
+    howto_json_ld_snippet: z.string(),
+    article_json_ld_snippet: z.string(),
+    organization_json_ld_snippet: z.string(),
   }).strict(),
   sources_used: z.array(z.string()).optional(),
 }).strict();
@@ -1752,33 +1986,36 @@ export const growthRetentionContentSchema = z.object({
 export const growthExecutionPlanSchema = z.object({
   kpi_framework: z.object({
     north_star_metric: z.string(),
-    primary_kpis: z.array(z.string()),
-    secondary_kpis: z.array(z.string()),
+    // Listen in diesem Workflow werden von der KI mal als Strings, mal als
+    // Objekte ({ name, target, rationale }) geliefert. Beide Formen sind
+    // inhaltlich valide — die Union akzeptiert beides.
+    primary_kpis: stringOrObjectEntryArray,
+    secondary_kpis: stringOrObjectEntryArray,
     channel_kpis: z.object({
-      meta_ads: z.array(z.string()),
-      google_ads: z.array(z.string()),
-      seo: z.array(z.string()),
-      email_sms: z.array(z.string()),
+      meta_ads: stringOrObjectEntryArray,
+      google_ads: stringOrObjectEntryArray,
+      seo: stringOrObjectEntryArray,
+      email_sms: stringOrObjectEntryArray,
     }).strict(),
-    measurement_requirements: z.array(z.string()),
-    dashboard_sections: z.array(z.string()),
+    measurement_requirements: stringOrObjectEntryArray,
+    dashboard_sections: stringOrObjectEntryArray,
   }).strict(),
   strategy_30_60_90: z.object({
-    first_30_days: z.array(z.string()),
-    days_31_60: z.array(z.string()),
-    days_61_90: z.array(z.string()),
-    dependencies: z.array(z.string()),
-    quick_wins: z.array(z.string()),
-    high_impact_projects: z.array(z.string()),
-    critical_risks: z.array(z.string()),
+    first_30_days: stringOrObjectEntryArray,
+    days_31_60: stringOrObjectEntryArray,
+    days_61_90: stringOrObjectEntryArray,
+    dependencies: stringOrObjectEntryArray,
+    quick_wins: stringOrObjectEntryArray,
+    high_impact_projects: stringOrObjectEntryArray,
+    critical_risks: stringOrObjectEntryArray,
   }).strict(),
   draft_artifacts: z.object({
-    meta_ad_concepts: z.array(z.string()),
-    google_ad_concepts: z.array(z.string()),
-    email_flow_plan: z.array(z.string()),
-    seo_plan: z.array(z.string()),
-    content_calendar: z.array(z.string()),
-    ugc_briefs: z.array(z.string()),
+    meta_ad_concepts: stringOrObjectEntryArray,
+    google_ad_concepts: stringOrObjectEntryArray,
+    email_flow_plan: stringOrObjectEntryArray,
+    seo_plan: stringOrObjectEntryArray,
+    content_calendar: stringOrObjectEntryArray,
+    ugc_briefs: stringOrObjectEntryArray,
   }).strict(),
   sources_used: z.array(z.string()).optional(),
 }).strict();
@@ -1794,6 +2031,30 @@ export const subsidyResearchSchema = z.object({
   }).strict()),
   recommendations: z.array(z.string()).optional(),
   sources_used: z.array(z.string()).optional(),
+}).strict();
+
+export const companyInternetPresenceSchema = z.object({
+  company_exists: z.boolean(),
+  status: z.enum(["existing_enriched", "pre_foundation", "enrichment_failed"]),
+  message: z.string(),
+  company_snapshot: z.object({
+    company_name: z.string().optional(),
+    website: z.string().optional(),
+    location: z.string().optional(),
+    offer: z.string().optional(),
+    usp: z.string().optional(),
+    customers: z.string().optional(),
+    competitors: z.string().optional(),
+    sales_channels: z.string().optional(),
+    stage: z.string().optional(),
+    business_state: z.string().optional(),
+  }).partial().passthrough().optional(),
+  evidence: z.object({
+    website_excerpt_found: z.boolean(),
+    linkedIn_search_source: z.enum(["brave", "ddg", "none"]),
+    public_finance_search_source: z.enum(["brave", "ddg", "none"]),
+  }).strict().optional(),
+  notes: z.array(z.string()).optional(),
 }).strict();
 
 export const schemaRegistry = {
@@ -1873,9 +2134,11 @@ export const schemaRegistry = {
   growth_offer_audience_funnel: growthOfferAudienceFunnelSchema,
   growth_paid_ads: growthPaidAdsSchema,
   growth_seo: growthSeoSchema,
+  growth_ai_seo: growthAiSeoSchema,
   growth_retention_content: growthRetentionContentSchema,
   growth_execution_plan: growthExecutionPlanSchema,
   subsidy_research: subsidyResearchSchema,
+  company_internet_presence: companyInternetPresenceSchema,
 } as const;
 
 export type SchemaKey = keyof typeof schemaRegistry;

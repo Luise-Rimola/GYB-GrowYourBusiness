@@ -2,6 +2,86 @@ import { jsonrepair } from "jsonrepair";
 import { z } from "zod";
 import { schemaRegistry, SchemaKey } from "@/types/schemas";
 
+/**
+ * Alias-Tabelle für häufige KI-Tippfehler bzw. Feldnamen-Varianten.
+ * Keys sind die (fehlerhaften) Feldnamen, die wir vor der Validierung auf den
+ * kanonischen Namen (value) umbenennen.
+ *
+ * Grund: Die Modelle produzieren immer wieder dieselben Klassen von Abweichungen
+ * (Pluralform, vertippte Wiederholung, camelCase statt snake_case). Ein einzelnes
+ * Mapping hier verhindert, dass ein sonst vollständiger, inhaltlich korrekter
+ * Output an einem Tippfehler scheitert — workflow-unabhängig.
+ */
+const FIELD_ALIASES: Record<string, string> = {
+  // priority_kpis / KPI-Einträge
+  why_it_matter: "why_it_matters",
+  why_it_it_matters: "why_it_matters",
+  why_matters: "why_it_matters",
+  whyItMatters: "why_it_matters",
+  whatItIs: "what_it_is",
+  kpiKey: "kpi_key",
+  targetHint: "target_hint",
+  checkFrequency: "check_frequency",
+  // marketing_initiatives
+  budgetEur: "budget_eur",
+  effortHWeek: "effort_h_week",
+  expectedConversion: "expected_conversion",
+  // allgemeine camelCase → snake_case Klassiker
+  sourcesUsed: "sources_used",
+  recommendedActions: "recommended_actions",
+};
+
+/**
+ * Benennt bekannte Tippfehler/camelCase-Varianten rekursiv in die kanonischen
+ * snake_case-Felder um. Arrays und verschachtelte Objekte werden mitgelaufen.
+ */
+function normalizeFieldAliases(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(normalizeFieldAliases);
+  }
+  if (!value || typeof value !== "object") return value;
+  const out: Record<string, unknown> = {};
+  for (const [rawKey, rawVal] of Object.entries(value as Record<string, unknown>)) {
+    const canonical = FIELD_ALIASES[rawKey] ?? rawKey;
+    const normalizedVal = normalizeFieldAliases(rawVal);
+    // Kanonischen Wert nicht überschreiben, wenn er bereits explizit gesetzt wurde.
+    if (canonical in out && canonical !== rawKey) continue;
+    out[canonical] = normalizedVal;
+  }
+  return out;
+}
+
+/**
+ * Entfernt Pfade aus einem Objekt, an denen Zod „unrecognized_keys" gemeldet hat.
+ * So können wir strict-Schemas tolerant machen, ohne die Strictness-Signalisierung
+ * grundsätzlich aufzugeben: Wir probieren es strict, und fallen bei nur-unbekannten
+ * Keys auf einen bereinigten Input zurück.
+ */
+function stripUnrecognizedKeys(
+  input: unknown,
+  issues: z.ZodIssue[],
+): unknown {
+  if (!input || typeof input !== "object") return input;
+  // Tiefe Kopie, um das Original nicht zu mutieren.
+  const root: unknown = JSON.parse(JSON.stringify(input));
+  for (const issue of issues) {
+    if (issue.code !== "unrecognized_keys") continue;
+    const keys = (issue as z.ZodIssue & { keys?: string[] }).keys ?? [];
+    // An das Elternobjekt (issue.path) navigieren und dort die fremden Keys löschen.
+    let cursor: unknown = root;
+    for (const segment of issue.path) {
+      if (cursor == null) break;
+      cursor = (cursor as Record<string | number, unknown>)[segment];
+    }
+    if (cursor && typeof cursor === "object" && !Array.isArray(cursor)) {
+      for (const k of keys) {
+        delete (cursor as Record<string, unknown>)[k];
+      }
+    }
+  }
+  return root;
+}
+
 export type ValidationResult =
   | {
       ok: true;
@@ -225,7 +305,41 @@ export function validateStrictJson(
   }
 
   const schema = schemaRegistry[schemaKey];
-  const result = schema.safeParse(parsed);
+
+  // 1) Erster Versuch mit Alias-Normalisierung (bekannte Tippfehler → kanonisch).
+  const normalized = normalizeFieldAliases(parsed);
+  let result = schema.safeParse(normalized);
+
+  // 2) Wenn ausschließlich „unrecognized_keys"-Fehler auftreten (z. B. neue
+  //    Hallucinations-Felder, die wir noch nicht in der Alias-Tabelle haben),
+  //    strippen wir diese Keys und validieren erneut. Required-Felder-Fehler
+  //    bleiben davon unberührt.
+  if (!result.success) {
+    const unrecognizedIssues = result.error.errors.filter((i) => i.code === "unrecognized_keys");
+    if (unrecognizedIssues.length > 0) {
+      const cleaned = stripUnrecognizedKeys(normalized, unrecognizedIssues);
+      const retry = schema.safeParse(cleaned);
+      if (retry.success) {
+        return { ok: true, data: retry.data };
+      }
+      // Wenn nach dem Strippen nur noch „unrecognized_keys" übrig sind (nested),
+      // nochmal probieren. Schutz gegen Endlosschleife durch max. 3 Runden.
+      let working = cleaned;
+      let currentError = retry.error;
+      for (let round = 0; round < 3; round++) {
+        const nested = currentError.errors.filter((i) => i.code === "unrecognized_keys");
+        if (nested.length === 0) break;
+        working = stripUnrecognizedKeys(working, nested);
+        const next = schema.safeParse(working);
+        if (next.success) {
+          return { ok: true, data: next.data };
+        }
+        currentError = next.error;
+      }
+      result = schema.safeParse(working);
+    }
+  }
+
   if (!result.success) {
     const errors = result.error.errors.map((issue) =>
       `${issue.path.join(".") || "root"}: ${issue.message}`

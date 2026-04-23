@@ -24,7 +24,7 @@ function latestParsedOutputForStepKey(
   return best.parsedOutputJson ?? null;
 }
 
-/** Create artifact – fallback to raw SQL if Prisma client enum is outdated (e.g. after schema change without regenerate) */
+/** Create artifact ??? fallback to raw SQL if Prisma client enum is outdated (e.g. after schema change without regenerate) */
 async function createArtifactWithEnumFallback(params: {
   companyId: string;
   runId: string;
@@ -66,7 +66,7 @@ async function createArtifactWithEnumFallback(params: {
   }
 }
 
-/** Create work_processes artifact – fallback to raw SQL if Prisma client enum is outdated */
+/** Create work_processes artifact ??? fallback to raw SQL if Prisma client enum is outdated */
 async function createWorkProcessesArtifact(params: {
   companyId: string;
   runId: string;
@@ -244,6 +244,7 @@ import {
   growthOfferAudienceFunnelSchema,
   growthPaidAdsSchema,
   growthSeoSchema,
+  growthAiSeoSchema,
   growthRetentionContentSchema,
   growthExecutionPlanSchema,
   subsidyResearchSchema,
@@ -287,7 +288,7 @@ export const WorkflowService = {
     promptRendered: string;
     userResponse: string;
     promptTemplateVersion?: number;
-    /** When true (e.g. /api/run-step/execute), mark step verified if JSON validates — no extra manual click. */
+    /** When true (e.g. /api/run-step/execute), mark step verified if JSON validates ??? no extra manual click. */
     autoVerify?: boolean;
     /**
      * When true (API route only): RunStep row is written synchronously; artifacts / HTML / follow-up DB work
@@ -297,8 +298,8 @@ export const WorkflowService = {
   }) {
     const validation = validateStrictJson(params.userResponse, params.schemaKey);
 
-    // Immer die neueste Zeile pro (runId, stepKey) — ohne orderBy kann findFirst eine alte Duplikat-Zeile
-    // treffen; die UI nutzt aber latest-by-createdAt → verifiedByUser/Content wirkten „weg“.
+    // Immer die neueste Zeile pro (runId, stepKey) ??? ohne orderBy kann findFirst eine alte Duplikat-Zeile
+    // treffen; die UI nutzt aber latest-by-createdAt ??? verifiedByUser/Content wirkten ???weg???.
     const existing = await prisma.runStep.findFirst({
       where: { runId: params.runId, stepKey: params.stepKey },
       orderBy: { createdAt: "desc" },
@@ -811,7 +812,7 @@ export const WorkflowService = {
           if (parsed.success) {
             const strategicOptionsTitle =
               run.workflowKey === "WF_PATENT_CHECK"
-                ? "Patentrecht & Schutzfähigkeit"
+                ? "Patentrecht & Schutzf?higkeit"
                 : "Strategic Options";
             await prisma.artifact.create({
               data: {
@@ -1044,6 +1045,19 @@ export const WorkflowService = {
             });
             await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
           }
+        } else if (params.stepKey === "growth_ai_seo") {
+          const parsed = growthAiSeoSchema.safeParse(validation.data);
+          if (parsed.success) {
+            await createArtifactWithEnumFallback({
+              companyId: run.companyId,
+              runId: run.id,
+              type: "growth_ai_seo",
+              title: "AI Search / GEO / AEO / LLMO",
+              contentJson: parsed.data as object,
+              exportHtml: null,
+            });
+            await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
+          }
         } else if (params.stepKey === "growth_retention_content") {
           const parsed = growthRetentionContentSchema.safeParse(validation.data);
           if (parsed.success) {
@@ -1077,7 +1091,7 @@ export const WorkflowService = {
               companyId: run.companyId,
               runId: run.id,
               type: "subsidy_research",
-              title: "Zuschuesse & Foerderprogramme",
+              title: "Zusch?sse & F?rderprogramme",
               contentJson: parsed.data as object,
               exportHtml: null,
             });
@@ -1153,7 +1167,7 @@ export const WorkflowService = {
             await createWorkProcessesArtifact({
               companyId: run.companyId,
               runId: run.id,
-              title: "Arbeitsprozesse (Planung → Einkauf → Endkunde)",
+              title: "Arbeitsprozesse (Planung ??? Einkauf ??? Endkunde)",
               contentJson: toPrismaJson(parsed.data),
               exportHtml: this.renderWorkProcessesHtml(parsed.data),
             });
@@ -1509,7 +1523,7 @@ export const WorkflowService = {
       data: {
         runId: params.runId,
         stepKey: "kpi_questions_answer",
-        promptRendered: "(form step – KPI questions answered)",
+        promptRendered: "(form step ??? KPI questions answered)",
         userPastedResponse: userResponse,
         parsedOutputJson: validation.data as object,
         schemaValidationPassed: true,
@@ -1521,7 +1535,7 @@ export const WorkflowService = {
     stepId: string;
     schemaKey: SchemaKey;
     userResponse: string;
-    /** Nach KI „Ausführen“ automatisch speichern → als verifiziert zählen. */
+    /** Nach KI ???Ausf?hren??? automatisch speichern ??? als verifiziert z?hlen. */
     autoVerify?: boolean;
   }) {
     const validation = validateStrictJson(params.userResponse, params.schemaKey);
@@ -1981,7 +1995,7 @@ export const WorkflowService = {
         if (parsed.success) {
           const strategicOptionsTitle =
             run.workflowKey === "WF_PATENT_CHECK"
-              ? "Patentrecht & Schutzfähigkeit"
+              ? "Patentrecht & Schutzf?higkeit"
               : "Strategic Options";
           await prisma.artifact.create({
             data: {
@@ -2210,6 +2224,19 @@ export const WorkflowService = {
           });
           await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
         }
+      } else if (step.stepKey === "growth_ai_seo") {
+        const parsed = growthAiSeoSchema.safeParse(validation.data);
+        if (parsed.success) {
+          await createArtifactWithEnumFallback({
+            companyId: run.companyId,
+            runId: run.id,
+            type: "growth_ai_seo",
+            title: "AI Search / GEO / AEO / LLMO",
+            contentJson: parsed.data as object,
+            exportHtml: null,
+          });
+          await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
+        }
       } else if (step.stepKey === "growth_retention_content") {
         const parsed = growthRetentionContentSchema.safeParse(validation.data);
         if (parsed.success) {
@@ -2243,7 +2270,7 @@ export const WorkflowService = {
             companyId: run.companyId,
             runId: run.id,
             type: "subsidy_research",
-            title: "Zuschuesse & Foerderprogramme",
+            title: "Zusch?sse & F?rderprogramme",
             contentJson: parsed.data as object,
             exportHtml: null,
           });
@@ -2329,7 +2356,7 @@ export const WorkflowService = {
             await createWorkProcessesArtifact({
               companyId: run.companyId,
               runId: run.id,
-              title: "Arbeitsprozesse (Planung → Einkauf → Endkunde)",
+              title: "Arbeitsprozesse (Planung ??? Einkauf ??? Endkunde)",
               contentJson: content.contentJson,
               exportHtml: content.exportHtml ?? "",
             });
@@ -2726,7 +2753,7 @@ export const WorkflowService = {
     const facts = data.key_facts ?? [];
     return `
       <h3>Industry & Location</h3>
-      <p><strong>${data.industry ?? "—"}</strong> · ${data.location ?? "—"}</p>
+      <p><strong>${data.industry ?? "???"}</strong> ? ${data.location ?? "???"}</p>
       <h3>Key Trends</h3>
       <ul>${trends.map((t) => `<li>${t}</li>`).join("")}</ul>
       <h3>Competitors</h3>
@@ -2752,7 +2779,7 @@ export const WorkflowService = {
     const plan = pack.execution_plan_30_60_90 ?? {};
     return `
       <h3>Top Decisions</h3>
-      <ol>${proposals.map((p) => `<li><strong>${p.title ?? "—"}</strong>: ${(p.founder_simple_summary as string) ?? ""}</li>`).join("")}</ol>
+      <ol>${proposals.map((p) => `<li><strong>${p.title ?? "???"}</strong>: ${(p.founder_simple_summary as string) ?? ""}</li>`).join("")}</ol>
       <h3>30/60/90 Plan</h3>
       <pre>${JSON.stringify(plan, null, 2)}</pre>
     `;
@@ -2779,13 +2806,13 @@ export const WorkflowService = {
       const v12 = e.value_month_12 ?? e.value;
       const u = e.unit ?? "";
       if (v1 != null && v12 != null && v1 !== v12) {
-        return `${v1} ${u} → ${v12} ${u}`;
+        return `${v1} ${u} ??? ${v12} ${u}`;
       }
-      return `${v1 ?? "—"} ${u}`;
+      return `${v1 ?? "???"} ${u}`;
     };
     return `
-      <h3>KPI Prognosen (Monat 1 → Monat 12)</h3>
-      <ul>${estimates.map((e) => `<li><strong>${e.kpi_key}</strong>: ${fmt(e)} (${Math.round((e.confidence ?? 0) * 100)}%) – ${e.rationale ?? ""}</li>`).join("")}</ul>
+      <h3>KPI Prognosen (Monat 1 ??? Monat 12)</h3>
+      <ul>${estimates.map((e) => `<li><strong>${e.kpi_key}</strong>: ${fmt(e)} (${Math.round((e.confidence ?? 0) * 100)}%) ??? ${e.rationale ?? ""}</li>`).join("")}</ul>
     `;
   },
 
@@ -2794,7 +2821,7 @@ export const WorkflowService = {
     const summary = data.summary ?? "";
     const recs = data.recommendations ?? [];
     return `
-      <h3>Arbeitsprozesse (Planung → Einkauf → Endkunde)</h3>
+      <h3>Arbeitsprozesse (Planung ??? Einkauf ??? Endkunde)</h3>
       ${summary ? `<p>${summary}</p>` : ""}
       <ol>${chain.map((p) => `<li><strong>${p.phase ?? p.name ?? ""}</strong>: ${p.description ?? ""}${p.responsible_role ? ` (Rolle: ${p.responsible_role})` : ""}${p.duration_estimate ? ` (${p.duration_estimate})` : ""}</li>`).join("")}</ol>
       ${recs.length > 0 ? `<h4>Empfehlungen</h4><ul>${recs.map((r) => `<li>${r}</li>`).join("")}</ul>` : ""}
@@ -2818,7 +2845,7 @@ export const WorkflowService = {
       extra += `<h3>Feasibility</h3><p>Makeable: ${feas.is_makeable ? "Yes" : "No"} | Recommendation: ${feas.recommendation ?? ""}</p><p>${feas.rationale ?? ""}</p>${(feas.key_blockers ?? []).length ? `<p>Blockers: ${(feas.key_blockers ?? []).join(", ")}</p>` : ""}`;
     }
     if (brd.length > 0) {
-      extra += `<h3>Business Research (Northdata-like)</h3><ul>${brd.map((b) => `<li>${b.source_type ?? ""}: ${b.description ?? ""} — ${(b.key_findings ?? []).join("; ")}</li>`).join("")}</ul>`;
+      extra += `<h3>Business Research (Northdata-like)</h3><ul>${brd.map((b) => `<li>${b.source_type ?? ""}: ${b.description ?? ""} ??? ${(b.key_findings ?? []).join("; ")}</li>`).join("")}</ul>`;
     }
     return base + extra;
   },
@@ -2848,7 +2875,7 @@ export const WorkflowService = {
     const capital = data.capital_requirements_summary ?? "";
     const monthly = data.monthly_projection ?? [];
     const monthlyRows = monthly.length > 0
-      ? `<table><tr><th>Monat</th><th>Umsatz</th><th>Kosten</th><th>Netto</th></tr>${monthly.map((m) => `<tr><td>${m.month}</td><td>${m.revenue ?? "—"}</td><td>${m.total_costs ?? "—"}</td><td>${m.net ?? "—"}</td></tr>`).join("")}</table>`
+      ? `<table><tr><th>Monat</th><th>Umsatz</th><th>Kosten</th><th>Netto</th></tr>${monthly.map((m) => `<tr><td>${m.month}</td><td>${m.revenue ?? "???"}</td><td>${m.total_costs ?? "???"}</td><td>${m.net ?? "???"}</td></tr>`).join("")}</table>`
       : "";
     return `
       <h3>Executive Summary</h3>
@@ -2858,7 +2885,7 @@ export const WorkflowService = {
       <h3>Marketing Plan</h3>
       <p>${marketing}</p>
       <h3>Financial Scenarios</h3>
-      <p>Worst: ${w.revenue_min ?? "—"} | Best: ${b.revenue_max ?? "—"} | Realistic: ${r.revenue_expected ?? "—"}</p>
+      <p>Worst: ${w.revenue_min ?? "???"} | Best: ${b.revenue_max ?? "???"} | Realistic: ${r.revenue_expected ?? "???"}</p>
       ${capital ? `<h3>Kapitalbedarf</h3><p>${capital}</p>` : ""}
       ${mgmt ? `<h3>Management & Team</h3><p>${mgmt}</p>` : ""}
       ${legal ? `<h3>Rechtsform</h3><p>${legal}</p>` : ""}
@@ -2876,15 +2903,15 @@ export const WorkflowService = {
     const brd = (data.business_research_data ?? []) as Array<{ source_type?: string; description?: string; key_findings?: string[] }>;
     return `
       <h3>Worst Case (Minimal Revenue)</h3>
-      <p>Revenue: ${w.revenue_min ?? "—"} | ${w.revenue_description ?? ""}</p>
+      <p>Revenue: ${w.revenue_min ?? "???"} | ${w.revenue_description ?? ""}</p>
       <p>Assumptions: ${Array.isArray(w.assumptions) ? w.assumptions.join(", ") : ""}</p>
       <p>Risks: ${Array.isArray(w.risks) ? w.risks.join(", ") : ""}</p>
       <h3>Best Case (Maximum Revenue)</h3>
-      <p>Revenue: ${b.revenue_max ?? "—"} | ${b.revenue_description ?? ""}</p>
+      <p>Revenue: ${b.revenue_max ?? "???"} | ${b.revenue_description ?? ""}</p>
       <p>Assumptions: ${Array.isArray(b.assumptions) ? b.assumptions.join(", ") : ""}</p>
       <p>Enablers: ${Array.isArray(b.enablers) ? b.enablers.join(", ") : ""}</p>
       <h3>Realistic Case</h3>
-      <p>Revenue: ${r.revenue_expected ?? "—"} | ${r.revenue_description ?? ""}</p>
+      <p>Revenue: ${r.revenue_expected ?? "???"} | ${r.revenue_description ?? ""}</p>
       <p>Assumptions: ${Array.isArray(r.assumptions) ? r.assumptions.join(", ") : ""}</p>
       ${brd.length ? `<h3>Business Research Data</h3><ul>${brd.map((x) => `<li>${x.source_type ?? ""}: ${x.description ?? ""}</li>`).join("")}</ul>` : ""}
     `;
@@ -2924,7 +2951,7 @@ export const WorkflowService = {
     const risks = data.industry_risks ?? [];
     return `
       <h3>Failure Reasons</h3>
-      <ul>${reasons.map((r) => `<li><strong>${r.reason}</strong>${r.frequency ? ` (${r.frequency})` : ""}${r.mitigation ? ` — Mitigation: ${r.mitigation}` : ""}</li>`).join("")}</ul>
+      <ul>${reasons.map((r) => `<li><strong>${r.reason}</strong>${r.frequency ? ` (${r.frequency})` : ""}${r.mitigation ? ` ??? Mitigation: ${r.mitigation}` : ""}</li>`).join("")}</ul>
       ${risks.length ? `<h3>Industry Risks</h3><ul>${risks.map((i) => `<li>${i}</li>`).join("")}</ul>` : ""}
     `;
   },
@@ -2936,12 +2963,12 @@ export const WorkflowService = {
     const intro = data.menu_intro?.items ?? [];
     const items = data.menu_full?.items ?? [];
     const introHtml = intro.length > 0
-      ? `<h3>Intro (Einführung)</h3><ul>${intro.map((i) => `<li><strong>${i.name}</strong>${i.description ? ` — ${i.description}` : ""}${i.price ? ` (${i.price})` : ""}</li>`).join("")}</ul>`
+      ? `<h3>Intro (Einf?hrung)</h3><ul>${intro.map((i) => `<li><strong>${i.name}</strong>${i.description ? ` ??? ${i.description}` : ""}${i.price ? ` (${i.price})` : ""}</li>`).join("")}</ul>`
       : "";
     const fullHtml = items.length > 0
-      ? `<h3>Vollständiges Angebot (mit Komponenten)</h3>${items.map((d) => {
+      ? `<h3>Vollst?ndiges Angebot (mit Komponenten)</h3>${items.map((d) => {
           const compList = (d.components ?? []).map((c) => `${c.name}${c.quantity ? ` ${c.quantity}${c.unit ?? ""}` : ""}`).join(", ");
-          return `<p><strong>${d.name}</strong>${d.category ? ` (${d.category})` : ""}${d.description ? ` — ${d.description}` : ""}${compList ? ` — Komponenten: ${compList}` : ""}${d.price ? ` (${d.price})` : ""}</p>`;
+          return `<p><strong>${d.name}</strong>${d.category ? ` (${d.category})` : ""}${d.description ? ` ??? ${d.description}` : ""}${compList ? ` ??? Komponenten: ${compList}` : ""}${d.price ? ` (${d.price})` : ""}</p>`;
         }).join("")}`
       : "";
     return `${introHtml}${fullHtml}`;
@@ -2951,7 +2978,7 @@ export const WorkflowService = {
     const suppliers = data.suppliers ?? [];
     return `
       <h3>Suppliers</h3>
-      <ul>${suppliers.map((s) => `<li><strong>${s.material}</strong>${s.supplier ? ` — ${s.supplier}` : ""}${s.price_per_unit != null ? ` (${s.price_per_unit} ${s.unit ?? ""})` : ""}${s.notes ? ` — ${s.notes}` : ""}</li>`).join("")}</ul>
+      <ul>${suppliers.map((s) => `<li><strong>${s.material}</strong>${s.supplier ? ` ??? ${s.supplier}` : ""}${s.price_per_unit != null ? ` (${s.price_per_unit} ${s.unit ?? ""})` : ""}${s.notes ? ` ??? ${s.notes}` : ""}</li>`).join("")}</ul>
     `;
   },
 
@@ -2970,14 +2997,14 @@ export const WorkflowService = {
     const items = data.items ?? [];
     const summary = data.summary ?? { total_warenkosten: 0, total_items: 0 };
     const rows = items.map((i) => {
-      const margin = i.margin_percent != null ? `${i.margin_percent.toFixed(1)}%` : "—";
-      return `<tr><td>${i.item_name}</td><td>${i.total_cost.toFixed(2)} €</td><td>${i.selling_price != null ? `${i.selling_price.toFixed(2)} €` : "—"}</td><td>${margin}</td></tr>`;
+      const margin = i.margin_percent != null ? `${i.margin_percent.toFixed(1)}%` : "???";
+      return `<tr><td>${i.item_name}</td><td>${i.total_cost.toFixed(2)} ???</td><td>${i.selling_price != null ? `${i.selling_price.toFixed(2)} ???` : "???"}</td><td>${margin}</td></tr>`;
     }).join("");
     const recs = (summary.recommendations ?? []).map((r) => `<li>${r}</li>`).join("");
     return `
       <h3>Warenkosten</h3>
-      <p><strong>Gesamt:</strong> ${summary.total_warenkosten.toFixed(2)} € (${summary.total_items} Positionen)</p>
-      ${summary.avg_cost_per_item != null ? `<p>Ø pro Position: ${summary.avg_cost_per_item.toFixed(2)} €</p>` : ""}
+      <p><strong>Gesamt:</strong> ${summary.total_warenkosten.toFixed(2)} ??? (${summary.total_items} Positionen)</p>
+      ${summary.avg_cost_per_item != null ? `<p>?? pro Position: ${summary.avg_cost_per_item.toFixed(2)} ???</p>` : ""}
       <table><thead><tr><th>Position</th><th>Kosten</th><th>Verkaufspreis</th><th>Marge</th></tr></thead><tbody>${rows}</tbody></table>
       ${recs ? `<h4>Empfehlungen</h4><ul>${recs}</ul>` : ""}
     `;
@@ -2990,13 +3017,13 @@ export const WorkflowService = {
     const items = data.items ?? [];
     const summary = data.summary ?? {};
     const rows = items.map((i) =>
-      `<tr><td>${i.item_name}</td><td>${i.cost.toFixed(2)} €</td><td>${i.recommended_price.toFixed(2)} €</td><td>${i.target_margin_percent.toFixed(1)}%</td><td>${i.price_notes ?? "—"}</td></tr>`
+      `<tr><td>${i.item_name}</td><td>${i.cost.toFixed(2)} ???</td><td>${i.recommended_price.toFixed(2)} ???</td><td>${i.target_margin_percent.toFixed(1)}%</td><td>${i.price_notes ?? "???"}</td></tr>`
     ).join("");
     const recs = (summary.recommendations ?? []).map((r) => `<li>${r}</li>`).join("");
     return `
       <h3>Preiskalkulation</h3>
       ${summary.pricing_strategy ? `<p>${summary.pricing_strategy}</p>` : ""}
-      ${summary.avg_margin_percent != null ? `<p>Ø Marge: ${summary.avg_margin_percent.toFixed(1)}%</p>` : ""}
+      ${summary.avg_margin_percent != null ? `<p>?? Marge: ${summary.avg_margin_percent.toFixed(1)}%</p>` : ""}
       <table><thead><tr><th>Position</th><th>Kosten</th><th>Empf. Preis</th><th>Marge</th><th>Hinweise</th></tr></thead><tbody>${rows}</tbody></table>
       ${recs ? `<h4>Empfehlungen</h4><ul>${recs}</ul>` : ""}
     `;
@@ -3015,24 +3042,24 @@ export const WorkflowService = {
     const bestDetails = data.best_option_details;
     const recs = data.recommendations ?? [];
     const avgSection = avgPrices.length > 0
-      ? `<h3>Durchschnittspreise vergleichbarer Objekte (Referenz)</h3><ul>${avgPrices.map((a) => `<li><strong>${a.property_type}</strong>: ${a.avg_price}${a.region ? ` (${a.region})` : ""}${a.notes ? ` — ${a.notes}` : ""}</li>`).join("")}</ul>`
+      ? `<h3>Durchschnittspreise vergleichbarer Objekte (Referenz)</h3><ul>${avgPrices.map((a) => `<li><strong>${a.property_type}</strong>: ${a.avg_price}${a.region ? ` (${a.region})` : ""}${a.notes ? ` ??? ${a.notes}` : ""}</li>`).join("")}</ul>`
       : "";
     const optList = options.map((o, i) => {
       const rawUrl = (o as { url?: string }).url;
       const href = rawUrl ? extractRealEstateUrl(rawUrl) : null;
-      const link = href ? ` <a href="${href.replace(/"/g, "&quot;")}" target="_blank" rel="noopener noreferrer">Anzeige öffnen →</a>` : "";
+      const link = href ? ` <a href="${href.replace(/"/g, "&quot;")}" target="_blank" rel="noopener noreferrer">Anzeige ?ffnen ???</a>` : "";
       const permit = (o as { usage_permit?: string }).usage_permit ? ` | Nutzungserlaubnis: ${(o as { usage_permit?: string }).usage_permit}` : "";
-      const best = bestIdx === i ? " ★" : "";
-      return `<li><strong>${o.type}</strong>${o.location ? ` — ${o.location}` : ""}: ${o.description}${o.price_range ? ` (${o.price_range})` : ""}${permit}${link}${best}</li>`;
+      const best = bestIdx === i ? " ???" : "";
+      return `<li><strong>${o.type}</strong>${o.location ? ` ??? ${o.location}` : ""}: ${o.description}${o.price_range ? ` (${o.price_range})` : ""}${permit}${link}${best}</li>`;
     }).join("");
     let bestSection = "";
     if (bestDetails && (bestDetails.renovations || bestDetails.usage_change_application || (bestDetails.other_applications?.length ?? 0) > 0)) {
       bestSection = `
-      <h3>Beste Option – Sanierungen & Anträge</h3>
+      <h3>Beste Option ??? Sanierungen & Antr?ge</h3>
       <ul>
         ${bestDetails.renovations ? `<li><strong>Sanierungen:</strong> ${bestDetails.renovations}</li>` : ""}
-        ${bestDetails.usage_change_application ? `<li><strong>Nutzungsänderungsantrag:</strong> ${bestDetails.usage_change_application}</li>` : ""}
-        ${(bestDetails.other_applications?.length ?? 0) > 0 ? `<li><strong>Weitere Anträge:</strong> ${bestDetails.other_applications!.join(", ")}</li>` : ""}
+        ${bestDetails.usage_change_application ? `<li><strong>Nutzungs?nderungsantrag:</strong> ${bestDetails.usage_change_application}</li>` : ""}
+        ${(bestDetails.other_applications?.length ?? 0) > 0 ? `<li><strong>Weitere Antr?ge:</strong> ${bestDetails.other_applications!.join(", ")}</li>` : ""}
       </ul>`;
     }
     return `
@@ -3065,8 +3092,8 @@ export const WorkflowService = {
       ${data.mvp_scope ? `<h3>MVP-Scope</h3><p>${data.mvp_scope}</p>` : ""}
       <h3>Hypotheses Tested</h3>
       <ul>${hypotheses.map((h) => `<li><strong>${h.hypothesis}</strong> (${h.test_method}): ${h.result}</li>`).join("")}</ul>
-      ${metrics ? `<h3>Kennzahlen</h3><p>Conversion Rate: ${metrics.conversion_rate ?? "—"} | Customer Feedback: ${metrics.customer_feedback_summary ?? "—"} | Early Adopters: ${metrics.early_adopters_count ?? "—"}</p>` : ""}
-      <h3>Recommendation</h3><p>${data.recommendation ?? "—"}</p>
+      ${metrics ? `<h3>Kennzahlen</h3><p>Conversion Rate: ${metrics.conversion_rate ?? "???"} | Customer Feedback: ${metrics.customer_feedback_summary ?? "???"} | Early Adopters: ${metrics.early_adopters_count ?? "???"}</p>` : ""}
+      <h3>Recommendation</h3><p>${data.recommendation ?? "???"}</p>
       ${nextSteps.length ? `<h3>Next Steps</h3><ul>${nextSteps.map((s) => `<li>${s}</li>`).join("")}</ul>` : ""}
     `;
   },
@@ -3098,9 +3125,9 @@ export const WorkflowService = {
     return `
       <h3>Strategic Options</h3>
       <ul>${options.map((o) => `<li><strong>${o.option}</strong> (${o.type}): ${o.description}</li>`).join("")}</ul>
-      ${valuation ? `<h3>Unternehmenswert-Schätzung</h3><p><strong>Range:</strong> ${valuation.valuation_range ?? "—"}<br/><strong>Methode:</strong> ${valuation.method_hint ?? "—"}</p>${(valuation.key_drivers ?? []).length ? `<ul>${(valuation.key_drivers ?? []).map((k) => `<li>${k}</li>`).join("")}</ul>` : ""}` : ""}
-      ${exitChannels.length ? `<h3>Verkaufsoptionen & Plattformen</h3><ul>${exitChannels.map((c) => `<li><strong>${c.channel}</strong>${(c.platform_examples ?? []).length ? ` – Plattformen: ${(c.platform_examples ?? []).join(", ")}` : ""}${c.suitability ? ` (${c.suitability})` : ""}</li>`).join("")}</ul>` : ""}
-      ${legalFormChanges.length ? `<h3>Unternehmensformwechsel</h3><ul>${legalFormChanges.map((l) => `<li>${l.from_form ? `${l.from_form} → ` : ""}<strong>${l.to_form}</strong>: ${l.when_useful}</li>`).join("")}</ul>` : ""}
+      ${valuation ? `<h3>Unternehmenswert-Sch?tzung</h3><p><strong>Range:</strong> ${valuation.valuation_range ?? "???"}<br/><strong>Methode:</strong> ${valuation.method_hint ?? "???"}</p>${(valuation.key_drivers ?? []).length ? `<ul>${(valuation.key_drivers ?? []).map((k) => `<li>${k}</li>`).join("")}</ul>` : ""}` : ""}
+      ${exitChannels.length ? `<h3>Verkaufsoptionen & Plattformen</h3><ul>${exitChannels.map((c) => `<li><strong>${c.channel}</strong>${(c.platform_examples ?? []).length ? ` ??? Plattformen: ${(c.platform_examples ?? []).join(", ")}` : ""}${c.suitability ? ` (${c.suitability})` : ""}</li>`).join("")}</ul>` : ""}
+      ${legalFormChanges.length ? `<h3>Unternehmensformwechsel</h3><ul>${legalFormChanges.map((l) => `<li>${l.from_form ? `${l.from_form} ??? ` : ""}<strong>${l.to_form}</strong>: ${l.when_useful}</li>`).join("")}</ul>` : ""}
       ${expansionOptions.length ? `<h3>Expansion</h3><ul>${expansionOptions.map((e) => `<li><strong>${e.target_market_or_region}</strong> (${e.entry_model})${e.rationale ? `: ${e.rationale}` : ""}</li>`).join("")}</ul>` : ""}
       ${recs.length ? `<h3>Recommendations</h3><ul>${recs.map((r) => `<li>${r}</li>`).join("")}</ul>` : ""}
     `;
@@ -3111,7 +3138,7 @@ export const WorkflowService = {
     const recs = data.recommendations ?? [];
     return `
       <h3>Hiring Plan</h3>
-      <ul>${plan.map((p) => `<li><strong>${p.role}</strong> (${p.priority})${p.timeline ? ` — ${p.timeline}` : ""}</li>`).join("")}</ul>
+      <ul>${plan.map((p) => `<li><strong>${p.role}</strong> (${p.priority})${p.timeline ? ` ??? ${p.timeline}` : ""}</li>`).join("")}</ul>
       ${recs.length ? `<h3>Recommendations</h3><ul>${recs.map((r) => `<li>${r}</li>`).join("")}</ul>` : ""}
     `;
   },
@@ -3133,7 +3160,7 @@ export const WorkflowService = {
     const sources = data.sources_used ?? [];
     const score =
       typeof data.problem_solution_fit_score === "number"
-        ? `<p><strong>Problem-Lösungs-Fit (Problem-Solution Score):</strong> ${data.problem_solution_fit_score}</p>`
+        ? `<p><strong>Problem-L?sungs-Fit (Problem-Solution Score):</strong> ${data.problem_solution_fit_score}</p>`
         : "";
     const sourcesBlock =
       sources.length > 0
@@ -3141,10 +3168,10 @@ export const WorkflowService = {
         : "";
     return `
       ${score}
-      <h3>Problemstellung (Problem Statement)</h3><p>${data.problem_statement ?? "—"}</p>
+      <h3>Problemstellung (Problem Statement)</h3><p>${data.problem_statement ?? "???"}</p>
       <h3>Zielkunden (Target Customers)</h3><ul>${customers.map((c) => `<li>${c}</li>`).join("")}</ul>
-      ${existing.length ? `<h3>Bestehende Lösungen (Existing Solutions)</h3><ul>${existing.map((e) => `<li>${e}</li>`).join("")}</ul>` : ""}
-      <h3>Alleinstellungsmerkmal / Wertversprechen (Unique Value Proposition)</h3><p>${data.unique_value_proposition ?? "—"}</p>
+      ${existing.length ? `<h3>Bestehende L?sungen (Existing Solutions)</h3><ul>${existing.map((e) => `<li>${e}</li>`).join("")}</ul>` : ""}
+      <h3>Alleinstellungsmerkmal / Wertversprechen (Unique Value Proposition)</h3><p>${data.unique_value_proposition ?? "???"}</p>
       ${diff.length ? `<h3>Wesentliche Differenzierungsmerkmale (Key Differentiators)</h3><ul>${diff.map((d) => `<li>${d}</li>`).join("")}</ul>` : ""}
       ${recs.length ? `<h3>Empfehlungen (Recommendations)</h3><ul>${recs.map((r) => `<li>${r}</li>`).join("")}</ul>` : ""}
       ${sourcesBlock}
@@ -3166,7 +3193,7 @@ export const WorkflowService = {
     const auto = data.automation_priorities ?? [];
     const recs = data.recommendations ?? [];
     return `
-      <h3>Scalability Assessment</h3><p>${data.scalability_assessment ?? "—"}</p>
+      <h3>Scalability Assessment</h3><p>${data.scalability_assessment ?? "???"}</p>
       ${auto.length ? `<h3>Automation Priorities</h3><ul>${auto.map((a) => `<li><strong>${a.area}</strong>: ${a.potential}</li>`).join("")}</ul>` : ""}
       ${recs.length ? `<h3>Recommendations</h3><ul>${recs.map((r) => `<li>${r}</li>`).join("")}</ul>` : ""}
     `;
@@ -3194,20 +3221,20 @@ export const WorkflowService = {
     const recs = data.recommendations ?? [];
     const ppl = data.people_and_overhead;
     return `
-      <h3>Situation</h3><p>${data.situation_analysis ?? "—"}</p>
-      ${margins.length ? `<h3>Marge & Deckungsbeitrag</h3><ul>${margins.map((m) => `<li><strong>${m.offering ?? "—"}</strong>: ${m.contribution_per_unit ?? ""} — ${m.improvable_how ?? ""}</li>`).join("")}</ul>` : ""}
-      ${pack.length ? `<h3>Angebot & Positionierung</h3><ul>${pack.map((p) => `<li><strong>${p.element ?? "—"}</strong>: ${p.with_offering_benefit ?? ""}</li>`).join("")}</ul>` : ""}
-      ${mkt.length ? `<h3>Marketing & ROI-Hebel</h3><ul>${mkt.map((x) => `<li><strong>${x.lever ?? "—"}</strong>: ${x.concrete_angle ?? ""}</li>`).join("")}</ul>` : ""}
-      ${costs.length ? `<h3>Kostenoptimierung</h3><ul>${costs.map((c) => `<li><strong>${c.category ?? "—"}</strong>: ${c.too_high_assessment ?? ""}</li>`).join("")}</ul>` : ""}
-      ${ppl && (ppl.interpretation || (ppl.levers?.length ?? 0)) ? `<h3>Personal & Produktivität</h3><p>${ppl.interpretation ?? ""}</p>${(ppl.levers ?? []).length ? `<ul>${(ppl.levers ?? []).map((l) => `<li>${l}</li>`).join("")}</ul>` : ""}` : ""}
-      ${checklist.length ? `<h3>Branchen-Checkliste / Lücken</h3><ul>${checklist.map((c) => `<li><strong>${c.area ?? "—"}</strong>: ${c.what_to_check ?? ""}</li>`).join("")}</ul>` : ""}
+      <h3>Situation</h3><p>${data.situation_analysis ?? "???"}</p>
+      ${margins.length ? `<h3>Marge & Deckungsbeitrag</h3><ul>${margins.map((m) => `<li><strong>${m.offering ?? "???"}</strong>: ${m.contribution_per_unit ?? ""} ??? ${m.improvable_how ?? ""}</li>`).join("")}</ul>` : ""}
+      ${pack.length ? `<h3>Angebot & Positionierung</h3><ul>${pack.map((p) => `<li><strong>${p.element ?? "???"}</strong>: ${p.with_offering_benefit ?? ""}</li>`).join("")}</ul>` : ""}
+      ${mkt.length ? `<h3>Marketing & ROI-Hebel</h3><ul>${mkt.map((x) => `<li><strong>${x.lever ?? "???"}</strong>: ${x.concrete_angle ?? ""}</li>`).join("")}</ul>` : ""}
+      ${costs.length ? `<h3>Kostenoptimierung</h3><ul>${costs.map((c) => `<li><strong>${c.category ?? "???"}</strong>: ${c.too_high_assessment ?? ""}</li>`).join("")}</ul>` : ""}
+      ${ppl && (ppl.interpretation || (ppl.levers?.length ?? 0)) ? `<h3>Personal & Produktivit?t</h3><p>${ppl.interpretation ?? ""}</p>${(ppl.levers ?? []).length ? `<ul>${(ppl.levers ?? []).map((l) => `<li>${l}</li>`).join("")}</ul>` : ""}` : ""}
+      ${checklist.length ? `<h3>Branchen-Checkliste / L?cken</h3><ul>${checklist.map((c) => `<li><strong>${c.area ?? "???"}</strong>: ${c.what_to_check ?? ""}</li>`).join("")}</ul>` : ""}
       ${recs.length ? `<h3>Empfehlungen</h3><ul>${recs.map((r) => `<li>${r}</li>`).join("")}</ul>` : ""}
     `;
   },
 
   renderMarketingStrategyHtml(data: {
     constraints?: string;
-    marketing_initiatives?: Array<{ name?: string; goal?: string; actions?: string; content?: string; hashtags?: string; cta?: string; tracking?: string; expected_conversion?: string; budget_eur?: number | string; effort_h_week?: string; roi?: string }>;
+    marketing_initiatives?: Array<{ name?: string; goal?: string; actions?: string; content?: string; hashtags?: string; cta?: string; tracking?: string; expected_conversion?: string; budget_eur?: number | string; effort_h_week?: number | string; roi?: string }>;
     roadmap_30_days?: Array<{ week?: string; tasks?: string[] }>;
     kpi_goals_30_days?: Array<{ target?: string; metric?: string }>;
     offline_visibility?: string;
@@ -3231,7 +3258,7 @@ export const WorkflowService = {
     const hasNew = initiatives.length > 0 || roadmap.length > 0 || kpiGoals.length > 0;
     return `
       ${data.constraints ? `<p><strong>Priorisierung:</strong> ${data.constraints}</p>` : ""}
-      ${initiatives.length ? `<h3>Marketing-Maßnahmen</h3><ul>${initiatives.map((i) => `<li><strong>${i.name ?? "—"}</strong>: ${i.goal ?? ""}${i.expected_conversion ? ` (${i.expected_conversion})` : ""}</li>`).join("")}</ul>` : ""}
+      ${initiatives.length ? `<h3>Marketing-Ma??nahmen</h3><ul>${initiatives.map((i) => `<li><strong>${i.name ?? "???"}</strong>: ${i.goal ?? ""}${i.expected_conversion ? ` (${i.expected_conversion})` : ""}</li>`).join("")}</ul>` : ""}
       ${roadmap.length ? `<h3>30-Tage-Roadmap</h3><ul>${roadmap.map((w) => `<li><strong>${w.week}</strong>: ${(w.tasks ?? []).join("; ")}</li>`).join("")}</ul>` : ""}
       ${kpiGoals.length ? `<h3>KPI-Ziele nach 30 Tagen</h3><ul>${kpiGoals.map((k) => `<li>${k.target ?? ""}</li>`).join("")}</ul>` : ""}
       ${data.offline_visibility ? `<h3>Offline-Sichtbarkeit</h3><p>${data.offline_visibility}</p>` : ""}
@@ -3239,7 +3266,7 @@ export const WorkflowService = {
       ${!hasNew && channels.length ? `<h3>Kanalstrategie</h3><ul>${channels.map((c) => `<li><strong>${c.channel}</strong>${c.priority ? ` (${c.priority})` : ""}${c.rationale ? `: ${c.rationale}` : ""}</li>`).join("")}</ul>` : ""}
       ${!hasNew && audiences.length ? `<h3>Zielgruppen</h3><ul>${audiences.map((a) => `<li><strong>${a.segment}</strong>${a.approach ? `: ${a.approach}` : ""}</li>`).join("")}</ul>` : ""}
       ${!hasNew && budget.length ? `<h3>Budgetverteilung</h3><ul>${budget.map((b) => `<li><strong>${b.area}</strong>${b.share ? ` (${b.share})` : ""}${b.rationale ? `: ${b.rationale}` : ""}</li>`).join("")}</ul>` : ""}
-      ${!hasNew && campaigns.length ? `<h3>Kampagnenprioritäten</h3><ul>${campaigns.map((c) => `<li>${c}</li>`).join("")}</ul>` : ""}
+      ${!hasNew && campaigns.length ? `<h3>Kampagnenpriorit?ten</h3><ul>${campaigns.map((c) => `<li>${c}</li>`).join("")}</ul>` : ""}
       ${!hasNew && metrics.length ? `<h3>Kernkennzahlen</h3><ul>${metrics.map((m) => `<li><strong>${m.metric}</strong>${m.target ? ` Ziel: ${m.target}` : ""}${m.current ? ` aktuell: ${m.current}` : ""}</li>`).join("")}</ul>` : ""}
       ${recs.length ? `<h3>Empfehlungen</h3><ul>${recs.map((r) => `<li>${r}</li>`).join("")}</ul>` : ""}
     `;
@@ -3250,7 +3277,7 @@ export const WorkflowService = {
     const recs = data.recommendations ?? [];
     return `
       <h3>Portfolio Analysis</h3>
-      <ul>${portfolio.map((p) => `<li><strong>${p.product_or_segment}</strong>: ${p.performance} — ${p.recommendation}</li>`).join("")}</ul>
+      <ul>${portfolio.map((p) => `<li><strong>${p.product_or_segment}</strong>: ${p.performance} ??? ${p.recommendation}</li>`).join("")}</ul>
       ${recs.length ? `<h3>Recommendations</h3><ul>${recs.map((r) => `<li>${r}</li>`).join("")}</ul>` : ""}
     `;
   },
@@ -3261,7 +3288,7 @@ export const WorkflowService = {
     const recs = data.recommendations ?? [];
     return `
       <h3>Scenarios</h3><ul>${scenarios.map((s) => `<li><strong>${s.name}</strong>: ${s.description}</li>`).join("")}</ul>
-      ${risks.length ? `<h3>Risk Matrix</h3><ul>${risks.map((r) => `<li><strong>${r.risk}</strong> (${r.likelihood}/${r.impact})${r.mitigation ? ` — ${r.mitigation}` : ""}</li>`).join("")}</ul>` : ""}
+      ${risks.length ? `<h3>Risk Matrix</h3><ul>${risks.map((r) => `<li><strong>${r.risk}</strong> (${r.likelihood}/${r.impact})${r.mitigation ? ` ??? ${r.mitigation}` : ""}</li>`).join("")}</ul>` : ""}
       ${recs.length ? `<h3>Recommendations</h3><ul>${recs.map((r) => `<li>${r}</li>`).join("")}</ul>` : ""}
     `;
   },
@@ -3270,8 +3297,8 @@ export const WorkflowService = {
     const milestones = data.key_milestones ?? [];
     const recs = data.recommendations ?? [];
     return `
-      <h3>Annual Plan Summary</h3><p>${data.annual_plan_summary ?? "—"}</p>
-      ${milestones.length ? `<h3>Key Milestones</h3><ul>${milestones.map((m) => `<li><strong>${m.milestone}</strong> — ${m.timeline}</li>`).join("")}</ul>` : ""}
+      <h3>Annual Plan Summary</h3><p>${data.annual_plan_summary ?? "???"}</p>
+      ${milestones.length ? `<h3>Key Milestones</h3><ul>${milestones.map((m) => `<li><strong>${m.milestone}</strong> ??? ${m.timeline}</li>`).join("")}</ul>` : ""}
       ${recs.length ? `<h3>Recommendations</h3><ul>${recs.map((r) => `<li>${r}</li>`).join("")}</ul>` : ""}
     `;
   },
@@ -3282,9 +3309,9 @@ export const WorkflowService = {
     const recs = data.recommendations ?? [];
     return `
       <h3>Wettbewerber</h3>
-      <ul>${comps.map((c) => `<li><strong>${c.name}</strong>${c.market_position ? ` (${c.market_position})` : ""}${c.strengths?.length ? ` — Stärken: ${c.strengths.join(", ")}` : ""}${c.weaknesses?.length ? ` — Schwächen: ${c.weaknesses.join(", ")}` : ""}</li>`).join("")}</ul>
+      <ul>${comps.map((c) => `<li><strong>${c.name}</strong>${c.market_position ? ` (${c.market_position})` : ""}${c.strengths?.length ? ` ??? St?rken: ${c.strengths.join(", ")}` : ""}${c.weaknesses?.length ? ` ??? Schw?chen: ${c.weaknesses.join(", ")}` : ""}</li>`).join("")}</ul>
       ${data.competitive_landscape ? `<h3>Wettbewerbslandschaft</h3><p>${data.competitive_landscape}</p>` : ""}
-      ${diff.length ? `<h3>Differenzierungsmöglichkeiten</h3><ul>${diff.map((d) => `<li>${d}</li>`).join("")}</ul>` : ""}
+      ${diff.length ? `<h3>Differenzierungsm?glichkeiten</h3><ul>${diff.map((d) => `<li>${d}</li>`).join("")}</ul>` : ""}
       ${recs.length ? `<h3>Recommendations</h3><ul>${recs.map((r) => `<li>${r}</li>`).join("")}</ul>` : ""}
     `;
   },
@@ -3296,8 +3323,8 @@ export const WorkflowService = {
     const t = data.threats ?? [];
     const recs = data.recommendations ?? [];
     return `
-      <h3>Stärken</h3><ul>${s.map((x) => `<li>${x}</li>`).join("")}</ul>
-      <h3>Schwächen</h3><ul>${w.map((x) => `<li>${x}</li>`).join("")}</ul>
+      <h3>St?rken</h3><ul>${s.map((x) => `<li>${x}</li>`).join("")}</ul>
+      <h3>Schw?chen</h3><ul>${w.map((x) => `<li>${x}</li>`).join("")}</ul>
       <h3>Chancen</h3><ul>${o.map((x) => `<li>${x}</li>`).join("")}</ul>
       <h3>Bedrohungen</h3><ul>${t.map((x) => `<li>${x}</li>`).join("")}</ul>
       ${recs.length ? `<h3>Recommendations</h3><ul>${recs.map((r) => `<li>${r}</li>`).join("")}</ul>` : ""}
@@ -3318,9 +3345,9 @@ export const WorkflowService = {
     break_even_analysis?: { break_even_point: string };
     recommendations?: string[];
   }) {
-    const liq = data.liquidity_plan?.summary ?? "—";
-    const prof = data.profitability_plan?.summary ?? "—";
-    const cap = data.capital_requirements?.total_required ?? "—";
+    const liq = data.liquidity_plan?.summary ?? "???";
+    const prof = data.profitability_plan?.summary ?? "???";
+    const cap = data.capital_requirements?.total_required ?? "???";
     const inv = data.capital_requirements?.inventory_equipment_investment;
     const invHtml =
       inv &&
@@ -3330,11 +3357,11 @@ export const WorkflowService = {
           ${inv.scaling_reserve_eur_band ? `<p><strong>Skalierung/Reserve:</strong> ${inv.scaling_reserve_eur_band}</p>` : ""}
           ${inv.detail_lines?.length ? `<ul>${inv.detail_lines.map((l) => `<li>${l}</li>`).join("")}</ul>` : ""}`
         : "";
-    const be = data.break_even_analysis?.break_even_point ?? "—";
+    const be = data.break_even_analysis?.break_even_point ?? "???";
     const recs = data.recommendations ?? [];
     return `
-      <h3>Liquiditätsplan</h3><p>${liq}</p>
-      <h3>Rentabilitätsplan</h3><p>${prof}</p>
+      <h3>Liquidit?tsplan</h3><p>${liq}</p>
+      <h3>Rentabilit?tsplan</h3><p>${prof}</p>
       <h3>Kapitalbedarf</h3><p>${cap}</p>
       ${invHtml}
       <h3>Break-Even</h3><p>${be}</p>
@@ -3343,7 +3370,7 @@ export const WorkflowService = {
   },
 
   renderStrategicPlanningHtml(data: { market_position?: { current_assessment: string }; competitive_advantages?: Array<{ advantage: string }>; recommendations?: string[] }) {
-    const pos = data.market_position?.current_assessment ?? "—";
+    const pos = data.market_position?.current_assessment ?? "???";
     const adv = data.competitive_advantages ?? [];
     const recs = data.recommendations ?? [];
     return `
@@ -3508,7 +3535,7 @@ export const WorkflowService = {
             await createWorkProcessesArtifact({
               companyId: run.companyId,
               runId: run.id,
-              title: "Arbeitsprozesse (Planung → Einkauf → Endkunde)",
+              title: "Arbeitsprozesse (Planung ??? Einkauf ??? Endkunde)",
               contentJson: toPrismaJson(parsed.data),
               exportHtml: this.renderWorkProcessesHtml(parsed.data),
             });
@@ -3923,7 +3950,7 @@ export const WorkflowService = {
         await createWorkProcessesArtifact({
           companyId: run.companyId,
           runId: run.id,
-          title: "Arbeitsprozesse (Planung → Einkauf → Endkunde)",
+          title: "Arbeitsprozesse (Planung ??? Einkauf ??? Endkunde)",
           contentJson: toPrismaJson(parsed.data),
           exportHtml: this.renderWorkProcessesHtml(parsed.data),
         });

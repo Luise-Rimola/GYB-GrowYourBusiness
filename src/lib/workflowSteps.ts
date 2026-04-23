@@ -72,6 +72,9 @@ export const workflowSteps: Record<
   { stepKey: string; schemaKey: SchemaKey | "business_form"; label: string }[]
 > = {
   WF_BUSINESS_FORM: [{ stepKey: "business_form", schemaKey: "business_form", label: "Unternehmensprofil" }],
+  WF_COMPANY_INTERNET_PROFILE: [
+    { stepKey: "company_internet_enrichment", schemaKey: "company_internet_presence", label: "Internet-Unternehmensprofil" },
+  ],
   WF_BASELINE: [
     { stepKey: "business_model_inference", schemaKey: "business_model_inference", label: "Geschäftsmodell-Einordnung" },
     { stepKey: "kpi_set_selection", schemaKey: "kpi_set_selection", label: "KPI-Auswahl" },
@@ -151,6 +154,9 @@ export const workflowSteps: Record<
   WF_GROWTH_SEO: [
     { stepKey: "growth_seo", schemaKey: "growth_seo", label: "SEO Analyse" },
   ],
+  WF_GROWTH_AI_SEO: [
+    { stepKey: "growth_ai_seo", schemaKey: "growth_ai_seo", label: "AI Search / GEO / AEO / LLMO" },
+  ],
   WF_GROWTH_RETENTION_CONTENT: [
     { stepKey: "growth_retention_content", schemaKey: "growth_retention_content", label: "Email/Retention & Content/UGC" },
   ],
@@ -158,7 +164,7 @@ export const workflowSteps: Record<
     { stepKey: "growth_execution_plan", schemaKey: "growth_execution_plan", label: "KPI-Framework & 30/60/90 Umsetzungsplan" },
   ],
   WF_SUBSIDY_RESEARCH: [
-    { stepKey: "subsidy_research", schemaKey: "subsidy_research", label: "Zuschuesse & Foerderprogramme" },
+    { stepKey: "subsidy_research", schemaKey: "subsidy_research", label: "Zuschüsse & Förderprogramme" },
   ],
   WF_PORTFOLIO_MANAGEMENT: [{ stepKey: "portfolio_management", schemaKey: "portfolio_management", label: "Portfolio- & Markenstrategie" }],
   WF_SCENARIO_ANALYSIS: [{ stepKey: "scenario_analysis", schemaKey: "scenario_analysis", label: "Szenario- & Risikoanalyse" }],

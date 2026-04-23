@@ -100,6 +100,7 @@ const RELATED_ARTIFACT_TYPES_BY_WORKFLOW: Record<string, readonly string[]> = {
   ],
   WF_DATA_COLLECTION_PLAN: [],
   WF_BUSINESS_FORM: [],
+  WF_COMPANY_INTERNET_PROFILE: [],
   WF_BASELINE: [],
   WF_IDEA_USP_VALIDATION: [
     "market_research",
@@ -227,6 +228,14 @@ const RELATED_ARTIFACT_TYPES_BY_WORKFLOW: Record<string, readonly string[]> = {
     "marketing_strategy",
     "go_to_market",
   ],
+  WF_GROWTH_AI_SEO: [
+    "market_research",
+    "value_proposition",
+    "marketing_strategy",
+    "go_to_market",
+    "growth_seo",
+    "growth_business_summary",
+  ],
   WF_GROWTH_RETENTION_CONTENT: [
     "marketing_strategy",
     "conversion_funnel_analysis",
@@ -291,6 +300,7 @@ const WORKFLOW_RETRIEVAL_HINTS: Record<string, string[]> = {
   WF_MARKETING_STRATEGY: ["marketing", "channel", "content", "funnel", "campaign"],
   WF_GROWTH_PAID_ADS: ["meta", "google", "ads", "campaign", "tracking", "conversion"],
   WF_GROWTH_SEO: ["seo", "keyword", "content", "organic", "ranking", "technical"],
+  WF_GROWTH_AI_SEO: ["ai", "geo", "aeo", "llm", "chatgpt", "perplexity", "overview", "answer", "entity", "schema", "llms.txt", "structured data"],
   WF_GROWTH_RETENTION_CONTENT: ["retention", "email", "sms", "content", "ugc", "creative"],
   WF_GROWTH_EXECUTION_PLAN: ["kpi", "roadmap", "execution", "30", "60", "90", "plan"],
   WF_SUBSIDY_RESEARCH: ["zuschuss", "foerderung", "grant", "subsidy", "funding", "antrag", "voraussetzung"],
@@ -424,6 +434,7 @@ const CONTEXT_WHITELIST_STEP: Partial<Record<string, Partial<Record<string, (key
 /** Whitelist: only include these fields per workflow. Unlisted workflows → DEFAULT_WORKFLOW_CONTEXT_KEYS (kein voller Kontext). */
 const CONTEXT_WHITELIST: Record<string, (keyof ContextPack)[]> = {
   WF_BUSINESS_FORM: ["company_profile"],
+  WF_COMPANY_INTERNET_PROFILE: ["company_profile", "constraints"],
   WF_BASELINE: [
     "company_profile",
     "constraints",
@@ -690,6 +701,14 @@ const CONTEXT_WHITELIST: Record<string, (keyof ContextPack)[]> = {
     "related_analysis_outputs",
   ],
   WF_GROWTH_SEO: [
+    "company_profile",
+    "market_research",
+    "industry_research",
+    "constraints",
+    "business_model",
+    "related_analysis_outputs",
+  ],
+  WF_GROWTH_AI_SEO: [
     "company_profile",
     "market_research",
     "industry_research",

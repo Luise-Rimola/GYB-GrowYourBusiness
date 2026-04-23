@@ -8,6 +8,192 @@ import { SchemaKey } from "@/types/schemas";
 import { getServerLocale } from "@/lib/locale";
 import { fetchChatCompletionWithTemperatureRetry } from "@/lib/llmTemperatureRetry";
 import { extractAssistantTextFromChatCompletion } from "@/lib/openAiChatContent";
+import {
+  fetchLinkedInSearchContext,
+  fetchPublicFinanceSearchContext,
+  fetchPublicWebsiteText,
+  isSafePublicHttpUrl,
+  runCompanyEnrichment,
+} from "@/lib/companyEnrichment";
+
+async function executeCompanyInternetEnrichmentStep(params: {
+  runId: string;
+  companyId: string;
+  locale: "de" | "en";
+}) {
+  const hasMeaningfulString = (v: unknown, min = 3): v is string =>
+    typeof v === "string" && v.trim().length >= min;
+
+  const company = await prisma.company.findUnique({
+    where: { id: params.companyId },
+    select: { name: true },
+  });
+  const latestProfile = await prisma.companyProfile.findFirst({
+    where: { companyId: params.companyId },
+    orderBy: { version: "desc" },
+  });
+  const latestSession = await prisma.intakeSession.findFirst({
+    where: { companyId: params.companyId },
+    orderBy: { createdAt: "desc" },
+  });
+
+  const profileObj = (latestProfile?.profileJson as Record<string, unknown>) ?? {};
+  const sessionObj = (latestSession?.answersJson as Record<string, unknown>) ?? {};
+  const base = { ...sessionObj, ...profileObj };
+
+  const companyName = String(base.company_name ?? company?.name ?? "").trim();
+  const website = String(base.website ?? "").trim();
+  const location = String(base.location ?? "").trim();
+
+  if (!companyName) {
+    throw new Error("Firmenname fehlt für Internet-Recherche.");
+  }
+
+  const [websiteText, linkedInCtx, publicFinanceCtx] = await Promise.all([
+    website && isSafePublicHttpUrl(website) ? fetchPublicWebsiteText(website) : Promise.resolve(null as string | null),
+    fetchLinkedInSearchContext(companyName, location),
+    fetchPublicFinanceSearchContext(companyName, location),
+  ]);
+
+  const websiteStrong =
+    Boolean(websiteText && websiteText.length > 350) &&
+    /(impressum|kontakt|über uns|about|speisekarte|menu|preise|price|öffnungszeiten|team|karriere)/i.test(websiteText ?? "");
+  const linkedInStrong =
+    linkedInCtx.source !== "none" &&
+    /linkedin\.com\/company|mitarbeiter|employees|leadership|team/i.test(linkedInCtx.text ?? "");
+  const financeStrong =
+    publicFinanceCtx.source !== "none" &&
+    /northdata|bundesanzeiger|handelsregister|jahresabschluss|umsatz|bilanz/i.test(publicFinanceCtx.text ?? "");
+  const strongSignalCount = [websiteStrong, linkedInStrong, financeStrong].filter(Boolean).length;
+  const looksExisting = strongSignalCount >= 2;
+
+  let payload: Record<string, unknown>;
+  if (!looksExisting) {
+    payload = {
+      company_exists: false,
+      status: "pre_foundation",
+      message:
+        params.locale === "de"
+          ? "Unternehmen befindet sich vermutlich noch vor der Gründung oder ist öffentlich noch nicht ausreichend auffindbar."
+          : "Company appears to be pre-foundation or not publicly discoverable yet.",
+      company_snapshot: {
+        company_name: companyName,
+        website,
+        location,
+      },
+      evidence: {
+        website_excerpt_found: Boolean(websiteText),
+        linkedIn_search_source: linkedInCtx.source,
+        public_finance_search_source: publicFinanceCtx.source,
+      },
+      notes:
+        params.locale === "de"
+          ? [
+              "Keine belastbaren öffentlichen Treffer (Website/LinkedIn/Register) gefunden.",
+              `Starke Evidenz-Signale: ${strongSignalCount}/3 (mindestens 2 erforderlich).`,
+            ]
+          : [
+              "No reliable public signals (website/LinkedIn/register) found.",
+              `Strong evidence signals: ${strongSignalCount}/3 (at least 2 required).`,
+            ],
+    };
+  } else {
+    const enrichment = await runCompanyEnrichment({
+      companyId: params.companyId,
+      companyName,
+      website,
+      location,
+      locale: params.locale,
+    });
+    if (!enrichment.ok) {
+      payload = {
+        company_exists: true,
+        status: "enrichment_failed",
+        message: enrichment.error,
+        company_snapshot: {
+          company_name: companyName,
+          website,
+          location,
+        },
+        evidence: {
+          website_excerpt_found: Boolean(websiteText),
+          linkedIn_search_source: linkedInCtx.source,
+          public_finance_search_source: publicFinanceCtx.source,
+        },
+      };
+    } else {
+      const refreshedProfile = await prisma.companyProfile.findFirst({
+        where: { companyId: params.companyId },
+        orderBy: { version: "desc" },
+      });
+      const enriched = (refreshedProfile?.profileJson as Record<string, unknown>) ?? {};
+      const detailScore = [
+        hasMeaningfulString(enriched.offer) ? 1 : 0,
+        hasMeaningfulString(enriched.usp) ? 1 : 0,
+        hasMeaningfulString(enriched.customers) ? 1 : 0,
+        hasMeaningfulString(enriched.competitors) ? 1 : 0,
+        hasMeaningfulString(enriched.sales_channels) ? 1 : 0,
+      ].reduce((a, b) => a + b, 0);
+      const isClearlyExisting =
+        strongSignalCount >= 2 &&
+        detailScore >= 3 &&
+        String(enriched.business_state ?? "").toLowerCase() !== "idea";
+
+      payload = {
+        company_exists: isClearlyExisting,
+        status: isClearlyExisting ? "existing_enriched" : "pre_foundation",
+        message:
+          params.locale === "de"
+            ? isClearlyExisting
+              ? "Öffentliche Unternehmensinformationen wurden gesammelt und ins Profil übernommen."
+              : "Öffentliche Signale sind noch zu schwach/unklar – vermutlich vor Gründung oder noch nicht ausreichend öffentlich sichtbar."
+            : isClearlyExisting
+              ? "Public company information was collected and merged into the profile."
+              : "Public signals are still too weak/unclear - likely pre-foundation or not sufficiently visible yet.",
+        company_snapshot: {
+          company_name: String(enriched.company_name ?? companyName),
+          website: String(enriched.website ?? website),
+          location: String(enriched.location ?? location),
+          offer: typeof enriched.offer === "string" ? enriched.offer : undefined,
+          usp: typeof enriched.usp === "string" ? enriched.usp : undefined,
+          customers: typeof enriched.customers === "string" ? enriched.customers : undefined,
+          competitors: typeof enriched.competitors === "string" ? enriched.competitors : undefined,
+          sales_channels: typeof enriched.sales_channels === "string" ? enriched.sales_channels : undefined,
+          stage: typeof enriched.stage === "string" ? enriched.stage : undefined,
+          business_state: typeof enriched.business_state === "string" ? enriched.business_state : undefined,
+          team_size: enriched.team_size as unknown,
+          years_in_business: enriched.years_in_business as unknown,
+          revenue_last_month: enriched.revenue_last_month as unknown,
+        },
+        evidence: {
+          website_excerpt_found: Boolean(websiteText),
+          linkedIn_search_source: linkedInCtx.source,
+          public_finance_search_source: publicFinanceCtx.source,
+        },
+        notes:
+          params.locale === "de"
+            ? [
+                `Starke Evidenz-Signale: ${strongSignalCount}/3 (mindestens 2 erforderlich).`,
+                `Detail-Score aus Profilfeldern: ${detailScore}/5.`,
+              ]
+            : [
+                `Strong evidence signals: ${strongSignalCount}/3 (at least 2 required).`,
+                `Detail score from profile fields: ${detailScore}/5.`,
+              ],
+      };
+    }
+  }
+
+  return WorkflowService.saveStep({
+    runId: params.runId,
+    stepKey: "company_internet_enrichment",
+    schemaKey: "company_internet_presence",
+    promptRendered: "[internal] company internet enrichment workflow",
+    userResponse: JSON.stringify(payload),
+    promptTemplateVersion: 1,
+    autoVerify: true,
+  });
+}
 
 function resolveTemperature(model: string): number {
   const m = model.toLowerCase();
@@ -24,6 +210,8 @@ export async function executeRunStepForCompany(params: {
   companyId: string;
   runId: string;
   stepKey: string;
+  /** Optional override — nötig für Background-Worker ohne Request-Kontext. */
+  locale?: "de" | "en";
 }) {
   const run = await prisma.run.findUnique({
     where: { id: params.runId },
@@ -59,7 +247,16 @@ export async function executeRunStepForCompany(params: {
   let contextPack = needsMergedContext ? mergeRunStepsIntoContext(freshBase, runStepsLatest, params.stepKey) : freshBase;
   contextPack = filterContextForStep(contextPack, run.workflowKey, params.stepKey);
 
-  const locale = await getServerLocale();
+  const locale = params.locale ?? (await getServerLocale());
+
+  if (params.stepKey === "company_internet_enrichment") {
+    return executeCompanyInternetEnrichmentStep({
+      runId: run.id,
+      companyId: run.companyId,
+      locale,
+    });
+  }
+
   const prompt = renderPrompt(run.workflowKey, params.stepKey, contextPack, locale);
   const promptRendered = prompt.rendered.replace("{{USER_NOTES}}", (run.userNotes ?? "").trim() || "(keine)");
 
@@ -197,6 +394,7 @@ async function ensureRunForWorkflow(params: { companyId: string; workflowKey: st
 export async function executeWorkflowForCompany(params: {
   companyId: string;
   workflowKey: string;
+  locale?: "de" | "en";
 }): Promise<{ runId: string; executedStepKeys: string[] }> {
   const runId = await ensureRunForWorkflow(params);
   const autoSteps = (workflowSteps[params.workflowKey] ?? []).filter((s) => !MANUAL_STEP_KEYS.has(s.stepKey));
@@ -206,6 +404,7 @@ export async function executeWorkflowForCompany(params: {
       companyId: params.companyId,
       runId,
       stepKey: step.stepKey,
+      locale: params.locale,
     });
     executedStepKeys.push(step.stepKey);
   }

@@ -6,21 +6,32 @@ import { getIntakeFormState, processIntakeForm } from "@/lib/intake";
 import { getServerLocale } from "@/lib/locale";
 import { getTranslations } from "@/lib/i18n";
 import { ProfileSavedNotifier } from "@/components/ProfileSavedNotifier";
-import { WIZARD_WORKFLOW_ORDER } from "@/lib/planningFramework";
-import { executeWorkflowForCompany } from "@/lib/runStepExecution";
+import { PLANNING_PHASES } from "@/lib/planningFramework";
+import { startPhaseRunJob } from "@/lib/phaseRunJobs";
+import type { Locale } from "@/lib/i18n";
 
-function startAllWorkflowsInBackground(companyId: string) {
-  // Fire-and-forget on purpose: user should continue immediately.
-  void (async () => {
-    for (const workflowKey of WIZARD_WORKFLOW_ORDER) {
-      if (workflowKey === "WF_BUSINESS_FORM") continue;
-      try {
-        await executeWorkflowForCompany({ companyId, workflowKey });
-      } catch (err) {
-        console.error("[profile/background-start]", workflowKey, err);
-      }
+/**
+ * Startet einen persistenten Background-Job pro Planungsphase. So sieht der
+ * User auf dem Dashboard pro Phase-Karte den eigenen Fortschritt, und alle
+ * Phasen laufen parallel (innerhalb jeder Phase werden Workflows zusätzlich
+ * parallelisiert — siehe `phaseRunJobs.ts`).
+ */
+async function startBackgroundRunsPerPhase(companyId: string, locale: Locale): Promise<void> {
+  for (const phase of PLANNING_PHASES) {
+    const workflowKeys = phase.workflowKeys.filter((k) => k !== "WF_BUSINESS_FORM");
+    if (workflowKeys.length === 0) continue;
+    try {
+      await startPhaseRunJob({
+        companyId,
+        phaseId: phase.id,
+        workflowKeys,
+        mode: "continue",
+        locale,
+      });
+    } catch (err) {
+      console.error("[profile/background-start]", phase.id, err);
     }
-  })();
+  }
 }
 
 async function saveProfile(formData: FormData) {
@@ -29,7 +40,8 @@ async function saveProfile(formData: FormData) {
   await processIntakeForm(company.id, formData);
   const profileFlow = String(formData.get("profile_flow") ?? "manual").trim();
   if (profileFlow === "auto_web" || profileFlow === "auto_no_web") {
-    startAllWorkflowsInBackground(company.id);
+    const locale = await getServerLocale();
+    await startBackgroundRunsPerPhase(company.id, locale);
   }
   const assistantEmbed = formData.get("assistant_embed") === "1";
   if (assistantEmbed) {

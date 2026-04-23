@@ -7,6 +7,7 @@ import { Section } from "@/components/Section";
 import { getOrCreateDemoCompany } from "@/lib/demo";
 import { WORKFLOWS, WORKFLOW_BY_KEY } from "@/lib/workflows";
 import { PLANNING_PHASES, PLANNING_AREAS, WIZARD_WORKFLOW_ORDER, WORKFLOW_STEP_LABELS, WORKFLOW_TO_ARTIFACTS, ARTIFACT_LABELS } from "@/lib/planningFramework";
+import { workflowSteps as WORKFLOW_STEP_DEFS } from "@/lib/workflowSteps";
 import { RunAllQuickActions } from "@/components/RunAllQuickActions";
 import { getServerLocale } from "@/lib/locale";
 import { getTranslations } from "@/lib/i18n";
@@ -167,6 +168,12 @@ export default async function DashboardPage({
     WF_APP_DEVELOPMENT: ["Ideas", "Project plan", "Requirements", "Tech spec", "MVP guide", "Page spec", "DB schema"],
   };
   const company = await getOrCreateDemoCompany();
+  // Performance: Nur noch genau die Felder ziehen, die das Dashboard tatsächlich rendert.
+  // Früher: `include: { steps: true }` lud ALLE RunStep-Felder (promptRendered,
+  // userPastedResponse, parsedOutputJson, …) für sämtliche Runs — das waren pro
+  // Phasenwechsel mehrere MB aus der DB und war der Hauptgrund für 10-15 s Renderzeit.
+  // Wir verwenden zusätzlich `_count` auf Artefakte, um den Backfill-Loop unten auf
+  // exakt die Läufe einzuschränken, bei denen wirklich noch Dokumente fehlen.
   let [
     artifacts,
     decisions,
@@ -175,6 +182,7 @@ export default async function DashboardPage({
     baselineArtifact,
     kpiSet,
     recentRuns,
+    phaseReleasedMap,
   ] = await Promise.all([
     prisma.artifact.findMany({
       where: { companyId: company.id },
@@ -183,7 +191,17 @@ export default async function DashboardPage({
     prisma.decision.findMany({ where: { companyId: company.id } }),
     prisma.run.findMany({
       where: { companyId: company.id },
-      include: { steps: true },
+      select: {
+        id: true,
+        workflowKey: true,
+        status: true,
+        createdAt: true,
+        _count: { select: { artifacts: true } },
+        // Wir brauchen die Step-Validierung, um Workflows nur dann als
+        // "Abgeschlossen" zu markieren, wenn wirklich ALLE erwarteten Steps
+        // erfolgreich validiert wurden (siehe `workflowHasAllStepsValidated`).
+        steps: { select: { stepKey: true, schemaValidationPassed: true } },
+      },
       orderBy: { createdAt: "desc" },
     }),
     prisma.companyProfile.findFirst({ where: { companyId: company.id }, orderBy: { version: "desc" } }),
@@ -195,20 +213,31 @@ export default async function DashboardPage({
       orderBy: { createdAt: "desc" },
       take: 20,
     }),
+    getPlanningPhaseReleasedMap(company.id),
   ]);
 
   // Fehlende Dokumente aus vorhandenen (abgeschlossenen) Läufen nachziehen.
   // Grund: In Altbeständen kann Step-Output existieren, aber Artefakte fehlen noch.
-  const runsNeedingArtifactBackfill = runs.filter((r) => r.status === "complete" || r.status === "approved");
+  // Optimierung: Nur Runs ohne angehängtes Artefakt prüfen — vorher liefen hier
+  // n sequentielle `findUnique(..., { include: { steps, artifacts } })` bei JEDEM
+  // Phasenwechsel, selbst wenn längst nichts mehr nachzuziehen war.
+  const runsNeedingArtifactBackfill = runs.filter(
+    (r) => (r.status === "complete" || r.status === "approved") && (r._count?.artifacts ?? 0) === 0,
+  );
   let anyCreated = false;
-  for (const runToFix of runsNeedingArtifactBackfill) {
-    if (!runToFix) continue;
-    try {
-      const { created } = await WorkflowService.createMissingArtifactsForRun(runToFix.id);
-      if (created.length > 0) anyCreated = true;
-    } catch (err) {
-      console.warn("[Dashboard] createMissingArtifactsForRun failed:", err);
-    }
+  if (runsNeedingArtifactBackfill.length > 0) {
+    const results = await Promise.all(
+      runsNeedingArtifactBackfill.map(async (runToFix) => {
+        try {
+          const { created } = await WorkflowService.createMissingArtifactsForRun(runToFix.id);
+          return created.length > 0;
+        } catch (err) {
+          console.warn("[Dashboard] createMissingArtifactsForRun failed:", err);
+          return false;
+        }
+      }),
+    );
+    anyCreated = results.some(Boolean);
   }
   if (anyCreated) {
     artifacts = await prisma.artifact.findMany({
@@ -282,6 +311,37 @@ export default async function DashboardPage({
     if (workflowKey === "WF_BUSINESS_FORM") return hasProfile;
     const wfArtifactTypes = WORKFLOW_TO_ARTIFACTS[workflowKey] ?? [];
     return wfArtifactTypes.some((artifactType) => Boolean(findArtifactForWorkflowType(workflowKey, artifactType)));
+  }
+  /**
+   * Strenge Completeness-Prüfung pro Workflow.
+   *
+   * Hintergrund: Bisher galt ein Workflow als "Abgeschlossen", sobald auch nur
+   * EIN Artefakt existierte (`workflowHasPersistedOutput`). Dadurch wurden
+   * z. B. `WF_BASELINE` oder `WF_MARKET` schon grün angezeigt, wenn nur der
+   * erste Step ein Artefakt geschrieben hatte – obwohl weitere Pflicht-Steps
+   * (KPI-Set, Branchenanalyse, …) noch offen waren.
+   *
+   * Neue Regel: Ein Workflow ist nur dann "komplett", wenn es für JEDEN
+   * definierten `stepKey` aus `workflowSteps[workflowKey]` mindestens einen
+   * RunStep (über beliebige Runs dieses Workflows hinweg) mit
+   * `schemaValidationPassed === true` gibt. Fallback für Workflows ohne
+   * Step-Definition: Artefakt-Existenz wie bisher.
+   */
+  function workflowHasAllStepsValidated(workflowKey: string): boolean {
+    if (workflowKey === "WF_BUSINESS_FORM") return hasProfile;
+    const expectedSteps = WORKFLOW_STEP_DEFS[workflowKey];
+    if (!expectedSteps || expectedSteps.length === 0) {
+      return workflowHasPersistedOutput(workflowKey);
+    }
+    const runsForWf = runsByWorkflow[workflowKey] ?? [];
+    if (runsForWf.length === 0) return false;
+    const validatedKeys = new Set<string>();
+    for (const r of runsForWf) {
+      for (const s of r.steps ?? []) {
+        if (s.schemaValidationPassed === true) validatedKeys.add(s.stepKey);
+      }
+    }
+    return expectedSteps.every((def) => validatedKeys.has(def.stepKey));
   }
   function collectPhaseArtifacts(phase: (typeof PLANNING_PHASES)[number]) {
     const result: Array<{ workflowKey: string; artifactType: string; artifact: (typeof artifacts)[number] }> = [];
@@ -424,24 +484,27 @@ export default async function DashboardPage({
   }
   const defaultSelectedOptionalWorkflowKeys = optionalWorkflowKeys.filter((k) => defaultSelectedOptionalWorkflowKeySet.has(k));
 
-  const phaseReleasedMap = await getPlanningPhaseReleasedMap(company.id);
   const phasesToRender = assistantPhaseId
     ? PLANNING_PHASES.filter((p) => p.id === assistantPhaseId)
     : PLANNING_PHASES;
 
-  // Gesamtfortschritt nur über die tatsächlichen Phasen-Workflows (ohne Profil-Intake).
-  const workflowsInOrder = WIZARD_WORKFLOW_ORDER.filter((k) => k !== "WF_BUSINESS_FORM" && WORKFLOW_BY_KEY[k]);
+  // Gesamtfortschritt nur über die tatsächlich in Phasen sichtbaren Workflows
+  // (ohne Profil-Intake). Keine Querschnitts-/Sonder-Keys mitzählen, die in
+  // der Phasenansicht nicht als Karten auftauchen.
+  const workflowsInOrder = [...new Set(
+    PLANNING_PHASES.flatMap((p) => p.workflowKeys)
+  )].filter((k) => k !== "WF_BUSINESS_FORM" && WORKFLOW_BY_KEY[k]);
   /** Abgeschlossener Run = für die Ausführungs-Ansicht „validiert“; manuelle Bestätigung nur im Run-/Audit-Detail. */
-  function isRunValidated(run: { status: string; steps?: { stepKey: string; schemaValidationPassed: boolean; verifiedByUser: boolean; createdAt: Date }[] }): boolean {
+  function isRunValidated(run: { status: string }): boolean {
     if (run.status === "approved") return true;
     if (run.status !== "complete") return false;
     return true;
   }
-  function runHasUnverifiedResponse(_run: { steps?: { stepKey: string; schemaValidationPassed: boolean; verifiedByUser: boolean; createdAt: Date }[] }): boolean {
+  function runHasUnverifiedResponse(_run: unknown): boolean {
     return false;
   }
   function isWorkflowComplete(key: string): boolean {
-    return workflowHasPersistedOutput(key);
+    return workflowHasAllStepsValidated(key);
   }
   function isPhasePlanningComplete(phase: (typeof PLANNING_PHASES)[number]): boolean {
     const keys = phase.workflowKeys.filter((k) => k !== "WF_BUSINESS_FORM");
@@ -596,7 +659,7 @@ export default async function DashboardPage({
               <p className="text-xs font-medium text-[var(--muted)]">{isDe ? "Gesamtfortschritt" : "Overall progress"}</p>
               <p className="mt-1 text-2xl font-semibold text-[var(--foreground)]">{progressPercent}%</p>
               <p className="text-xs text-[var(--muted)]">
-                {completedWorkflowCount}/{workflowsInOrder.length} {isDe ? "Prozesse abgeschlossen" : "workflows complete"}
+                {completedWorkflowCount}/{workflowsInOrder.length} {isDe ? "Prozessschritte abgeschlossen" : "process steps complete"}
               </p>
             </Link>
             <Link href="/dashboard?view=execution" prefetch={false} className="rounded-xl border border-violet-200 bg-violet-50/80 p-4 transition hover:-translate-y-0.5 hover:border-violet-300 hover:shadow-sm dark:border-violet-900/60 dark:bg-violet-950/20 dark:hover:border-violet-700">
@@ -702,7 +765,11 @@ export default async function DashboardPage({
                         const locked = isLocked[key];
                         const hasComplete = isWorkflowComplete(key);
                         const hasInProgress = !hasComplete && latestRunIsInProgress(key);
-                        const completeRun = latestCompletedRunForWorkflow(key);
+                        // Fallback: Wenn ein Artifact vorhanden ist (=> "Abgeschlossen"),
+                        // aber der Run noch nicht auf status=complete gesetzt wurde
+                        // (historische Daten / Single-Step-Workflows vor dem Fix),
+                        // dann zeigen wir trotzdem "Lauf ansehen" auf den letzten Run.
+                        const completeRun = latestCompletedRunForWorkflow(key) ?? (hasComplete ? latestRunForWorkflow(key) : undefined);
                         const statusLabel = locked
                           ? (isDe ? "Gesperrt" : "Locked")
                           : hasComplete
@@ -763,7 +830,7 @@ export default async function DashboardPage({
                       </div>
                     </div>
                     <div className="text-xs text-[var(--muted)]">
-                      <div>{selectedOverviewSummary.completed}/{selectedOverviewSummary.total} {isDe ? "abgeschlossene Workflows" : "completed workflows"}</div>
+                      <div>{selectedOverviewSummary.completed}/{selectedOverviewSummary.total} {isDe ? "abgeschlossene Prozesse" : "completed processes"}</div>
                       <div>{selectedOverviewSummary.docs} {isDe ? "Dokumente" : "documents"}</div>
                     </div>
                   </div>
@@ -922,7 +989,7 @@ export default async function DashboardPage({
                       const locked = isLocked[wf.key];
                       const hasComplete = isWorkflowComplete(wf.key);
                       const hasInProgress = !hasComplete && latestRunIsInProgress(wf.key);
-                      const completeRun = latestCompletedRunForWorkflow(wf.key);
+                      const completeRun = latestCompletedRunForWorkflow(wf.key) ?? (hasComplete ? latestRunForWorkflow(wf.key) : undefined);
                       const wfArtifactTypes = WORKFLOW_TO_ARTIFACTS[wf.key] ?? [];
                       const wfArtifactItems = wfArtifactTypes.map((artifactType) => {
                         const workflowRunIds = new Set((runsByWorkflow[wf.key] ?? []).map((run) => run.id));
@@ -971,7 +1038,10 @@ export default async function DashboardPage({
                                   type="checkbox"
                                   name="workflow_keys"
                                   value={wf.key}
-                                  defaultChecked={!hasInProgress && !hasComplete}
+                                  // Continue-Run soll auch bereits gestartete (draft/incomplete)
+                                  // Workflows mitnehmen; nur vollständig abgeschlossene
+                                  // Workflows bleiben standardmäßig abgewählt.
+                                  defaultChecked={!hasComplete}
                                   form={phaseFormId}
                                   data-phase-workflow={phase.id}
                                   className="h-4 w-4 rounded border-[var(--card-border)] text-teal-600 focus:ring-teal-500"
@@ -1191,8 +1261,13 @@ export default async function DashboardPage({
             scroller.style.paddingRight = "";
             var scrollerRect = scroller.getBoundingClientRect();
             var chipRect = chip.getBoundingClientRect();
-            var inset = 0;
-            var newScroll = scroller.scrollLeft + (chipRect.left - scrollerRect.left) - inset;
+            // Aktive Phase horizontal mittig im sichtbaren Scrollbereich
+            // positionieren. Wenn das nicht möglich ist (am Anfang/Ende der
+            // Liste), wird der Wert durch clamp(0, maxScroll) begrenzt – so
+            // bleibt z. B. die erste/letzte Phase sichtbar.
+            var chipCenter = chipRect.left + chipRect.width / 2;
+            var scrollerCenter = scrollerRect.left + scroller.clientWidth / 2;
+            var newScroll = scroller.scrollLeft + (chipCenter - scrollerCenter);
             var maxScroll = Math.max(0, scroller.scrollWidth - scroller.clientWidth);
             var next = Math.max(0, Math.min(newScroll, maxScroll));
             scroller.scrollTo({ left: next, behavior: "auto" });

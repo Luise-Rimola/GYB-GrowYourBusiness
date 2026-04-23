@@ -146,6 +146,7 @@ enum ArtifactType {
   growth_offer_audience_funnel
   growth_paid_ads
   growth_seo
+  growth_ai_seo
   growth_retention_content
   growth_execution_plan
   subsidy_research
@@ -224,6 +225,14 @@ enum ContradictionSeverity {
   high
 }
 
+enum PhaseRunJobStatus {
+  queued
+  running
+  completed
+  failed
+  cancelled
+}
+
 model Company {
   id                           String   @id @default(cuid())
   name                         String
@@ -256,6 +265,38 @@ model Company {
   useCaseEvaluations           UseCaseEvaluation[]
   scenarioEvaluations          ScenarioEvaluation[]
   studyParticipants            StudyParticipant[]
+  phaseRunJobs                 PhaseRunJob[]
+}
+
+/// Persistenter Fortschritt eines Phasen-"Ausführen"-Batches.
+/// Ermöglicht, dass der Lauf Navigation/Reload überlebt und die UI den Status
+/// jederzeit zurückholen kann.
+model PhaseRunJob {
+  id                 String              @id @default(cuid())
+  companyId          String
+  phaseId            String
+  mode               String              // "continue" | "run_all"
+  status             PhaseRunJobStatus   @default(queued)
+  totalSteps         Int                 @default(0)
+  completedSteps     Int                 @default(0)
+  /// JSON-Array: [{ workflowKey, runId, stepKey, label }]
+  stepsJson          Json
+  currentWorkflowKey String?
+  currentStepKey     String?
+  currentLabel       String?
+  lastMessage        String?
+  errorMessage       String?
+  cancelRequested    Boolean             @default(false)
+  startedAt          DateTime?
+  finishedAt         DateTime?
+  heartbeatAt        DateTime?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  company            Company             @relation(fields: [companyId], references: [id])
+
+  @@index([companyId, phaseId, status])
+  @@index([companyId, status, createdAt])
 }
 
 /// Ein Account pro Arbeitsbereich (Company); alle Daten hängen an companyId.

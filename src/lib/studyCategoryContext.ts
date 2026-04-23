@@ -66,8 +66,9 @@ export type StudyCategoryLocaleBlock = {
 const STUDY_CATEGORY_CONTEXT_DE: Record<StudyCategoryKey, StudyCategoryLocaleBlock> = {
   markt_geschaeftsmodell: {
     phase: "Ideen- und Konzeptphase",
-    workflowKeys: ["WF_VALUE_PROPOSITION", "WF_COMPETITOR_ANALYSIS", "WF_SWOT"],
+    workflowKeys: ["WF_COMPANY_INTERNET_PROFILE", "WF_VALUE_PROPOSITION", "WF_COMPETITOR_ANALYSIS", "WF_SWOT"],
     fb2WorkflowKeys: [
+      "WF_COMPANY_INTERNET_PROFILE",
       "WF_VALUE_PROPOSITION",
       "WF_COMPETITOR_ANALYSIS",
       "WF_SWOT",
@@ -132,8 +133,8 @@ const STUDY_CATEGORY_CONTEXT_DE: Record<StudyCategoryKey, StudyCategoryLocaleBlo
   },
   wachstum_expansion: {
     phase: "Wachstumsphase",
-    workflowKeys: ["WF_SCALING_STRATEGY", "WF_GROWTH_MARGIN_OPTIMIZATION", "WF_GROWTH_OFFER_AUDIENCE_FUNNEL", "WF_GROWTH_PAID_ADS", "WF_GROWTH_SEO", "WF_GROWTH_RETENTION_CONTENT", "WF_GROWTH_EXECUTION_PLAN", "WF_NEXT_BEST_ACTIONS"],
-    fb2WorkflowKeys: ["WF_SCALING_STRATEGY", "WF_GROWTH_MARGIN_OPTIMIZATION", "WF_GROWTH_OFFER_AUDIENCE_FUNNEL", "WF_GROWTH_PAID_ADS", "WF_GROWTH_SEO", "WF_GROWTH_RETENTION_CONTENT", "WF_GROWTH_EXECUTION_PLAN", "WF_NEXT_BEST_ACTIONS"],
+    workflowKeys: ["WF_SCALING_STRATEGY", "WF_GROWTH_MARGIN_OPTIMIZATION", "WF_GROWTH_OFFER_AUDIENCE_FUNNEL", "WF_GROWTH_PAID_ADS", "WF_GROWTH_SEO", "WF_GROWTH_AI_SEO", "WF_GROWTH_RETENTION_CONTENT", "WF_GROWTH_EXECUTION_PLAN", "WF_NEXT_BEST_ACTIONS"],
+    fb2WorkflowKeys: ["WF_SCALING_STRATEGY", "WF_GROWTH_MARGIN_OPTIMIZATION", "WF_GROWTH_OFFER_AUDIENCE_FUNNEL", "WF_GROWTH_PAID_ADS", "WF_GROWTH_SEO", "WF_GROWTH_AI_SEO", "WF_GROWTH_RETENTION_CONTENT", "WF_GROWTH_EXECUTION_PLAN", "WF_NEXT_BEST_ACTIONS"],
     description:
       "Wir befinden uns in der Wachstumsphase. Diese Phase ist wichtig, weil jetzt klare Prioritäten und umsetzbare nächste Schritte gebraucht werden.",
     important: [
@@ -195,7 +196,7 @@ const STUDY_CATEGORY_CONTEXT_DE: Record<StudyCategoryKey, StudyCategoryLocaleBlo
       "WF_STRATEGIC_OPTIONS",
     ],
     description:
-      "Wir befinden uns in der Strategiephase. Diese Phase ist wichtig, weil Effizienz, Portfolioentscheidungen, Foerderhebel und strategische Erneuerung systematisch vorbereitet werden.",
+      "Wir befinden uns in der Strategiephase. Diese Phase ist wichtig, weil Effizienz, Portfolioentscheidungen, Förderhebel und strategische Erneuerung systematisch vorbereitet werden.",
     important: [
       "Operative Effizienz und Profitabilität erhöhen",
       "Portfolio- und Markenentscheidungen nachvollziehbar treffen",
@@ -231,8 +232,9 @@ const STUDY_CATEGORY_CONTEXT_DE: Record<StudyCategoryKey, StudyCategoryLocaleBlo
 const STUDY_CATEGORY_CONTEXT_EN: Record<StudyCategoryKey, StudyCategoryLocaleBlock> = {
   markt_geschaeftsmodell: {
     phase: "Ideation / concept phase",
-    workflowKeys: ["WF_VALUE_PROPOSITION", "WF_COMPETITOR_ANALYSIS", "WF_SWOT"],
+    workflowKeys: ["WF_COMPANY_INTERNET_PROFILE", "WF_VALUE_PROPOSITION", "WF_COMPETITOR_ANALYSIS", "WF_SWOT"],
     fb2WorkflowKeys: [
+      "WF_COMPANY_INTERNET_PROFILE",
       "WF_VALUE_PROPOSITION",
       "WF_COMPETITOR_ANALYSIS",
       "WF_SWOT",
@@ -297,8 +299,8 @@ const STUDY_CATEGORY_CONTEXT_EN: Record<StudyCategoryKey, StudyCategoryLocaleBlo
   },
   wachstum_expansion: {
     phase: "Growth phase",
-    workflowKeys: ["WF_SCALING_STRATEGY", "WF_GROWTH_MARGIN_OPTIMIZATION", "WF_GROWTH_OFFER_AUDIENCE_FUNNEL", "WF_GROWTH_PAID_ADS", "WF_GROWTH_SEO", "WF_GROWTH_RETENTION_CONTENT", "WF_GROWTH_EXECUTION_PLAN", "WF_NEXT_BEST_ACTIONS"],
-    fb2WorkflowKeys: ["WF_SCALING_STRATEGY", "WF_GROWTH_MARGIN_OPTIMIZATION", "WF_GROWTH_OFFER_AUDIENCE_FUNNEL", "WF_GROWTH_PAID_ADS", "WF_GROWTH_SEO", "WF_GROWTH_RETENTION_CONTENT", "WF_GROWTH_EXECUTION_PLAN", "WF_NEXT_BEST_ACTIONS"],
+    workflowKeys: ["WF_SCALING_STRATEGY", "WF_GROWTH_MARGIN_OPTIMIZATION", "WF_GROWTH_OFFER_AUDIENCE_FUNNEL", "WF_GROWTH_PAID_ADS", "WF_GROWTH_SEO", "WF_GROWTH_AI_SEO", "WF_GROWTH_RETENTION_CONTENT", "WF_GROWTH_EXECUTION_PLAN", "WF_NEXT_BEST_ACTIONS"],
+    fb2WorkflowKeys: ["WF_SCALING_STRATEGY", "WF_GROWTH_MARGIN_OPTIMIZATION", "WF_GROWTH_OFFER_AUDIENCE_FUNNEL", "WF_GROWTH_PAID_ADS", "WF_GROWTH_SEO", "WF_GROWTH_AI_SEO", "WF_GROWTH_RETENTION_CONTENT", "WF_GROWTH_EXECUTION_PLAN", "WF_NEXT_BEST_ACTIONS"],
     description:
       "You are in the growth phase. This phase is important because priorities, scaling, and operations are aligned.",
     important: [

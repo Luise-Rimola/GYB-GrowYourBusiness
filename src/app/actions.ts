@@ -11,6 +11,7 @@ import { createArtifactEvaluation } from "@/lib/artifactEvaluations";
 import { createFeatureEvaluation, type FeatureEvaluationKind } from "@/lib/featureEvaluations";
 import { setPlanningPhaseArtifactRelease } from "@/lib/planningPhaseRelease";
 import { isRedirectError } from "@/lib/isRedirectError";
+import { MANUAL_STEP_KEYS, workflowSteps } from "@/lib/workflowSteps";
 
 function buildDashboardRunErrorUrl(formData: FormData, errorCode: string): string {
   const q = new URLSearchParams();
@@ -122,12 +123,62 @@ export async function createRunWorkflowAction(formData: FormData) {
     const company = await getOrCreateDemoCompany();
 
     if (!forceNew) {
+      // Wenn über alle historischen Runs bereits alle Auto-Steps validiert sind,
+      // darf "Starten/Fortsetzen" nicht in einem leeren draft-Run landen.
+      // Stattdessen direkt den letzten Ergebnis-Run öffnen.
+      const expectedAutoStepKeys = (workflowSteps[workflowKey] ?? [])
+        .filter((s) => !MANUAL_STEP_KEYS.has(s.stepKey))
+        .map((s) => s.stepKey);
+      if (expectedAutoStepKeys.length > 0) {
+        const validated = await prisma.runStep.findMany({
+          where: {
+            run: { companyId: company.id, workflowKey },
+            schemaValidationPassed: true,
+            stepKey: { in: expectedAutoStepKeys },
+          },
+          select: { stepKey: true },
+        });
+        const validatedKeys = new Set(validated.map((s) => s.stepKey));
+        const allDone = expectedAutoStepKeys.every((k) => validatedKeys.has(k));
+        if (allDone) {
+          const latestResultRun = await prisma.run.findFirst({
+            where: {
+              companyId: company.id,
+              workflowKey,
+              steps: { some: { schemaValidationPassed: true } },
+            },
+            orderBy: { createdAt: "desc" },
+            select: { id: true },
+          });
+          if (latestResultRun?.id) {
+            redirect(`/runs/${latestResultRun.id}`);
+          }
+        }
+      }
+
       const existing = await prisma.run.findFirst({
         where: { companyId: company.id, workflowKey, status: { in: ["draft", "running", "incomplete"] } },
         include: { _count: { select: { steps: true } } },
         orderBy: { createdAt: "desc" },
       });
       if (existing) {
+        // Falls der offene Run leer ist, aber es bereits einen Ergebnis-Run gibt,
+        // den Ergebnis-Run öffnen (verhindert "leer + keine offenen Schritte").
+        if ((existing._count?.steps ?? 0) === 0) {
+          const latestResultRun = await prisma.run.findFirst({
+            where: {
+              companyId: company.id,
+              workflowKey,
+              id: { not: existing.id },
+              steps: { some: { schemaValidationPassed: true } },
+            },
+            orderBy: { createdAt: "desc" },
+            select: { id: true },
+          });
+          if (latestResultRun?.id) {
+            redirect(`/runs/${latestResultRun.id}`);
+          }
+        }
         redirect(`/runs/${existing.id}`);
       }
     }

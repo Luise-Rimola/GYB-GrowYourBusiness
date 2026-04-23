@@ -6,6 +6,12 @@ export const WORKFLOWS = [
     explanation: "Erklärung: Erster Schritt – manuelles Ausfüllen des Business-Formulars. Basiert auf: nichts (Start). Output: Company Profile, Intake Session (gespeichert in DB).",
   },
   {
+    key: "WF_COMPANY_INTERNET_PROFILE",
+    name: "Unternehmensinfos aus dem Internet",
+    description: "Sammelt öffentliche Informationen aus dem Web (Website, LinkedIn/Brave/DDG, Register-Hinweise) und ergänzt das Profil.",
+    explanation: "Erklärung: Prüft, ob das Unternehmen bereits öffentlich auffindbar ist, und ergänzt nur dann das Profil mit Web-Informationen. Basiert auf: Firmenname, Website, Standort. Falls keine belastbaren Treffer vorliegen: Ergebnis = vor Gründung/noch nicht öffentlich aktiv. Output: company_internet_presence (JSON) + Profilanreicherung.",
+  },
+  {
     key: "WF_BASELINE",
     name: "Grundlagenanalyse",
     description: "Business model + KPI setup",
@@ -186,6 +192,12 @@ export const WORKFLOWS = [
     explanation: "Erklärung: SEO-Potenziale für nachhaltiges Wachstum sichtbar machen. Basiert auf: Company Profile und vorhandene Web-Informationen im Kontext. Zu Untersuchen: technische SEO-Basis, Onpage-Qualität, Content-Lücken, Keyword-Cluster und priorisierte Maßnahmen. Output: growth_seo (JSON).",
   },
   {
+    key: "WF_GROWTH_AI_SEO",
+    name: "Growth: AI Search (GEO / AEO / LLMO)",
+    description: "Sichtbarkeit in ChatGPT Search, Perplexity, Google AI Overviews & Co. – GEO, AEO, llms.txt, Entity & E-E-A-T.",
+    explanation: "Erklärung: Macht das Unternehmen in KI-Suchmaschinen und Antwortmaschinen sichtbar. Basiert auf: Company Profile, Market Research, Marketing-Kontext. Zu Untersuchen: relevante AI-Engines, GEO-Positionierung als zitierbare Quelle, AEO-Zielfragen (Featured Snippets / People Also Ask), llms.txt & Robots-Strategie, Structured Data, E-E-A-T-Signale, KPI-Framework und umsetzbare Code-Snippets (FAQ/HowTo/Article JSON-LD). Output: growth_ai_seo (JSON).",
+  },
+  {
     key: "WF_GROWTH_RETENTION_CONTENT",
     name: "Growth: Retention, Content & UGC",
     description: "Email/SMS-Retention, Content-Strategie und UGC/Creative-Roadmap.",
@@ -199,9 +211,9 @@ export const WORKFLOWS = [
   },
   {
     key: "WF_SUBSIDY_RESEARCH",
-    name: "Zuschuesse & Foerderprogramme",
-    description: "Recherchiert passende Landes-/Stadtfoerderungen inkl. Voraussetzungen und Antragsschritten.",
-    explanation: "Erklärung: Recherchiert Foerderprogramme fuer Unternehmen je Standort und Vorhaben. Basiert auf: Company Profile, Industry Research, Financial Planning, Startup/Funding-Outputs. Zu Untersuchen: Programmname, Gueltigkeitsbereich, Foerderinhalt, Voraussetzungen und konkreter Bewerbungsweg. Output: subsidy_research (JSON).",
+    name: "Zuschüsse & Förderprogramme",
+    description: "Recherchiert passende Landes-/Stadtförderungen inkl. Voraussetzungen und Antragsschritten.",
+    explanation: "Erklärung: Recherchiert Förderprogramme für Unternehmen je Standort und Vorhaben. Basiert auf: Company Profile, Industry Research, Financial Planning, Startup/Funding-Outputs. Zu Untersuchen: Programmname, Gültigkeitsbereich, Förderinhalt, Voraussetzungen und konkreter Bewerbungsweg. Output: subsidy_research (JSON).",
   },
   {
     key: "WF_PORTFOLIO_MANAGEMENT",
@@ -373,12 +385,16 @@ const SIMPLE_EXPLANATIONS: Record<string, string> = {
     "Dieser Workflow bewertet, wie bereit dein Unternehmen für Meta Ads und Google Ads ist. Du bekommst klare Empfehlungen zu Kampagnenstruktur, Prioritäten und Risiken.",
   WF_GROWTH_SEO:
     "Hier wird dein SEO-Potenzial strukturiert bewertet – technisch, inhaltlich und strategisch. Das Ergebnis zeigt dir konkrete Maßnahmen für mehr organische Sichtbarkeit.",
+  WF_GROWTH_AI_SEO:
+    "Dieser Workflow macht dein Unternehmen in ChatGPT Search, Perplexity, Google AI Overviews & Co. sichtbar. Du bekommst GEO-, AEO- und LLM-Strategien inkl. llms.txt, JSON-LD-Snippets und KPI-Framework.",
   WF_GROWTH_RETENTION_CONTENT:
     "Dieser Workflow verbindet Retention (Email/SMS), Content und UGC-Creative. Du erhältst einen umsetzbaren Plan für Kundenbindung und wiederholbare Content-Produktion.",
   WF_GROWTH_EXECUTION_PLAN:
     "Hier werden KPI-Logik und Umsetzungsplan zusammengeführt. Du bekommst klare 30/60/90-Prioritäten plus direkt nutzbare Drafts für Ads, SEO, Email und Content.",
+  WF_COMPANY_INTERNET_PROFILE:
+    "Dieser Workflow sammelt öffentliche Unternehmensinformationen aus dem Internet und ergänzt dein Profil. Wenn kein bestehendes Unternehmen auffindbar ist, wird das als Vorgründungsstatus gekennzeichnet.",
   WF_SUBSIDY_RESEARCH:
-    "Dieser Workflow recherchiert passende Zuschuesse und Foerderprogramme fuer dein Unternehmen und zeigt dir klar, was moeglich ist und wie du dich bewerben kannst.",
+    "Dieser Workflow recherchiert passende Zuschüsse und Förderprogramme für dein Unternehmen und zeigt dir klar, was möglich ist und wie du dich bewerben kannst.",
   WF_PORTFOLIO_MANAGEMENT:
     "Hier wird bewertet, welche Produkte oder Leistungen gestärkt, angepasst oder reduziert werden sollten. Das hilft, Ressourcen auf die wichtigsten Umsatztreiber zu konzentrieren.",
   WF_SCENARIO_ANALYSIS:

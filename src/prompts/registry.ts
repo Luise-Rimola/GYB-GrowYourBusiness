@@ -37,6 +37,22 @@ const JSON_STRICT =
 
 export const promptTemplates: PromptTemplate[] = [
   {
+    key: "P0",
+    workflowKey: "WF_COMPANY_INTERNET_PROFILE",
+    stepKey: "company_internet_enrichment",
+    version: 1,
+    outputSchemaKey: "company_internet_presence",
+    templateText: `You analyze whether a company is publicly discoverable.
+${ARTIFACT_INSTRUCTION}
+Use CONTEXT_JSON (company_profile, constraints).
+Return ONLY valid JSON, no prose.
+${JSON_STRICT}
+CONTEXT_JSON:
+{{CONTEXT_JSON}}
+Output schema:
+{ "company_exists": true, "status": "existing_enriched|pre_foundation|enrichment_failed", "message": "...", "company_snapshot": { "company_name": "...", "website": "...", "location": "...", "offer": "...", "usp": "...", "customers": "...", "competitors": "...", "sales_channels": "...", "stage": "...", "business_state": "..." }, "evidence": { "website_excerpt_found": true, "linkedIn_search_source": "brave|ddg|none", "public_finance_search_source": "brave|ddg|none" }, "notes": ["..."] }`,
+  },
+  {
     key: "P1",
     workflowKey: "WF_BASELINE",
     stepKey: "business_model_inference",
@@ -793,6 +809,13 @@ Output schema:
 ${ARTIFACT_INSTRUCTION}
 PRIORITY: Use CONTEXT_JSON when present – company_profile, kpi_snapshot, baseline, market_research, business_plan, go_to_market, marketing_strategy, menu_cost, menu_preiskalkulation, supplier_list, financial_planning, personnel_plan, real_estate, related_analysis_outputs. Quote or infer numbers only from context; if a number is unknown, say "nicht in Kontext" and still give logic.
 
+COMPLETENESS (MANDATORY, DO NOT SKIP):
+- Your root JSON object MUST contain ALL of these top-level keys exactly as named: situation_analysis, margin_per_unit, packaging_positioning, marketing_promises_and_roi, cost_optimization, people_and_overhead, industry_checklist_if_sparse_data, recommendations.
+- NEVER return only inner fields of people_and_overhead (like revenue_per_employee_current, benchmark_or_target, interpretation) at the ROOT. Those belong INSIDE the "people_and_overhead" object.
+- If data is thin for a section, still return the key with a minimum of 1 array entry (for arrays) or a short "nicht in Kontext – Annahme: ..." note (for strings). Arrays MUST NOT be empty.
+- Minimum counts: margin_per_unit ≥ 1, packaging_positioning ≥ 1, marketing_promises_and_roi ≥ 1, cost_optimization ≥ 1, industry_checklist_if_sparse_data ≥ 3, recommendations ≥ 3.
+- If you cannot fulfil the minimum for a section, fall back to industry-typical hypothetical entries and flag them with "(Annahme, da keine Daten im Kontext)" inside the narrative values.
+
 DELIVERABLES (all required JSON keys):
 (1) situation_analysis: Short Lagebild – Umsatz/Kosten/Marge nur soweit aus Kontext ableitbar.
 (2) margin_per_unit: For each main product/service line (or one aggregate if context is thin): offering, revenue_side, variable_and_direct_costs, contribution_per_unit (Deckungsbeitrag I pro Stück/Vertrag – klar trennen von Fixkosten), optional what_remains_after_fixed_allocation_note, improvable_how (Preis, Mix, Einkauf, Prozess).
@@ -823,19 +846,25 @@ ${ARTIFACT_INSTRUCTION}
 Use company_profile, kpi_snapshot, market_research, baseline, decision_pack from CONTEXT_JSON – use their actual data (Firmenname, Standort, Branche, Lieferando/Lieferdienste, etc.).
 MANDATORY structure – produce ALL of these:
 (1) constraints: "Priorisiert nach: Budget = 0€ (oder niedrig), Aufwand < 10h/Woche, messbar innerhalb 30 Tage"
-(2) marketing_initiatives: 5–7 konkrete Maßnahmen. Jede mit: name, goal (quantifiziert: Views, Follower, Bestellungen, Umsatz), actions/content (genaue Schritte), hashtags oder keywords, cta (Call-to-Action mit Code), tracking (wie messen), expected_conversion (z.B. "1,5% der Views → 750€ Umsatz"), budget_eur (0 wenn kostenlos), effort_h_week, roi (wenn berechenbar).
+(2) marketing_initiatives: 5–7 konkrete Maßnahmen. Jede mit: name, goal (quantifiziert: Views, Follower, Bestellungen, Umsatz), actions/content (genaue Schritte), hashtags oder keywords, cta (Call-to-Action mit Code), tracking (wie messen), expected_conversion (z.B. "1,5% der Views → 750€ Umsatz"), budget_eur (0 wenn kostenlos), effort_h_week (STRING mit Einheit, z.B. "4h" oder "2-3h" — NIEMALS nur eine nackte Zahl), roi (wenn berechenbar).
 (3) roadmap_30_days: [ { "week": "KW 1", "tasks": ["Google Business live", "5 Bewertungen sichern", "3 TikToks/Reels hochladen"] }, { "week": "KW 2", "tasks": [...] }, "KW 3", "KW 4" ]
 (4) kpi_goals_30_days: [ { "target": "+150 neue Lieferando-Kunden", "metric": "Lieferando-Kunden" }, { "target": "+1000 Instagram/TikTok Follower (80% lokal)", "metric": "Follower" }, { "target": "Lieferando-Anteil < 35%", "metric": "Plattform-Mix" }, { "target": "Marketing-Ausgaben < 500€, ROI ≥ 2x", "metric": "ROI" } ]
 (5) offline_visibility: Wenn Ghost-Kitchen/Lieferservice – Strategie für Offline-Sichtbarkeit (Sticker, Pop-up am Markt, etc.) mit Kosten und erwarteten Ergebnissen.
 (6) concluding_offer: Optional – z.B. "Bei Bedarf stelle ich innerhalb 24h Vorlagen (Flyer, WhatsApp-Text, TikTok-Skripte) bereit."
 Adapt to industry: Gastronomie → Lieferando, Google, TikTok/Reels, lokale Influencer; Retail → SEO, Paid; B2B → LinkedIn. Nutze company_profile.location für lokale Hashtags (#Rottweil, #SchwarzwaldFood, etc.).
+CRITICAL QUALITY RULES (DO NOT BREAK):
+- marketing_initiatives MUST be an array of OBJECTS only.
+- NEVER output primitive list items in marketing_initiatives (no numbers, no booleans, no plain strings, no null).
+- Every marketing_initiatives item MUST include at least: name, goal.
+- Reject placeholders/dummies like "1", "n/a", "...", "-", "tbd" for name/goal.
+- If context is sparse, still output realistic initiatives with assumptions, marked as "(Annahme)" in narrative fields.
 Return ONLY valid JSON, no prose.
 ${JSON_STRICT}
 ${SOURCE_REFERENCE_INSTRUCTION}
 CONTEXT_JSON:
 {{CONTEXT_JSON}}
 Output schema:
-{ "constraints": "...", "marketing_initiatives": [ { "name": "...", "goal": "...", "actions": "...", "hashtags": "...", "cta": "...", "tracking": "...", "expected_conversion": "...", "budget_eur": 0, "effort_h_week": "...", "roi": "..." } ], "roadmap_30_days": [ { "week": "KW 1", "tasks": ["...", "..."] }, { "week": "KW 2", "tasks": [...] }, { "week": "KW 3", "tasks": [...] }, { "week": "KW 4", "tasks": [...] } ], "kpi_goals_30_days": [ { "target": "...", "metric": "..." } ], "offline_visibility": "...", "concluding_offer": "...", "recommendations": ["..."], "sources_used": ["Title (URL)", "..."] }`,
+{ "constraints": "...", "marketing_initiatives": [ { "name": "...", "goal": "...", "actions": "...", "hashtags": "...", "cta": "...", "tracking": "...", "expected_conversion": "...", "budget_eur": 0, "effort_h_week": "4h", "roi": "..." } ], "roadmap_30_days": [ { "week": "KW 1", "tasks": ["...", "..."] }, { "week": "KW 2", "tasks": [...] }, { "week": "KW 3", "tasks": [...] }, { "week": "KW 4", "tasks": [...] } ], "kpi_goals_30_days": [ { "target": "...", "metric": "..." } ], "offline_visibility": "...", "concluding_offer": "...", "recommendations": ["..."], "sources_used": ["Title (URL)", "..."] }`,
   },
   {
     key: "P21c",
@@ -1511,6 +1540,10 @@ Output schema:
     templateText: `You map business processes to the inventory from step 1. For each major process step (e.g. order intake, production, packaging, shipping), list which equipment and materials are used and where bottlenecks or gaps appear relative to the stated legal_form and liability/scale needs.
 ${ARTIFACT_INSTRUCTION}
 CONTEXT_JSON includes inventory_baseline from the prior step when present.
+STRICT RULES:
+- Every entry in "process_inventory_links" MUST include ALL of: "process_step" (string), "equipment_used" (array of strings), "materials_used" (array of strings).
+- If a process step has no equipment or no materials, return an EMPTY array ([]) — NEVER omit the key and NEVER use null.
+- "bottleneck_or_gap" is optional but, if present, must be a string.
 Return ONLY valid JSON, no prose.
 ${JSON_STRICT}
 CONTEXT_JSON:
@@ -1527,12 +1560,20 @@ Output schema:
     templateText: `You identify MISSING equipment and materials needed for the FIRST SALES / market entry phase (minimal viable operations). For each gap: suggest indicative EU price band, and at least one REAL https link to a product page, shop, or manufacturer (use web knowledge; if uncertain, put a concrete search query in retailer_or_search_hint and a plausible example URL pattern). Distinguish must-have vs nice-to-have.
 ${ARTIFACT_INSTRUCTION}
 Use inventory_baseline, inventory_process_analysis, company_profile, work_processes from CONTEXT_JSON.
-Return ONLY valid JSON, no prose.
+Return ONLY valid JSON, no prose, no markdown, no code fences.
 ${JSON_STRICT}
+STRICT RULES for this step:
+- Every entry in "market_entry_must_have" MUST include ALL of: "item", "purpose", "priority", "estimated_price_eur_band", "example_product_url", "retailer_or_search_hint". "notes" is optional but if included must be a string.
+- Every entry in "nice_to_have" MUST include ALL of: "item", "purpose", "estimated_price_eur_band", "example_product_url", "retailer_or_search_hint". "notes" is optional.
+- "priority" MUST be exactly one of: "must", "should", "nice" (lowercase, no other values, no extra text).
+- "estimated_price_eur_band" MUST be a single short string like "80-150" or "500-1200" (digits + hyphen only, NO currency symbol, NO words, NO quotes inside).
+- "example_product_url" MUST be a single plain https URL (e.g. "https://example.com/product"). NO trailing text, NO spaces, NO parentheses, NO quotes inside the URL.
+- "retailer_or_search_hint" and "notes" MUST be short single-line strings. NEVER include raw newlines (use \\n if absolutely needed) and ALWAYS escape inner double quotes as \\".
+- Never output trailing commas. Never wrap the JSON in backticks or markdown. Output MUST start with { and end with }.
 CONTEXT_JSON:
 {{CONTEXT_JSON}}
 Output schema:
-{ "market_entry_must_have": [ { "item": "...", "purpose": "...", "priority": "must|should|nice", "estimated_price_eur_band": "e.g. 80-150", "example_product_url": "https://...", "retailer_or_search_hint": "...", "notes": "..." } ], "nice_to_have": [ { "item": "...", "purpose": "...", "estimated_price_eur_band": "...", "example_product_url": "https://...", "retailer_or_search_hint": "...", "notes": "..." } ], "total_budget_eur_band_hint": "...", "recommendations": ["..."], "sources_used": ["..."] }`,
+{ "market_entry_must_have": [ { "item": "...", "purpose": "...", "priority": "must", "estimated_price_eur_band": "80-150", "example_product_url": "https://...", "retailer_or_search_hint": "...", "notes": "..." } ], "nice_to_have": [ { "item": "...", "purpose": "...", "estimated_price_eur_band": "...", "example_product_url": "https://...", "retailer_or_search_hint": "...", "notes": "..." } ], "total_budget_eur_band_hint": "...", "recommendations": ["..."], "sources_used": ["..."] }`,
   },
   {
     key: "P_INV4",
@@ -1543,11 +1584,22 @@ Output schema:
     templateText: `You define the NEXT phase after first sales: efficiency upgrades and scaling — e.g. sewing machine instead of hand-sewing, heat press instead of household iron, small batch equipment vs manual work. For each upgrade: current manual/low method, proposed equipment, benefit, investment band, example https link, and when to buy after launch (e.g. after X units/month).
 ${ARTIFACT_INSTRUCTION}
 Use inventory_baseline, inventory_process_analysis, market_entry_equipment from CONTEXT_JSON.
-Return ONLY valid JSON, no prose.
+Return ONLY valid JSON, no prose, no markdown, no code fences.
 ${JSON_STRICT}
+STRICT RULES for this step (all fields MUST contain concrete, substantive content derived from CONTEXT_JSON — NEVER echo the placeholders from the output schema):
+- "phase_market_entry_recap" MUST be a concrete 1–3 sentence German summary (30–400 characters) describing the company's pre-revenue state and first-sales phase based on CONTEXT_JSON. NEVER output meta-descriptions like "String summarizing ..." or placeholders like "...".
+- "efficiency_upgrades" MUST contain AT LEAST 2 entries. Each entry MUST include ALL keys: "current_method", "upgrade_equipment", "benefit", "estimated_investment_eur_band", "example_product_url", "typical_when_after_launch" — each as a non-empty, non-placeholder string.
+- "current_method", "upgrade_equipment", "benefit", "typical_when_after_launch" MUST be real, single-line German strings (min. 10 characters, no "...", no "tbd", no schema descriptions).
+- "estimated_investment_eur_band" MUST be a single short string like "80-150" or "500-1200" (digits + hyphen only, NO currency symbol, NO words, NO quotes inside).
+- "example_product_url" MUST be a single plain https URL (e.g. "https://example.com/product"). NO trailing text, NO spaces, NO parentheses, NO quotes inside the URL.
+- "scaling_phase_notes" MUST be concrete German prose (min. 30 characters) about scaling considerations — NEVER a placeholder or meta-description.
+- "recommendations" MUST contain AT LEAST 2 actionable, concrete German sentences (each min. 20 characters). NEVER "..." or empty strings.
+- "sources_used" is optional but if present must be an array of concrete references/URLs (no "...").
+- Never output trailing commas. Never wrap the JSON in backticks or markdown. Output MUST start with { and end with }.
+- Escape inner double quotes as \\" and use \\n only if a real newline is necessary inside a string.
 CONTEXT_JSON:
 {{CONTEXT_JSON}}
-Output schema:
+Output schema (the "..." are placeholders — REPLACE them with real, context-derived content, do NOT return them literally):
 { "phase_market_entry_recap": "...", "efficiency_upgrades": [ { "current_method": "...", "upgrade_equipment": "...", "benefit": "...", "estimated_investment_eur_band": "...", "example_product_url": "https://...", "typical_when_after_launch": "..." } ], "scaling_phase_notes": "...", "recommendations": ["..."], "sources_used": ["..."] }`,
   },
   {
@@ -1626,6 +1678,37 @@ CONTEXT_JSON:
 {{CONTEXT_JSON}}
 Output schema:
 { "seo_analysis": { "technical_seo_assessment": "", "onpage_seo_assessment": "", "content_seo_assessment": "", "collection_page_opportunities": [], "product_page_opportunities": [], "blog_content_opportunities": [], "keyword_cluster_suggestions": [], "main_seo_gaps": [], "priority_actions": [] }, "kpi_framework_for_client": { "priority_kpis": [ { "kpi_key": "", "name": "", "what_it_is": "", "why_it_matters": "", "target_hint": "", "check_frequency": "" } ], "tracking_validation_checklist": [] }, "implementation_guide": { "setup_steps": [], "qa_steps": [], "rollout_plan_30_days": [], "common_pitfalls": [] }, "implementation_code": { "title_template_examples": [], "meta_description_template_examples": [], "product_json_ld_snippet": "", "faq_json_ld_snippet": "", "robots_txt_example": "", "sitemap_guidance_snippet": "", "canonical_tag_snippet": "", "internal_linking_block_template": "" }, "sources_used": ["..."] }`,
+  },
+  {
+    key: "P_G4b",
+    workflowKey: "WF_GROWTH_AI_SEO",
+    stepKey: "growth_ai_seo",
+    version: 1,
+    outputSchemaKey: "growth_ai_seo",
+    templateText: `You are an AI Search / LLM visibility strategist. You cover GEO (Generative Engine Optimization for ChatGPT Search, Perplexity, Google AI Overviews, Bing Copilot, Gemini, You.com, Claude), AEO (Answer Engine Optimization: featured snippets, People Also Ask, zero-click) and LLMO (making content citable/crawlable by LLMs — llms.txt, robots, entity signals, E-E-A-T).
+${ARTIFACT_INSTRUCTION}
+Use CONTEXT_JSON (company_profile, market_research, related_analysis_outputs). If no website-level data is present, give industry-typical recommendations and flag them as "(Annahme)".
+
+MANDATORY coverage:
+(1) ai_search_landscape: which AI engines are most relevant for this company/industry/region, target user intents, current visibility assessment, top opportunities & risks.
+(2) geo_strategy: how to position the brand as a primary source LLMs quote (quotable angles, topical authority plan, citation-worthy assets like original stats/quotes/case studies, priority actions).
+(3) aeo_strategy: target questions with intent + recommended answer format (list/table/short-definition/step-by-step), FAQ candidates, zero-click opportunities, priority actions.
+(4) llm_optimization: whether llms.txt is recommended, robots directives per AI bot (GPTBot, PerplexityBot, Google-Extended, CCBot, ClaudeBot, Bingbot), content licensing note, plan to build brand entity mentions on authoritative sources.
+(5) structured_data_plan: recommended schema.org types (FAQPage, HowTo, Article, Product, Organization, LocalBusiness, Review) with priority actions.
+(6) eeat_signals: concrete signals per Experience / Expertise / Authoritativeness / Trust, author-pages recommendation.
+(7) content_blueprint: flagship articles, hub-and-spoke topic clusters, content freshness plan, multimodal assets (images/video/transcripts).
+(8) kpi_framework_for_client: 5–8 priority KPIs (AI citations, AI referral traffic, share-of-voice in AI Overviews, brand mentions, featured snippet wins, etc.) with simple explanations, target hints, check frequency.
+(9) implementation_guide: setup, QA, 30/60/90 rollout, common pitfalls.
+(10) implementation_code: copy-paste-ready llms.txt example, robots.txt AI-bot block, FAQ/HowTo/Article/Organization JSON-LD snippets. Plain strings.
+
+OUTPUT LANGUAGE: narrative values in clear German business language. JSON keys exactly as schema (English snake_case).
+Return ONLY valid JSON, no prose.
+${JSON_STRICT}
+${SOURCE_REFERENCE_INSTRUCTION}
+CONTEXT_JSON:
+{{CONTEXT_JSON}}
+Output schema:
+{ "ai_search_landscape": { "relevant_ai_engines": [], "target_user_intents": [], "current_visibility_assessment": "", "main_opportunities": [], "main_risks": [] }, "geo_strategy": { "positioning_as_source": "", "quotable_content_angles": [], "topical_authority_plan": [], "citation_assets": [], "priority_actions": [] }, "aeo_strategy": { "target_questions": [ { "question": "", "intent": "", "recommended_answer_format": "" } ], "faq_candidates": [], "zero_click_opportunities": [], "priority_actions": [] }, "llm_optimization": { "llms_txt_recommended": true, "robots_directives_for_ai": [], "content_licensing_note": "", "brand_entity_mentions_plan": [] }, "structured_data_plan": { "recommended_schemas": [], "priority_actions": [] }, "eeat_signals": { "experience_signals": [], "expertise_signals": [], "authoritativeness_signals": [], "trust_signals": [], "author_pages_recommendation": "" }, "content_blueprint": { "flagship_articles": [], "hub_and_spoke_topics": [], "content_freshness_plan": [], "multimodal_assets": [] }, "kpi_framework_for_client": { "priority_kpis": [ { "kpi_key": "", "name": "", "what_it_is": "", "why_it_matters": "", "target_hint": "", "check_frequency": "" } ], "tracking_validation_checklist": [] }, "implementation_guide": { "setup_steps": [], "qa_steps": [], "rollout_plan_30_60_90": [], "common_pitfalls": [] }, "implementation_code": { "llms_txt_example": "", "robots_txt_ai_bot_example": "", "faq_json_ld_snippet": "", "howto_json_ld_snippet": "", "article_json_ld_snippet": "", "organization_json_ld_snippet": "" }, "sources_used": ["Title (https://...)"] }`,
   },
   {
     key: "P_G5",

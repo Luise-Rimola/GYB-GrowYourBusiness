@@ -11,15 +11,16 @@ import { ContextPackService } from "@/services/contextPack";
 import { WorkflowService } from "@/services/workflows";
 import { submitKpiAnswersAction } from "@/app/actions";
 import { SchemaKey, supplierListSchema } from "@/types/schemas";
+import { validateStrictJson } from "@/lib/validators";
 import { getWorkflowName, getWorkflowSubtitle, getWorkflowExplanationLines } from "@/lib/workflows";
 import { mergeRunStepsIntoContext, workflowSteps } from "@/lib/workflowSteps";
 import { isRunProcessFullyComplete } from "@/lib/runProcessCompletion";
+import { PLANNING_PHASES } from "@/lib/planningFramework";
 import { AssistantRunEmbedBridge } from "@/components/AssistantRunEmbedBridge";
 import { filterContextForStep } from "@/services/contextPack";
 import { getServerLocale } from "@/lib/locale";
 import { getTranslations } from "@/lib/i18n";
 import { getWorkflowStepStatus } from "@/lib/workflowStepStatus";
-import { HistoryBackLink } from "@/components/HistoryBackLink";
 import { RunCompletionAdvanceButton } from "@/components/RunCompletionAdvanceButton";
 
 function pickPreferredRunSteps<T extends { stepKey: string; createdAt: Date; schemaValidationPassed: boolean }>(steps: T[]): T[] {
@@ -37,6 +38,14 @@ function pickPreferredRunSteps<T extends { stepKey: string; createdAt: Date; sch
   return preferred;
 }
 
+function embedSuffix(formData: FormData): string {
+  return String(formData.get("embed") || "") === "1" ? "&embed=1" : "";
+}
+
+function embedSuffixLeading(formData: FormData): string {
+  return String(formData.get("embed") || "") === "1" ? "?embed=1" : "";
+}
+
 async function verifyStep(formData: FormData) {
   "use server";
   const stepId = String(formData.get("step_id"));
@@ -45,20 +54,22 @@ async function verifyStep(formData: FormData) {
   const step = formData.get("step");
   if (!stepId) return;
   await WorkflowService.verifyStep(stepId, notes || undefined);
+  // Nach dem Verifizieren NICHT automatisch zum nächsten Schritt springen.
+  // Nutzer sollen das Prüfprotokoll in Ruhe lesen können und selbst auf „Weiter →" klicken.
   const currentStep = Math.max(0, Number(step) || 0);
-  const run = await prisma.run.findUnique({ where: { id: runId } });
-  const stepCount = run ? (workflowSteps[run.workflowKey] ?? []).length : 5;
-  const nextStep = Math.min(currentStep + 1, Math.max(0, stepCount - 1));
-  redirect(`/runs/${runId}?step=${nextStep}`);
+  redirect(`/runs/${runId}?step=${currentStep}${embedSuffix(formData)}`);
 }
 
 async function deleteStep(formData: FormData) {
   "use server";
   const stepId = String(formData.get("step_id"));
   const runId = String(formData.get("run_id"));
+  const step = formData.get("step");
   if (!stepId) return;
   await WorkflowService.deleteStep(stepId);
-  redirect(`/runs/${runId}`);
+  // Nach dem Löschen auf demselben Step bleiben, damit der Nutzer direkt eine neue Antwort eingeben kann.
+  const q = step != null ? `?step=${step}${embedSuffix(formData)}` : embedSuffixLeading(formData);
+  redirect(`/runs/${runId}${q}`);
 }
 
 async function updateRunNotes(formData: FormData) {
@@ -128,7 +139,7 @@ async function updateRunNotes(formData: FormData) {
       );
     }
   }
-  redirect(`/runs/${runId}`);
+  redirect(`/runs/${runId}${embedSuffixLeading(formData)}`);
 }
 
 async function updateStep(formData: FormData) {
@@ -141,7 +152,7 @@ async function updateStep(formData: FormData) {
   if (!stepId || !userResponse) return;
   await WorkflowService.updateStep({ stepId, schemaKey, userResponse, autoVerify });
   const step = formData.get("step");
-  const q = step != null ? `?step=${step}` : "";
+  const q = step != null ? `?step=${step}${embedSuffix(formData)}` : embedSuffixLeading(formData);
   redirect(`/runs/${runId}${q}`);
 }
 
@@ -170,19 +181,20 @@ async function submitBusinessForm(formData: FormData) {
       prisma.run.findMany({ where: { companyId: run.companyId, status: "complete" }, select: { workflowKey: true } }),
     ]);
     const completedKeys = new Set(completed.map((r) => r.workflowKey));
+    const embedTail = embedSuffix(formData);
     for (const key of WIZARD_WORKFLOW_ORDER) {
       const existing = inProgress.find((r) => r.workflowKey === key);
-      if (existing) redirect(`/runs/${existing.id}?step=0`);
+      if (existing) redirect(`/runs/${existing.id}?step=0${embedTail}`);
       if (!completedKeys.has(key)) {
         const contextPack = await ContextPackService.build(run.companyId, key);
         const newRun = await WorkflowService.createRun(run.companyId, key, contextPack);
-        redirect(`/runs/${newRun.id}?step=0`);
+        redirect(`/runs/${newRun.id}?step=0${embedTail}`);
       }
     }
     redirect("/dashboard");
   }
   const step = formData.get("step");
-  const q = step != null ? `?step=${step}` : "";
+  const q = step != null ? `?step=${step}${embedSuffix(formData)}` : embedSuffixLeading(formData);
   redirect(`/runs/${runId}${q}`);
 }
 
@@ -261,7 +273,7 @@ async function saveRunStep(formData: FormData) {
     autoVerify,
   });
   const step = formData.get("step");
-  const q = step != null ? `?step=${step}` : "";
+  const q = step != null ? `?step=${step}${embedSuffix(formData)}` : embedSuffixLeading(formData);
   redirect(`/runs/${runId}${q}`);
 }
 
@@ -286,7 +298,95 @@ export default async function RunDetailPage({
     notFound();
   }
 
-  const runStepsLatest = pickPreferredRunSteps(run.steps);
+  let runStepsLatest = pickPreferredRunSteps(run.steps);
+
+  // Auto-Heal: Wenn ein gespeicherter Schritt aktuell als ungültig markiert ist,
+  // re-validieren wir mit dem *aktuellen* Schema. Schemas werden im Laufe der
+  // Entwicklung toleranter (z. B. Alias-Maps, neue `.optional()`-Felder, Array-
+  // Wrapper). Dadurch "heilen" alte Validierungsfehler automatisch, ohne dass
+  // der Nutzer in jedem Tab "Korrigieren & erneut speichern" klicken muss.
+  //
+  // Zusätzlich rufen wir `WorkflowService.updateStep()` auf — das triggert die
+  // vollen Side-Effects (Artifact erzeugen, Run.status = "complete" setzen,
+  // strategy_indicators persistieren usw.), sodass das Dashboard anschließend
+  // "Abgeschlossen" + "Lauf ansehen" zeigt und nicht weiter auf "Offen" hängt.
+  // Idempotenz: wir triggern das nur, wenn `schemaValidationPassed === false`
+  // — nach dem Heal ist das Flag true und der Zweig wird übersprungen.
+  {
+    const schemaKeyByStepKey = new Map<string, SchemaKey>();
+    for (const s of workflowSteps[run.workflowKey] ?? []) {
+      schemaKeyByStepKey.set(s.stepKey, s.schemaKey as SchemaKey);
+    }
+    const healPromises: Promise<unknown>[] = [];
+    runStepsLatest = runStepsLatest.map((step) => {
+      if (step.schemaValidationPassed) return step;
+      const raw = step.userPastedResponse;
+      if (!raw || typeof raw !== "string" || raw.trim().length === 0) return step;
+      const schemaKey = schemaKeyByStepKey.get(step.stepKey);
+      if (!schemaKey) return step;
+      const validation = validateStrictJson(raw, schemaKey);
+      if (!validation.ok) return step;
+      healPromises.push(
+        WorkflowService.updateStep({
+          stepId: step.id,
+          schemaKey,
+          userResponse: raw,
+          autoVerify: true,
+        }).catch((err) => {
+          console.warn("[runs/[id] auto-heal] updateStep failed:", err);
+          return null;
+        }),
+      );
+      return {
+        ...step,
+        parsedOutputJson: validation.data as object,
+        schemaValidationPassed: true,
+        validationErrorsJson: null,
+        verifiedByUser: true,
+      };
+    });
+    if (healPromises.length > 0) {
+      await Promise.allSettled(healPromises);
+    }
+  }
+
+  // Zweiter Heal-Durchlauf: Schritte sind validiert, aber `Run.status` ist
+  // noch nicht "complete" und/oder das Artifact fehlt. Das passiert bei
+  // historischen Läufen, in denen der Background-Worker den Step zwar
+  // erfolgreich gespeichert hat, die Side-Effects (Artifact + run.status)
+  // aber nie liefen. Wir triggern `updateStep` erneut – dank Dedup in den
+  // Side-Effects entstehen keine doppelten Artifacts.
+  {
+    const steps = workflowSteps[run.workflowKey] ?? [];
+    const requiredStepKeys = steps.map((s) => s.stepKey);
+    const stepByKey = new Map(runStepsLatest.map((s) => [s.stepKey, s]));
+    const allRequiredValidated = requiredStepKeys.length > 0
+      && requiredStepKeys.every((k) => stepByKey.get(k)?.schemaValidationPassed === true);
+    const runStatus = (run as unknown as { status?: string }).status;
+    const needsRunComplete = allRequiredValidated && runStatus !== "complete" && runStatus !== "approved";
+    if (needsRunComplete) {
+      const schemaKeyByStepKey = new Map<string, SchemaKey>();
+      for (const s of steps) schemaKeyByStepKey.set(s.stepKey, s.schemaKey as SchemaKey);
+      // Re-run updateStep nur für den *letzten* Schritt — dessen Side-Effects
+      // setzen in der Regel run.status = "complete" und legen das Artifact an.
+      const lastKey = requiredStepKeys[requiredStepKeys.length - 1];
+      const lastStep = stepByKey.get(lastKey);
+      const lastSchemaKey = schemaKeyByStepKey.get(lastKey);
+      if (lastStep && lastSchemaKey && typeof lastStep.userPastedResponse === "string" && lastStep.userPastedResponse.trim().length > 0) {
+        try {
+          await WorkflowService.updateStep({
+            stepId: lastStep.id,
+            schemaKey: lastSchemaKey,
+            userResponse: lastStep.userPastedResponse,
+            autoVerify: lastStep.verifiedByUser,
+          });
+        } catch (err) {
+          console.warn("[runs/[id] run-level auto-heal] updateStep failed:", err);
+        }
+      }
+    }
+  }
+
   const runStepsDisplay = runStepsLatest.map((step) => {
     if (step.stepKey !== "supplier_list") return step;
     if (!step.parsedOutputJson) return step;
@@ -331,7 +431,12 @@ export default async function RunDetailPage({
       isComplete,
     };
   }
-  const completedStepKeys = new Set(runStepsDisplay.map((s) => s.stepKey));
+  // Ein Schritt zählt nur dann als "abgeschlossen", wenn seine Schema-
+  // Validierung erfolgreich war. Sonst würde der "✓ Abgeschlossen"-Chip auch
+  // bei reinen Speicherungen mit Validierungsfehlern fälschlich erscheinen.
+  const completedStepKeys = new Set(
+    runStepsDisplay.filter((s) => s.schemaValidationPassed === true).map((s) => s.stepKey),
+  );
   if (hasBusinessFormStep && businessFormStep?.isComplete) completedStepKeys.add("business_form");
 
   const kpiPlanStep = runStepsDisplay.find((s) => s.stepKey === "kpi_computation_plan");
@@ -443,29 +548,26 @@ export default async function RunDetailPage({
                 </span>
               </>
             )}
-            {allStepsComplete && (
+            {allStepsComplete ? (
               <span className="rounded-lg bg-teal-100 px-2.5 py-1 text-xs font-semibold text-teal-800 dark:bg-teal-900/50 dark:text-teal-200">
                 ✓ Abgeschlossen
               </span>
-            )}
+            ) : runStepsDisplay.length === 0 && steps.length > 0 ? (
+              <span className="rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-800/60 dark:text-slate-200">
+                {locale === "de" ? "Noch nicht ausgeführt" : "Not run yet"}
+              </span>
+            ) : runStepsDisplay.some((s) => s.schemaValidationPassed === false) ? (
+              <span className="rounded-lg bg-rose-100 px-2.5 py-1 text-xs font-semibold text-rose-800 dark:bg-rose-900/40 dark:text-rose-200">
+                {locale === "de" ? "⚠ Fehlerhaft – erneut ausführen" : "⚠ Failed – rerun"}
+              </span>
+            ) : null}
           </div>
         }
       >
         {null}
       </Section>
 
-      <Section title="">
-        <div className="mb-4 flex items-center justify-start">
-          {stepIndex > 0 ? (
-            <Link
-              href={`/runs/${run.id}?step=${stepIndex - 1}${embedAssistant ? "&embed=1" : ""}`}
-              prefetch={false}
-              className="rounded-xl border border-[var(--card-border)] bg-slate-100 px-4 py-2 text-xs font-medium text-[var(--foreground)] transition hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700"
-            >
-              ← Zurück
-            </Link>
-          ) : null}
-        </div>
+      <Section title="" compact>
         <Suspense fallback={<div className="rounded-2xl border border-[var(--card-border)] bg-[var(--card)] p-8 text-center text-[var(--muted)]">Wizard wird geladen…</div>}>
           <RunWizard
             run={{
@@ -517,29 +619,47 @@ export default async function RunDetailPage({
             appDevelopmentConfig={appDevelopmentConfig}
             showStepList={false}
             hideNextButton
+            embed={embedAssistant}
           />
         </Suspense>
       </Section>
 
-      {runStepsDisplay.length > 0 && (
+      {steps.length > 0 && run.workflowKey !== "WF_BUSINESS_FORM" && (
         <div id="pruefprotokoll">
           <Section
             title={locale === "de" ? "Prüfprotokoll" : "Audit Trail"}
             description="Ergebnisse pro Schritt prüfen."
           >
-            {(nextStepHref || allStepsComplete) ? (
-              <div className="mb-4 flex justify-end">
-                {nextStepHref ? (
-                  <Link
-                    href={nextStepHref}
-                    prefetch={false}
-                    className="rounded-xl bg-teal-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-teal-700"
-                  >
-                    Weiter →
-                  </Link>
-                ) : (
-                  <RunCompletionAdvanceButton embed={embedAssistant} runId={run.id} />
-                )}
+            {(stepIndex > 0 || nextStepHref || allStepsComplete) ? (
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <div>
+                  {stepIndex > 0 ? (
+                    <Link
+                      href={`/runs/${run.id}?step=${stepIndex - 1}${embedAssistant ? "&embed=1" : ""}`}
+                      prefetch={false}
+                      className="rounded-xl border border-[var(--card-border)] bg-slate-100 px-4 py-2 text-xs font-medium text-[var(--foreground)] transition hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700"
+                    >
+                      ← Zurück
+                    </Link>
+                  ) : null}
+                </div>
+                <div>
+                  {nextStepHref ? (
+                    <Link
+                      href={nextStepHref}
+                      prefetch={false}
+                      className="rounded-xl bg-teal-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-teal-700"
+                    >
+                      Weiter →
+                    </Link>
+                  ) : allStepsComplete ? (
+                    <RunCompletionAdvanceButton
+                      embed={embedAssistant}
+                      runId={run.id}
+                      phaseId={PLANNING_PHASES.find((p) => p.workflowKeys.includes(run.workflowKey))?.id ?? null}
+                    />
+                  ) : null}
+                </div>
               </div>
             ) : null}
             <AuditTrailTabs
@@ -566,6 +686,7 @@ export default async function RunDetailPage({
               verifyStep={verifyStep}
               deleteStep={deleteStep}
               updateStep={updateStep}
+              embed={embedAssistant}
             />
           </Section>
         </div>

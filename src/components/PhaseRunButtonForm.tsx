@@ -1,13 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { getTranslations } from "@/lib/i18n";
-import { LLM_BATCH_STEP_REQUEST_MS, llmBatchStepRequestMinutes } from "@/lib/llmClientTimeouts";
-import { formatRunStepExecuteError, postRunStepExecute } from "@/lib/runStepExecuteClient";
-import { buildWorkflowRunQueue } from "@/lib/workflowRunQueueClient";
+import { fetchApi } from "@/lib/apiClient";
 
 type PhaseRunButtonFormProps = {
   formId: string;
@@ -16,6 +14,35 @@ type PhaseRunButtonFormProps = {
   workflows: { key: string; name: string }[];
 };
 
+/**
+ * Modus für das Phasen-"Ausführen":
+ * - continue: überspringt bereits komplett fertige Workflows und innerhalb offener Workflows nur noch die
+ *   nicht schema-validierten Schritte.
+ * - run_all: führt jeden Auto-Schritt aller ausgewählten Workflows neu aus und überschreibt auch bereits
+ *   verifizierte Ergebnisse.
+ */
+type PhaseRunMode = "continue" | "run_all";
+
+type PhaseRunJobDto = {
+  id: string;
+  phaseId: string;
+  mode: string;
+  status: "queued" | "running" | "completed" | "failed" | "cancelled";
+  totalSteps: number;
+  completedSteps: number;
+  currentWorkflowKey: string | null;
+  currentStepKey: string | null;
+  currentLabel: string | null;
+  lastMessage: string | null;
+  errorMessage: string | null;
+  cancelRequested: boolean;
+  startedAt: string | null;
+  finishedAt: string | null;
+  createdAt: string;
+};
+
+const POLL_INTERVAL_MS = 2500;
+
 export function PhaseRunButtonForm({ formId, phaseId, buttonLabel, workflows }: PhaseRunButtonFormProps) {
   const router = useRouter();
   const [, startRefreshTransition] = useTransition();
@@ -23,20 +50,163 @@ export function PhaseRunButtonForm({ formId, phaseId, buttonLabel, workflows }: 
   const { locale } = useLanguage();
   const tDash = getTranslations(locale).dashboard;
   const isEmbed = searchParams.get("embed") === "1";
-  const [loading, setLoading] = useState(false);
+  const isDe = locale === "de";
   const [message, setMessage] = useState<{ tone: "ok" | "warn" | "error"; text: string } | null>(null);
+
+  // Stabiler localStorage-Key pro Phase/Company für bereits quittierte Fehler.
+  // Dadurch taucht ein stehengebliebener `PhaseRunJob.errorMessage` nach einem
+  // Reload nicht immer wieder auf, sobald der Nutzer ihn einmal geschlossen hat.
+  const ackStorageKey = `phaseRunAckedJobId:${phaseId}`;
+  const hasAckedJob = useCallback(
+    (jobId: string | null | undefined): boolean => {
+      if (!jobId || typeof window === "undefined") return false;
+      try {
+        return window.localStorage.getItem(ackStorageKey) === jobId;
+      } catch {
+        return false;
+      }
+    },
+    [ackStorageKey],
+  );
+  const rememberAckedJob = useCallback(
+    (jobId: string | null | undefined) => {
+      if (!jobId || typeof window === "undefined") return;
+      try {
+        window.localStorage.setItem(ackStorageKey, jobId);
+      } catch {
+        /* localStorage kann in Private Browsing blockiert sein — irrelevant */
+      }
+    },
+    [ackStorageKey],
+  );
   const [openManualModal, setOpenManualModal] = useState(false);
-  const [execProgress, setExecProgress] = useState<{ current: number; total: number } | null>(null);
+  const [job, setJob] = useState<PhaseRunJobDto | null>(null);
+  const [starting, setStarting] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+  const lastCompletedJobId = useRef<string | null>(null);
+  // Jobs, die der Nutzer in DIESEM Tab bewusst gestartet hat. Nur für diese
+  // zeigen wir automatisch die Completion/Error-Meldung an — verhindert, dass
+  // alte `PhaseRunJob.errorMessage`-Einträge aus der Vergangenheit bei jedem
+  // Reload als rote Toast-Meldung „kleben bleiben".
+  const startedInThisTab = useRef<Set<string>>(new Set());
+
+  const runModeContinueLabel = isDe ? "Mit offenen Schritten fortfahren" : "Continue with open steps";
+  const runAllLabelShort = isDe ? "Alles ausführen" : "Run everything";
+
+  const isActiveJob = job?.status === "queued" || job?.status === "running";
+  const loading = starting || isActiveJob;
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    function onDocClick(e: MouseEvent) {
+      if (!menuRef.current) return;
+      if (!(e.target instanceof Node)) return;
+      if (!menuRef.current.contains(e.target)) setMenuOpen(false);
+    }
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, [menuOpen]);
+
+  const refreshRouterSoft = useCallback(() => {
+    startRefreshTransition(() => {
+      void router.refresh();
+    });
+  }, [router, startRefreshTransition]);
+
+  // Initialer Status-Fetch (überlebt Reload/Navigation).
+  const fetchStatus = useCallback(async (): Promise<PhaseRunJobDto | null> => {
+    try {
+      const res = await fetchApi(`/api/phase-runs/status?phaseId=${encodeURIComponent(phaseId)}`);
+      if (!res.ok) return null;
+      const data = (await res.json()) as { job: PhaseRunJobDto | null };
+      return data.job;
+    } catch {
+      return null;
+    }
+  }, [phaseId]);
+
+  useEffect(() => {
+    let disposed = false;
+    void (async () => {
+      const j = await fetchStatus();
+      if (!disposed) setJob(j);
+    })();
+    return () => {
+      disposed = true;
+    };
+  }, [fetchStatus]);
+
+  // Polling, solange ein Job aktiv ist.
+  useEffect(() => {
+    if (!isActiveJob) return;
+    let disposed = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    async function tick() {
+      const next = await fetchStatus();
+      if (disposed) return;
+      setJob(next);
+      if (next && (next.status === "queued" || next.status === "running")) {
+        timer = setTimeout(tick, POLL_INTERVAL_MS);
+      }
+    }
+    timer = setTimeout(tick, POLL_INTERVAL_MS);
+    return () => {
+      disposed = true;
+      if (timer) clearTimeout(timer);
+    };
+  }, [isActiveJob, fetchStatus]);
+
+  // Nach Abschluss einmalig das Dashboard refreshen, damit neue RunSteps sichtbar werden.
+  useEffect(() => {
+    if (!job) return;
+    if (job.status === "completed" || job.status === "failed" || job.status === "cancelled") {
+      if (lastCompletedJobId.current === job.id) return;
+      lastCompletedJobId.current = job.id;
+
+      // „Akut" bedeutet: der Job wurde entweder in diesem Tab gestartet
+      // ODER er ist gerade eben (< 60 s) zu Ende gegangen. Nur dann sehen
+      // wir die Completion/Error-Meldung automatisch. Ältere, bereits in
+      // der DB liegende `PhaseRunJob.errorMessage`-Einträge werden still
+      // ignoriert, damit sie nicht bei jedem Reload erneut rot aufploppen.
+      const startedHere = startedInThisTab.current.has(job.id);
+      const finishedAtMs = job.finishedAt ? Date.parse(job.finishedAt) : NaN;
+      const freshlyFinished =
+        Number.isFinite(finishedAtMs) && Date.now() - finishedAtMs < 60_000;
+      const alreadyAcked = hasAckedJob(job.id);
+      const shouldAnnounce = (startedHere || freshlyFinished) && !alreadyAcked;
+      if (!shouldAnnounce) {
+        // Für nicht-akute Jobs trotzdem als gesehen markieren, damit sie
+        // nie mehr auftauchen — auch wenn der Nutzer sie nie aktiv quittiert.
+        rememberAckedJob(job.id);
+        refreshRouterSoft();
+        return;
+      }
+      if (job.status === "completed") {
+        setMessage({
+          tone: "ok",
+          text: isDe ? "KI-Analyse abgeschlossen." : "AI analysis completed.",
+        });
+      } else if (job.status === "cancelled") {
+        setMessage({
+          tone: "warn",
+          text: isDe ? "Lauf abgebrochen." : "Run cancelled.",
+        });
+      } else if (job.errorMessage) {
+        setMessage({ tone: "error", text: job.errorMessage });
+      }
+      refreshRouterSoft();
+    }
+  }, [job, isDe, refreshRouterSoft, hasAckedJob, rememberAckedJob]);
 
   function collectSelectedWorkflowKeys(): string[] {
-    // 1) Inputs outside <form> but associated via HTML5 `form="formId"` (Dashboard execution view).
     const byFormAttr = Array.from(
       document.querySelectorAll<HTMLInputElement>(`input[form="${formId}"][name="workflow_keys"]:checked`)
     )
       .map((input) => input.value)
       .filter(Boolean);
 
-    // 2) Inputs inside <form id="formId">` (e.g. /workflow-overview) — they do not repeat `form="..."`.
     let byOwningForm: string[] = [];
     try {
       const owning = document.getElementById(formId);
@@ -51,14 +221,15 @@ export function PhaseRunButtonForm({ formId, phaseId, buttonLabel, workflows }: 
       /* ignore */
     }
 
-    const merged = [...new Set([...byFormAttr, ...byOwningForm])];
-    return merged;
+    return [...new Set([...byFormAttr, ...byOwningForm])];
   }
 
-  async function runAutomatically() {
-    setLoading(true);
+  async function runAutomatically(mode: PhaseRunMode) {
+    if (loading) return;
+    setStarting(true);
     setMessage(null);
-    setExecProgress(null);
+    setMenuOpen(false);
+    lastCompletedJobId.current = null;
 
     const hasFormAttrControls = document.querySelectorAll(`input[form="${formId}"][name="workflow_keys"]`).length > 0;
     let owningForm: HTMLFormElement | null = null;
@@ -72,123 +243,223 @@ export function PhaseRunButtonForm({ formId, phaseId, buttonLabel, workflows }: 
       !!owningForm && owningForm.querySelectorAll('input[name="workflow_keys"]').length > 0;
 
     let workflowKeys = collectSelectedWorkflowKeys();
-
-    // Dashboard "overview" PhaseRunButtonForm: no inputs use this formId — still run all workflows for this button.
     if (workflowKeys.length === 0 && !hasFormAttrControls && !hasOwningFormControls && workflows.length > 0) {
       workflowKeys = workflows.map((w) => w.key);
     }
 
     if (workflowKeys.length === 0) {
       setMessage({ tone: "warn", text: tDash.phaseRunsNoneSelected });
-      setLoading(false);
+      setStarting(false);
       return;
     }
 
     try {
-      const workflowsToRun = await buildWorkflowRunQueue({
-        workflowKeys,
-        onlyOpen: true,
+      const res = await fetchApi("/api/phase-runs/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phaseId, workflowKeys, mode }),
       });
+      const data = (await res.json().catch(() => ({}))) as {
+        jobId?: string | null;
+        totalSteps?: number;
+        alreadyRunning?: boolean;
+        empty?: boolean;
+        error?: string;
+      };
 
-      if (workflowsToRun.length === 0) {
-        setMessage({ tone: "warn", text: tDash.phaseRunsAllAlreadyActive });
-        setLoading(false);
+      if (!res.ok) {
+        setMessage({ tone: "error", text: data.error ?? `HTTP ${res.status}` });
+        setStarting(false);
+        return;
+      }
+
+      if (data.empty) {
+        setMessage({
+          tone: "warn",
+          text:
+            mode === "continue"
+              ? isDe
+                ? "Keine offenen Schritte in dieser Phase."
+                : "No open steps in this phase."
+              : tDash.phaseRunsAllAlreadyActive,
+        });
+        // Wichtig: Wenn der Server "empty" meldet, ist der UI-Status häufig
+        // veraltet (z. B. noch "Offen"/"Starten" aus vorherigem Render).
+        // Soft-Refresh synchronisiert die Workflow-Karten sofort mit dem
+        // tatsächlichen Stand.
+        refreshRouterSoft();
+        setStarting(false);
         return;
       }
 
       setMessage({
         tone: "ok",
         text:
-          locale === "de"
-            ? `Starte ${workflowsToRun.length} offenen Prozess${workflowsToRun.length === 1 ? "" : "e"} …`
-            : `Starting ${workflowsToRun.length} open workflow${workflowsToRun.length === 1 ? "" : "s"} ...`,
+          mode === "continue"
+            ? isDe
+              ? `KI-Analyse gestartet: ${data.totalSteps ?? "?"} Schritt${data.totalSteps === 1 ? "" : "e"}.`
+              : `AI analysis started: ${data.totalSteps ?? "?"} step${data.totalSteps === 1 ? "" : "s"}.`
+            : isDe
+              ? `KI-Analyse (alles neu): ${data.totalSteps ?? "?"} Schritt${data.totalSteps === 1 ? "" : "e"}.`
+              : `AI analysis (rerun all): ${data.totalSteps ?? "?"} step${data.totalSteps === 1 ? "" : "s"}.`,
       });
 
-      setExecProgress({ current: 0, total: workflowsToRun.length });
-
-      for (let i = 0; i < workflowsToRun.length; i++) {
-        const it = workflowsToRun[i];
-        setExecProgress({ current: i + 1, total: workflowsToRun.length });
-        const execResult = await postRunStepExecute({
-          runId: it.runId,
-          stepKey: it.stepKey,
-          signal: AbortSignal.timeout(LLM_BATCH_STEP_REQUEST_MS),
-        });
-        if (!execResult.ok) {
-          const errText = formatRunStepExecuteError(execResult.status, execResult.data);
-          setMessage({
-            tone: "error",
-            text: `${it.wf} / ${it.label}: ${errText}`,
-          });
-          setLoading(false);
-          setExecProgress(null);
-          return;
-        }
-      }
-
-      setExecProgress(null);
-      const n = workflowsToRun.length;
-      const doneText =
-        locale === "de"
-          ? "KI-Analyse abgeschlossen."
-          : "AI analysis completed.";
-      setMessage({ tone: "ok", text: doneText });
-      startRefreshTransition(() => {
-        void router.refresh();
-      });
-      window.setTimeout(() => {
-        window.location.reload();
-      }, 180);
+      if (data.jobId) startedInThisTab.current.add(data.jobId);
+      const fresh = await fetchStatus();
+      if (fresh?.id) startedInThisTab.current.add(fresh.id);
+      setJob(fresh);
     } catch (e) {
-      const timedOut =
-        (e instanceof Error && (e.name === "TimeoutError" || e.name === "AbortError")) ||
-        (typeof DOMException !== "undefined" && e instanceof DOMException && e.name === "AbortError");
       setMessage({
         tone: "error",
-        text: timedOut
-          ? locale === "de"
-            ? `Zeitüberschreitung bei einem KI-Schritt (über ${llmBatchStepRequestMinutes()} Min). Bitte erneut „Ausführen“ oder einzelne Schritte im Lauf.`
-            : `Timeout on an AI step (>${llmBatchStepRequestMinutes()} min). Retry automatic run or execute steps in the run view.`
-          : "Prozesse konnten nicht ausgeführt werden.",
+        text:
+          e instanceof Error
+            ? e.message
+            : isDe
+              ? "KI-Analyse konnte nicht gestartet werden."
+              : "Failed to start AI analysis.",
       });
     } finally {
-      setLoading(false);
-      setExecProgress(null);
+      setStarting(false);
     }
   }
 
+  async function cancelJob() {
+    if (!job) return;
+    try {
+      await fetchApi("/api/phase-runs/cancel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jobId: job.id }),
+      });
+      const fresh = await fetchStatus();
+      setJob(fresh);
+    } catch {
+      /* ignore — Nutzer kann nochmal klicken */
+    }
+  }
+
+  const progressLabel = (() => {
+    if (!job) return null;
+    if (job.status === "queued") {
+      return isDe ? "Wird eingeplant …" : "Queued …";
+    }
+    if (job.status === "running") {
+      // Nur den menschenlesbaren Label-Teil zeigen, nicht den technischen WF_*-Key.
+      const stepInfo = job.currentLabel ? ` — ${job.currentLabel}` : "";
+      return `${isDe ? "Schritt" : "Step"} ${Math.max(job.completedSteps, 1)}/${job.totalSteps}${stepInfo}`;
+    }
+    return null;
+  })();
+
+  const buttonText = (() => {
+    if (starting) return isDe ? "Starte …" : "Starting …";
+    if (isActiveJob) {
+      if (job?.cancelRequested) return isDe ? "Breche ab …" : "Cancelling …";
+      return isDe ? `Läuft ${job?.completedSteps ?? 0}/${job?.totalSteps ?? 0}` : `Running ${job?.completedSteps ?? 0}/${job?.totalSteps ?? 0}`;
+    }
+    return buttonLabel;
+  })();
+
   return (
     <div className="relative flex flex-col items-end gap-1">
-      <div>
+      <div ref={menuRef} className="relative inline-flex items-stretch">
         <button
           type="button"
           disabled={loading}
           onClick={() => {
             if (loading) return;
-            void runAutomatically();
+            void runAutomatically("continue");
           }}
-          className="rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-teal-700 disabled:opacity-60"
+          className="rounded-l-lg bg-teal-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-teal-700 disabled:opacity-60"
+          title={isDe
+            ? "Nur fehlende / noch nicht validierte Schritte ausführen"
+            : "Run only missing / not-yet-validated steps"}
         >
-          {loading ? "Läuft…" : buttonLabel}
+          {buttonText}
         </button>
-      </div>
-      {!isEmbed ? (
         <button
           type="button"
-          onClick={() => setOpenManualModal(true)}
-          className="text-[11px] font-medium text-[var(--muted)] underline-offset-2 hover:underline"
+          disabled={loading}
+          aria-haspopup="menu"
+          aria-expanded={menuOpen}
+          aria-label={isDe ? "Ausführ-Optionen" : "Run options"}
+          onClick={() => {
+            if (loading) return;
+            setMenuOpen((v) => !v);
+          }}
+          className="rounded-r-lg border-l border-teal-700/40 bg-teal-600 px-2 py-1.5 text-xs font-semibold text-white hover:bg-teal-700 disabled:opacity-60"
         >
-          Manueller Assistent
+          <span aria-hidden className="inline-block translate-y-[-1px]">▾</span>
         </button>
-      ) : null}
-      {execProgress ? (
-        <p className="text-[11px] text-[var(--muted)]">
-          {locale === "de" ? "Workflow" : "Workflow"} {execProgress.current}/{execProgress.total}…
-        </p>
+        {menuOpen && !loading ? (
+          <div
+            role="menu"
+            className="absolute right-0 top-full z-50 mt-1 min-w-[220px] rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-1 shadow-lg"
+          >
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => void runAutomatically("continue")}
+              className="block w-full rounded-lg px-3 py-2 text-left text-xs font-medium text-[var(--foreground)] hover:bg-[var(--background)]"
+            >
+              <span className="block">{runModeContinueLabel}</span>
+              <span className="block text-[10px] text-[var(--muted)]">
+                {isDe
+                  ? "Bereits validierte Schritte werden übersprungen."
+                  : "Already validated steps are skipped."}
+              </span>
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => void runAutomatically("run_all")}
+              className="block w-full rounded-lg px-3 py-2 text-left text-xs font-medium text-[var(--foreground)] hover:bg-[var(--background)]"
+            >
+              <span className="block">{runAllLabelShort}</span>
+              <span className="block text-[10px] text-[var(--muted)]">
+                {isDe
+                  ? "Überschreibt auch bereits verifizierte Ergebnisse."
+                  : "Overwrites already verified results."}
+              </span>
+            </button>
+            {!isEmbed ? (
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  setMenuOpen(false);
+                  setOpenManualModal(true);
+                }}
+                className="block w-full rounded-lg px-3 py-2 text-left text-xs font-medium text-[var(--foreground)] hover:bg-[var(--background)]"
+              >
+                <span className="block">{isDe ? "Manueller Assistent" : "Manual assistant"}</span>
+                <span className="block text-[10px] text-[var(--muted)]">
+                  {isDe
+                    ? "Phase manuell im Assistenten durchführen."
+                    : "Run this phase manually in the assistant."}
+                </span>
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+      {progressLabel ? (
+        <div className="flex items-center gap-2">
+          <p className="text-[11px] text-[var(--muted)]">{progressLabel}</p>
+          {isActiveJob && !job?.cancelRequested ? (
+            <button
+              type="button"
+              onClick={() => void cancelJob()}
+              className="text-[11px] font-medium text-rose-600 underline-offset-2 hover:underline"
+            >
+              {isDe ? "Abbrechen" : "Cancel"}
+            </button>
+          ) : null}
+        </div>
       ) : null}
       {message ? (
-        <p
-          className={`max-w-[min(28rem,85vw)] text-right text-[11px] ${
+        <div
+          className={`flex max-w-[min(28rem,85vw)] items-start justify-end gap-2 text-right text-[11px] ${
             message.tone === "ok"
               ? "text-emerald-700"
               : message.tone === "warn"
@@ -196,8 +467,20 @@ export function PhaseRunButtonForm({ formId, phaseId, buttonLabel, workflows }: 
                 : "text-rose-700"
           }`}
         >
-          {message.text}
-        </p>
+          <p className="min-w-0 flex-1">{message.text}</p>
+          <button
+            type="button"
+            aria-label={isDe ? "Meldung schließen" : "Dismiss"}
+            title={isDe ? "Meldung schließen" : "Dismiss"}
+            onClick={() => {
+              setMessage(null);
+              rememberAckedJob(job?.id);
+            }}
+            className="shrink-0 rounded px-1 text-[13px] leading-none opacity-70 hover:opacity-100"
+          >
+            ×
+          </button>
+        </div>
       ) : null}
       {openManualModal && (
         <div
