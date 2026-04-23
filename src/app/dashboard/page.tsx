@@ -937,7 +937,7 @@ export default async function DashboardPage({
             const phaseCardShell = phaseReleased
               ? "border-emerald-400/90 bg-emerald-50/45 dark:border-emerald-600 dark:bg-emerald-950/30 shadow-sm ring-1 ring-emerald-500/25"
               : phasePlanningComplete
-                ? "border-amber-400/90 bg-amber-50/55 dark:border-amber-600 dark:bg-amber-950/25 shadow-sm ring-1 ring-amber-400/35"
+                ? "border-[var(--card-border)] bg-[var(--card)]/50"
                 : "border-[var(--card-border)] bg-[var(--card)]/50";
             return (
               <div id={`phase-${phase.id}`} key={phase.id} className={`scroll-mt-24 rounded-2xl border p-6 ${phaseCardShell}`}>

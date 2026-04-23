@@ -14,7 +14,12 @@ export async function POST(req: Request) {
     const jobId = typeof body.jobId === "string" ? body.jobId : "";
     if (!jobId) return NextResponse.json({ error: "jobId required" }, { status: 400 });
 
-    const job = await prisma.phaseRunJob.findUnique({ where: { id: jobId } });
+    const phaseRunJob = (prisma as unknown as { phaseRunJob?: any }).phaseRunJob;
+    if (!phaseRunJob?.findUnique || !phaseRunJob?.update) {
+      return NextResponse.json({ error: "Phase run jobs are not available" }, { status: 503 });
+    }
+
+    const job = await phaseRunJob.findUnique({ where: { id: jobId } });
     if (!job || job.companyId !== company.id) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
@@ -22,7 +27,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true, alreadyDone: true });
     }
 
-    await prisma.phaseRunJob.update({
+    await phaseRunJob.update({
       where: { id: jobId },
       data: { cancelRequested: true, lastMessage: "Abbruch angefordert …" },
     });

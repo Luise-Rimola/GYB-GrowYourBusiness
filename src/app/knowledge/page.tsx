@@ -39,7 +39,7 @@ async function deleteKbSourceWithObjects(formData: FormData) {
     if (!kbSource) return;
 
     const objects = await tx.knowledgeObject.findMany({ where: { sourceId } });
-    const objectIds = objects.map((o) => o.id);
+    const objectIds = objects.map((o: { id: string }) => o.id);
 
     if (objectIds.length > 0) {
       await tx.knowledgeContradiction.deleteMany({

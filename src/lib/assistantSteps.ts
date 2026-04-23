@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { PLANNING_PHASES } from "@/lib/planningFramework";
+import { workflowSteps } from "@/lib/workflowSteps";
+import { isRunProcessFullyComplete } from "@/lib/runProcessCompletion";
 import { type StudyCategoryKey } from "@/lib/studyCategoryContext";
 import type { Locale } from "@/lib/i18n";
 
@@ -8,6 +10,27 @@ export type AssistantStep = {
   label: string;
   completed: boolean;
 };
+
+type RunStepState = { stepKey: string; schemaValidationPassed: boolean; createdAt: Date };
+
+function pickPreferredStepStates(steps: RunStepState[]) {
+  const byKey = new Map<string, RunStepState[]>();
+  for (const step of steps) {
+    const list = byKey.get(step.stepKey) ?? [];
+    list.push(step);
+    byKey.set(step.stepKey, list);
+  }
+  const preferred = new Map<string, { schemaValidationPassed: boolean; createdAt: Date }>();
+  for (const [stepKey, list] of byKey.entries()) {
+    list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    const chosen = list.find((step) => step.schemaValidationPassed) ?? list[0];
+    preferred.set(stepKey, {
+      schemaValidationPassed: chosen.schemaValidationPassed,
+      createdAt: chosen.createdAt,
+    });
+  }
+  return preferred;
+}
 
 /** Pro Studienbereich: Ziel-Phase im Dashboard für den Workflow-Link. */
 export const STUDY_CATEGORY_PHASE_ID: Record<StudyCategoryKey, string> = {
@@ -73,8 +96,29 @@ export async function loadAssistantSteps(params: {
   } = params;
   // Use sequential access to avoid DB pool spikes on Supabase session poolers.
   const runs = await safeDb(
-    () => prisma.run.findMany({ where: { companyId }, select: { status: true, workflowKey: true } }),
-    [] as Array<{ status: string; workflowKey: string }>
+    () =>
+      prisma.run.findMany({
+        where: { companyId },
+        orderBy: { createdAt: "desc" },
+        select: {
+          status: true,
+          workflowKey: true,
+          createdAt: true,
+          steps: {
+            select: {
+              stepKey: true,
+              schemaValidationPassed: true,
+              createdAt: true,
+            },
+          },
+        },
+      }),
+    [] as Array<{
+      status: string;
+      workflowKey: string;
+      createdAt: Date;
+      steps: RunStepState[];
+    }>
   );
   const decisions = await safeDb(
     () => prisma.decision.count({ where: { companyId, status: { in: ["proposed", "approved"] } } }),
@@ -134,6 +178,34 @@ export async function loadAssistantSteps(params: {
     categoriesByPhase.set(phaseId, existing);
   }
 
+  const runsByWorkflow = new Map<
+    string,
+    Array<{ status: string; workflowKey: string; createdAt: Date; steps: RunStepState[] }>
+  >();
+  for (const run of runs) {
+    const list = runsByWorkflow.get(run.workflowKey) ?? [];
+    list.push(run);
+    runsByWorkflow.set(run.workflowKey, list);
+  }
+  for (const [workflowKey, list] of runsByWorkflow.entries()) {
+    list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    runsByWorkflow.set(workflowKey, list);
+  }
+
+  const workflowIsComplete = (workflowKey: string): boolean => {
+    const wfRuns = runsByWorkflow.get(workflowKey) ?? [];
+    if (wfRuns.length === 0) return false;
+    if (wfRuns.some((r) => ["complete", "approved"].includes(r.status))) return true;
+    const latestRun = wfRuns[0];
+    const configuredSteps = workflowSteps[workflowKey] ?? [];
+    const preferred = pickPreferredStepStates(latestRun.steps);
+    const runStepsForComplete = [...preferred.entries()].map(([stepKey, v]) => ({
+      stepKey,
+      schemaValidationPassed: v.schemaValidationPassed,
+    }));
+    return isRunProcessFullyComplete(configuredSteps, runStepsForComplete);
+  };
+
   const studyFlowSteps: AssistantStep[] = PLANNING_PHASES.flatMap((phase) => {
     const phaseName =
       locale === "de"
@@ -151,9 +223,9 @@ export async function loadAssistantSteps(params: {
           )[phase.id] ?? phase.name;
     const phaseCategories = categoriesByPhase.get(phase.id) ?? [];
     const phaseWorkflowKeys = new Set(phase.workflowKeys);
-    const phaseHasCompletedRun = runs.some(
-      (r) => ["complete", "approved"].includes(r.status) && phaseWorkflowKeys.has(r.workflowKey)
-    );
+    const phaseHasCompletedRun = [...phaseWorkflowKeys]
+      .filter((workflowKey) => workflowKey !== "WF_BUSINESS_FORM")
+      .every((workflowKey) => workflowIsComplete(workflowKey));
     const phaseHasArtifacts = artifacts.some((a) => {
       const wfKey = a.run?.workflowKey;
       return Boolean(wfKey && phaseWorkflowKeys.has(wfKey));

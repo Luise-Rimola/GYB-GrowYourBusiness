@@ -20,6 +20,10 @@ function isRunAssistantStepHref(href: string): boolean {
   return parseRunIdFromAssistantHref(href) !== null;
 }
 
+function isPhaseDashboardAssistantHref(href: string): boolean {
+  return href.includes("/dashboard") && href.includes("assistant_phase=");
+}
+
 type AssistantStep = {
   href: string;
   label: string;
@@ -448,6 +452,13 @@ export function WorkflowAssistantFrame({
     setProcessCompleteModalOpen(false);
     dispatchAssistantPulse("start");
 
+    if (index >= steps.length - 1) {
+      markDoneHref(current.href);
+      router.push(assistantExitHref);
+      requestAnimationFrame(() => dispatchAssistantPulse("end"));
+      return;
+    }
+
     const nextDone = { ...locallyDone, [index]: true };
     setLocallyDone(nextDone);
     if (current.href.startsWith("/knowledge")) {
@@ -545,17 +556,12 @@ export function WorkflowAssistantFrame({
   const liveIframeHref = getIframeHref();
   const stepInfo = stepInfoFromHref(liveIframeHref ?? resolvedIframeHref ?? current.href);
 
-  const canUseErledigtWeiter = (() => {
-    if (!isRunAssistantStepHref(current.href)) return true;
-    return Boolean(current.completed || runProcessUnlocked[index]);
-  })();
-
   const assistantExitHref = current.phaseId
     ? `/dashboard?view=overview&phase=${encodeURIComponent(current.phaseId)}#phase-${encodeURIComponent(current.phaseId)}`
     : "/home";
+  const showCompletedPhaseHint = isPhaseDashboardAssistantHref(current.href) && Boolean(current.completed);
 
-  const erledigtDisabled =
-    pendingSubmit || index >= steps.length - 1 || !canUseErledigtWeiter;
+  const erledigtDisabled = pendingSubmit;
 
   return (
     <div className="mx-auto flex h-[calc(100dvh-9.5rem)] w-full max-w-[1240px] flex-col gap-3 overflow-hidden rounded-2xl border border-slate-200/80 bg-slate-100/75 p-3 sm:h-[calc(100vh-10rem)] sm:gap-4 sm:p-4 dark:border-slate-700/60 dark:bg-slate-900/35">
@@ -618,6 +624,13 @@ export function WorkflowAssistantFrame({
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
+        {showCompletedPhaseHint ? (
+          <div className="w-full rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950/35 dark:text-amber-100">
+            Dieser Schritt ist bereits abgeschlossen. Sie können die einzelnen Analyseschritte ansehen,
+            Informationen ergänzen und bei Bedarf neu analysieren lassen, um die Genauigkeit zu verbessern.
+            Andernfalls einfach auf „Erledigt & weiter“ klicken.
+          </div>
+        ) : null}
         <button
           type="button"
           onClick={() => {
@@ -634,8 +647,7 @@ export function WorkflowAssistantFrame({
             setIndex((i) => Math.max(i - 1, 0));
             requestAnimationFrame(() => dispatchAssistantPulse("end"));
           }}
-          disabled={pendingSubmit}
-          className="rounded-xl border border-[var(--card-border)] px-4 py-2 text-sm font-medium text-[var(--foreground)] shadow-sm transition hover:bg-[var(--background)] disabled:opacity-50"
+          className="rounded-xl border border-[var(--card-border)] px-4 py-2 text-sm font-medium text-[var(--foreground)] shadow-sm transition hover:bg-[var(--background)]"
         >
           Zurück
         </button>
@@ -656,11 +668,6 @@ export function WorkflowAssistantFrame({
               onClick={goNext}
               disabled={erledigtDisabled}
               aria-busy={pendingSubmit}
-              title={
-                !canUseErledigtWeiter && isRunAssistantStepHref(current.href)
-                  ? "Speichern Sie zuerst alle Schritte dieses KI-Prozesses (gültiges JSON)."
-                  : undefined
-              }
               className={`rounded-xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-45 ${pendingSubmit ? SUBMIT_BUTTON_PENDING_CLASS : ""}`}
             >
               Erledigt & weiter
