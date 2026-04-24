@@ -40,6 +40,35 @@ const runningJobs = new Set<string>();
 /** Locale pro Job (für den Background-Worker ohne Request-Kontext). */
 const jobLocales = new Map<string, "de" | "en">();
 
+type PhaseRunJobRecord = {
+  id: string;
+  companyId: string;
+  phaseId: string;
+  mode: string;
+  status: string;
+  totalSteps: number;
+  completedSteps: number;
+  stepsJson: unknown;
+  currentWorkflowKey: string | null;
+  currentStepKey: string | null;
+  currentLabel: string | null;
+  lastMessage: string | null;
+  errorMessage: string | null;
+  cancelRequested: boolean;
+  startedAt: Date | null;
+  finishedAt: Date | null;
+  heartbeatAt: Date | null;
+  createdAt: Date;
+};
+
+function requirePhaseRunJobDelegate(): any {
+  const delegate = (prisma as unknown as { phaseRunJob?: any }).phaseRunJob;
+  if (!delegate) {
+    throw new Error("PhaseRunJob delegate unavailable on Prisma client");
+  }
+  return delegate;
+}
+
 /**
  * Sortiert die vom Client übergebenen Keys in die kanonische Reihenfolge
  * der Planungsphase (Dashboard-Reihenfolge). Verhindert z. B., dass ein neu
@@ -156,8 +185,9 @@ export async function startPhaseRunJob(params: {
   | { kind: "started"; jobId: string; totalSteps: number }
 > {
   const { companyId, phaseId, mode, locale } = params;
+  const phaseRunJob = requirePhaseRunJobDelegate();
 
-  const existing = await prisma.phaseRunJob.findFirst({
+  const existing = await phaseRunJob.findFirst({
     where: { companyId, phaseId, status: { in: ["queued", "running"] } },
     orderBy: { createdAt: "desc" },
   });
@@ -171,7 +201,7 @@ export async function startPhaseRunJob(params: {
   });
   if (queue.length === 0) return { kind: "empty" };
 
-  const job = await prisma.phaseRunJob.create({
+  const job = await phaseRunJob.create({
     data: {
       companyId,
       phaseId,
@@ -205,7 +235,8 @@ export function spawnPhaseRunWorker(jobId: string): void {
 
 async function runPhaseRunWorker(jobId: string): Promise<void> {
   try {
-    const job = await prisma.phaseRunJob.findUnique({ where: { id: jobId } });
+    const phaseRunJob = requirePhaseRunJobDelegate();
+    const job = (await phaseRunJob.findUnique({ where: { id: jobId } })) as PhaseRunJobRecord | null;
     if (!job) {
       clearJobBookkeeping(jobId);
       return;
@@ -222,7 +253,7 @@ async function runPhaseRunWorker(jobId: string): Promise<void> {
     const locale = jobLocales.get(jobId);
     const companyId = job.companyId;
 
-    await prisma.phaseRunJob.update({
+    await phaseRunJob.update({
       where: { id: jobId },
       data: {
         status: "running",
@@ -248,7 +279,7 @@ async function runPhaseRunWorker(jobId: string): Promise<void> {
     };
 
     async function checkCancel(): Promise<boolean> {
-      const fresh = await prisma.phaseRunJob.findUnique({
+      const fresh = await phaseRunJob.findUnique({
         where: { id: jobId },
         select: { cancelRequested: true },
       });
@@ -263,7 +294,7 @@ async function runPhaseRunWorker(jobId: string): Promise<void> {
           return;
         }
 
-        await prisma.phaseRunJob.update({
+        await phaseRunJob.update({
           where: { id: jobId },
           data: {
             currentWorkflowKey: entry.workflowKey,
@@ -310,7 +341,7 @@ async function runPhaseRunWorker(jobId: string): Promise<void> {
                 stepErr instanceof Error ? stepErr.message : String(stepErr),
               );
               await new Promise((r) => setTimeout(r, wait));
-              await prisma.phaseRunJob
+              await phaseRunJob
                 .update({ where: { id: jobId }, data: { heartbeatAt: new Date() } })
                 .catch(() => null);
               continue;
@@ -325,7 +356,7 @@ async function runPhaseRunWorker(jobId: string): Promise<void> {
         }
 
         state.completedSteps += 1;
-        await prisma.phaseRunJob.update({
+        await phaseRunJob.update({
           where: { id: jobId },
           data: {
             completedSteps: state.completedSteps,
@@ -349,7 +380,7 @@ async function runPhaseRunWorker(jobId: string): Promise<void> {
     }
 
     if (state.cancelled) {
-      await prisma.phaseRunJob.update({
+      await phaseRunJob.update({
         where: { id: jobId },
         data: {
           status: "cancelled",
@@ -362,7 +393,7 @@ async function runPhaseRunWorker(jobId: string): Promise<void> {
       return;
     }
     if (state.failed) {
-      await prisma.phaseRunJob.update({
+      await phaseRunJob.update({
         where: { id: jobId },
         data: {
           status: "failed",
@@ -375,7 +406,7 @@ async function runPhaseRunWorker(jobId: string): Promise<void> {
       return;
     }
 
-    await prisma.phaseRunJob.update({
+    await phaseRunJob.update({
       where: { id: jobId },
       data: {
         status: "completed",
@@ -390,7 +421,8 @@ async function runPhaseRunWorker(jobId: string): Promise<void> {
   } catch (err) {
     console.error(`[phaseRunWorker][${jobId}] fatal`, err);
     try {
-      await prisma.phaseRunJob.update({
+      const phaseRunJob = requirePhaseRunJobDelegate();
+      await phaseRunJob.update({
         where: { id: jobId },
         data: {
           status: "failed",
@@ -414,18 +446,19 @@ async function runPhaseRunWorker(jobId: string): Promise<void> {
 export async function findLatestJobForPhase(params: {
   companyId: string;
   phaseId: string;
-}): Promise<Awaited<ReturnType<typeof prisma.phaseRunJob.findFirst>>> {
+}): Promise<PhaseRunJobRecord | null> {
   const { companyId, phaseId } = params;
+  const phaseRunJob = requirePhaseRunJobDelegate();
 
-  const active = await prisma.phaseRunJob.findFirst({
+  const active = (await phaseRunJob.findFirst({
     where: { companyId, phaseId, status: { in: ["queued", "running"] } },
     orderBy: { createdAt: "desc" },
-  });
+  })) as PhaseRunJobRecord | null;
   if (active) {
     const staleBefore = new Date(Date.now() - HEARTBEAT_STALE_MS);
     const lastSign = active.heartbeatAt ?? active.startedAt ?? active.createdAt;
     if (lastSign < staleBefore && !runningJobs.has(active.id)) {
-      return prisma.phaseRunJob.update({
+      return phaseRunJob.update({
         where: { id: active.id },
         data: {
           status: "failed",
@@ -438,7 +471,7 @@ export async function findLatestJobForPhase(params: {
     return active;
   }
 
-  return prisma.phaseRunJob.findFirst({
+  return phaseRunJob.findFirst({
     where: { companyId, phaseId },
     orderBy: { createdAt: "desc" },
   });
