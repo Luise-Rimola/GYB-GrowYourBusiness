@@ -20,11 +20,29 @@ export function RunCompletionAdvanceButton({
   const phaseOverviewHref = phaseId
     ? `/dashboard?view=overview&phase=${encodeURIComponent(phaseId)}#phase-${encodeURIComponent(phaseId)}`
     : "/dashboard";
+  const assistantWorkflowHref = phaseId
+    ? `/assistant/workflows?phase=${encodeURIComponent(phaseId)}`
+    : "/assistant/workflows";
+  const assistantHomeHref = "/assistant";
 
   const buttonLabel = "Zurück zur Übersicht →";
 
   const handleDashboardClick = () => {
     if (typeof window === "undefined") return;
+    let targetHref = phaseOverviewHref;
+    // If the run is opened inside the workflow assistant, return there.
+    if (isEmbeddedRuntime) {
+      try {
+        const topPath = window.top?.location?.pathname ?? "";
+        if (topPath.startsWith("/assistant/workflows")) {
+          targetHref = assistantWorkflowHref;
+        } else if (topPath.startsWith("/assistant")) {
+          targetHref = assistantHomeHref;
+        }
+      } catch {
+        /* ignore and keep default phase target */
+      }
+    }
 
     // Im Assistenten-Iframe: Top-Window direkt zur Phasen-/Dashboard-Seite navigieren.
     // Vermeidet assistant-reload, das sonst den Iframe-src auf /runs/{id} (ohne step)
@@ -32,20 +50,20 @@ export function RunCompletionAdvanceButton({
     if (isEmbeddedRuntime) {
       try {
         if (window.top) {
-          window.top.location.href = phaseOverviewHref;
+          window.top.location.href = targetHref;
           return;
         }
       } catch {
         /* cross-origin guard – fall through to postMessage */
       }
       window.parent.postMessage(
-        { type: "assistant-exit-to-phase", phaseId: phaseId ?? null, target: phaseOverviewHref },
+        { type: "assistant-exit-to-phase", phaseId: phaseId ?? null, target: targetHref },
         "*"
       );
       return;
     }
 
-    router.push(phaseOverviewHref);
+    router.push(targetHref);
   };
 
   const handleNextClick = () => {

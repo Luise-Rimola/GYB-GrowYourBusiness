@@ -12,7 +12,7 @@ import { fetchChatCompletionWithTemperatureRetry } from "@/lib/llmTemperatureRet
 import { extractAssistantTextFromChatCompletion } from "@/lib/openAiChatContent";
 
 /** Align with `LLM_UPSTREAM_FETCH_MS` / client aborts (long Kimi runs). */
-export const maxDuration = 900;
+export const maxDuration = 300;
 
 /** Omit full text from JSON to the browser — DB still stores complete response; client uses router.refresh(). */
 const MAX_USER_RESPONSE_IN_JSON_CHARS = 120_000;

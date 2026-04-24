@@ -4,7 +4,7 @@ import { getCompanyForApi } from "@/lib/companyContext";
 import { fetchChatCompletionWithTemperatureRetry } from "@/lib/llmTemperatureRetry";
 import { extractAssistantTextFromChatCompletion } from "@/lib/openAiChatContent";
 
-export const maxDuration = 900;
+export const maxDuration = 300;
 
 function resolveTemperature(model: string): number {
   const m = model.toLowerCase();

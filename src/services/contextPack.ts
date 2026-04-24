@@ -1162,6 +1162,9 @@ function buildMinimalContextForFinancialStep(context: Record<string, unknown>, s
   const businessModel = context.business_model as { stage?: string; type?: string } | null | undefined;
   const kpiEst = context.kpi_estimation as { kpi_estimates?: Array<{ kpi_key?: string; value_month_1?: number; value_month_12?: number }> } | null | undefined;
   const related = context.related_analysis_outputs as ContextPack["related_analysis_outputs"] | undefined;
+  const currentMonth = new Date().toISOString().slice(0, 7);
+  const openingMonthRaw = typeof profile?.opening_month === "string" ? profile.opening_month : "";
+  const openingMonth = /^\d{4}-\d{2}$/.test(openingMonthRaw) ? openingMonthRaw : currentMonth;
 
   const monthlyProj = financial?.monthly_projection ?? businessPlan?.monthly_projection ?? null;
   const realEstatePriceRanges = extractPriceRangesFromRealEstate(realEstate);
@@ -1170,6 +1173,7 @@ function buildMinimalContextForFinancialStep(context: Record<string, unknown>, s
     stage: businessModel?.stage ?? profile?.stage ?? null,
     industry: profile?.industry ?? profile?.company_name ?? null,
     location: profile?.location ?? null,
+    opening_month: openingMonth,
     constraints: constraints?.constraints ?? constraints ?? null,
     real_estate_price_ranges: realEstatePriceRanges,
     monthly_personnel_costs: personnel?.monthly_personnel_costs ?? null,

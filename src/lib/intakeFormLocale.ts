@@ -44,6 +44,8 @@ export type IntakeFormCopy = {
   marketingSpend: string;
   fixedCosts: string;
   variableCosts: string;
+  openingMonth: string;
+  openingMonthHint: string;
   uploadExcel: string;
   teamSize: string;
   stage: string;
@@ -169,6 +171,8 @@ const EN: IntakeFormCopy = {
   marketingSpend: "Marketing spend (monthly)",
   fixedCosts: "Fixed costs (rent, utilities, etc.)",
   variableCosts: "Variable costs (COGS, shipping, etc.)",
+  openingMonth: "Opening month (start of financial plan)",
+  openingMonthHint: "If empty, the current month is used automatically.",
   uploadExcel: "Upload Excel: one month revenue & costs",
   teamSize: "Team size",
   stage: "Stage",
@@ -331,6 +335,8 @@ const DE: IntakeFormCopy = {
   marketingSpend: "Marketingausgaben (monatlich)",
   fixedCosts: "Fixkosten (Miete, Energie, …)",
   variableCosts: "Variable Kosten (COGS, Versand, …)",
+  openingMonth: "Eröffnungsmonat (Start der Finanzplanung)",
+  openingMonthHint: "Wenn leer, wird automatisch der aktuelle Monat verwendet.",
   uploadExcel: "Excel hochladen: Umsatz & Kosten eines Monats",
   teamSize: "Teamgröße",
   stage: "Phase",

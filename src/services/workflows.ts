@@ -88,9 +88,50 @@ function parseMieteFromRealEstate(realEstate: Record<string, unknown> | null): n
   const bestIdx = realEstate.best_option_index as number | undefined;
   const avgPrices = realEstate.average_market_prices as Array<{ avg_price?: string }> | undefined;
 
+  function parseLocaleNumber(raw: string): number | null {
+    const token = String(raw ?? "").trim().replace(/[^\d,.-]/g, "");
+    if (!token) return null;
+    let normalized = token;
+    const hasComma = normalized.includes(",");
+    const hasDot = normalized.includes(".");
+    if (hasComma && hasDot) {
+      // "1.234,56" -> 1234.56 ; "1,234.56" -> 1234.56
+      normalized =
+        normalized.lastIndexOf(",") > normalized.lastIndexOf(".")
+          ? normalized.replace(/\./g, "").replace(",", ".")
+          : normalized.replace(/,/g, "");
+    } else if (hasComma) {
+      const parts = normalized.split(",");
+      // Treat trailing 3 digits as thousands separator (e.g. "1,200")
+      normalized = parts.length > 1 && (parts[parts.length - 1]?.length ?? 0) === 3
+        ? normalized.replace(/,/g, "")
+        : normalized.replace(",", ".");
+    } else if (hasDot) {
+      const parts = normalized.split(".");
+      // Treat trailing 3 digits as thousands separator (e.g. "1.200")
+      normalized = parts.length > 1 && (parts[parts.length - 1]?.length ?? 0) === 3
+        ? normalized.replace(/\./g, "")
+        : normalized;
+    }
+    const n = Number.parseFloat(normalized);
+    return Number.isFinite(n) ? n : null;
+  }
+
   function parsePrice(s: string | undefined): number | null {
     if (!s || typeof s !== "string") return null;
-    const nums = s.replace(/[^\d.,]/g, " ").split(/\s+/).map((n) => parseFloat(n.replace(",", "."))).filter((n) => !isNaN(n) && n > 0);
+    const text = s.toLowerCase();
+    const hasPerSqmUnit = /(\/\s*(m2|qm)|pro\s*(m2|qm)|je\s*(m2|qm))/i.test(text);
+    const hasMonthlyHint = /(monat|monatlich|warmmiete|kaltmiete|gesamtmiete|miete)/i.test(text);
+    // "6,00 EUR/m2" should not become monthly rent = 6 EUR.
+    if (hasPerSqmUnit && !hasMonthlyHint) return null;
+
+    const tokens = s.match(/-?\d[\d.,]*/g) ?? [];
+    let nums = tokens
+      .map((t) => parseLocaleNumber(t))
+      .filter((n): n is number => n != null && n > 0);
+    // Monthly rents are normally not single-digit. Prefer plausible absolute amounts.
+    const plausible = nums.filter((n) => n >= 100);
+    if (plausible.length > 0) nums = plausible;
     if (nums.length === 0) return null;
     if (nums.length === 1) return nums[0];
     return (nums[0] + nums[nums.length - 1]) / 2;

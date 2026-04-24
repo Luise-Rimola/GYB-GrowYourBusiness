@@ -10,25 +10,43 @@ type GapRecord = Record<string, unknown>;
 function extractRealEstateUrl(raw: string): string | null {
   const s = String(raw).trim();
   if (!s) return null;
+  const normalize = (u: string): string | null => {
+    const cleaned = u
+      .trim()
+      .replace(/[\]\[()<>{}"'`]/g, "")
+      .replace(/[.,;:!?]+$/g, "")
+      .trim();
+    if (!cleaned) return null;
+    const withProtocol =
+      cleaned.startsWith("http://") || cleaned.startsWith("https://")
+        ? cleaned
+        : `https://${cleaned}`;
+    try {
+      const parsed = new URL(withProtocol);
+      if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return null;
+      if (!parsed.hostname || !parsed.hostname.includes(".")) return null;
+      return parsed.toString();
+    } catch {
+      return null;
+    }
+  };
   // Markdown [text](url)
   const mdMatch = s.match(/\]\s*\(\s*(https?:\/\/[^\s)]+)\s*\)/);
-  if (mdMatch) return mdMatch[1];
+  if (mdMatch) return normalize(mdMatch[1]);
   // Angle brackets <url>
   const angleMatch = s.match(/<([^>]+)>/);
   if (angleMatch) {
-    const u = angleMatch[1].trim();
-    if (u.startsWith("http://") || u.startsWith("https://")) return u;
-    return `https://${u}`;
+    return normalize(angleMatch[1]);
   }
   // Parentheses (url) - anywhere in text
   const parenMatch = s.match(/\(\s*(https?:\/\/[^\s)]+)\s*\)/);
-  if (parenMatch) return parenMatch[1];
+  if (parenMatch) return normalize(parenMatch[1]);
   // Bare URL at start
-  if (s.startsWith("http://") || s.startsWith("https://")) return s;
+  if (s.startsWith("http://") || s.startsWith("https://")) return normalize(s);
   // URL anywhere in text (e.g. in description)
   const urlInText = s.match(/(https?:\/\/[^\s\]\)]+)/);
-  if (urlInText) return urlInText[1];
-  if (s.includes(".") && !s.includes(" ")) return `https://${s}`;
+  if (urlInText) return normalize(urlInText[1]);
+  if (s.includes(".") && !s.includes(" ")) return normalize(s);
   return null;
 }
 

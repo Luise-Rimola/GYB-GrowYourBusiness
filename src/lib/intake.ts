@@ -33,6 +33,10 @@ export async function processIntakeForm(
   companyId: string,
   formData: FormData
 ): Promise<Record<string, unknown>> {
+  const nowMonth = new Date().toISOString().slice(0, 7);
+  const rawOpeningMonth = String(formData.get("opening_month") || "").trim();
+  const openingMonth = /^\d{4}-\d{2}$/.test(rawOpeningMonth) ? rawOpeningMonth : nowMonth;
+
   const productsJson = formData.get("products_json");
   const suppliersJson = formData.get("suppliers_json");
   const teamJson = formData.get("team_json");
@@ -61,6 +65,7 @@ export async function processIntakeForm(
     marketing_spend: parseFloat(String(formData.get("marketing_spend") || "0")) || 0,
     fixed_costs: parseFloat(String(formData.get("fixed_costs") || "0")) || 0,
     variable_costs: parseFloat(String(formData.get("variable_costs") || "0")) || 0,
+    opening_month: openingMonth,
     team_size: parseInt(String(formData.get("team_size") || "0"), 10) || 0,
     stage: String(formData.get("stage") || "early_revenue"),
     competitors: String(formData.get("competitors") || ""),

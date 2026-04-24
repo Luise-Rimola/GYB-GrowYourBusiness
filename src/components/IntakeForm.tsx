@@ -81,6 +81,7 @@ export function IntakeForm({
   const [productionSteps, setProductionSteps] = useState<string>(
     (existing.production_steps as string) ?? ""
   );
+  const currentMonth = new Date().toISOString().slice(0, 7);
 
   const addProduct = () => setProducts((p) => [...p, { name: "", price: "", unit: "" }]);
   const removeProduct = (i: number) => {
@@ -583,6 +584,16 @@ export function IntakeForm({
           <div>
             <label className={labelClass}>{c.variableCosts}</label>
             <input name="variable_costs" type="number" step="any" defaultValue={existing.variable_costs != null ? String(existing.variable_costs) : ""} className={`mt-2 ${inputClass}`} placeholder={c.placeholderMonthly} />
+          </div>
+          <div>
+            <label className={labelClass}>{c.openingMonth}</label>
+            <input
+              name="opening_month"
+              type="month"
+              defaultValue={String(existing.opening_month ?? currentMonth)}
+              className={`mt-2 ${inputClass}`}
+            />
+            <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{c.openingMonthHint}</p>
           </div>
         </div>
         <div>

@@ -33,7 +33,11 @@ const JSON_STRICT =
 - No newlines inside string values (use \\n for line breaks)
 - Use commas (,) between properties, never periods (.)
 - No comments (no // or /* */)
-- Every key must have a value (key: value)`;
+- Every key must have a value (key: value)
+- If your JSON includes URLs (e.g. url, link, source, sources_used, reference): output ONLY valid absolute https URLs (https://...)
+- Do NOT output placeholders or pseudo links (example.com without protocol, "N/A", "-", "coming soon", "www...")
+- Do NOT append reference markers or punctuation to URLs (no [1], no trailing ")", ".", ",", ";")
+- If no valid URL is available, leave that field empty or omit it according to schema — never fabricate URLs`;
 
 export const promptTemplates: PromptTemplate[] = [
   {
@@ -1270,13 +1274,13 @@ Output: { "break_even_analysis": { "break_even_point": "...", "key_drivers": [".
     stepKey: "financial_monthly_h1",
     version: 1,
     outputSchemaKey: "financial_monthly_projection",
-    templateText: `Monthly projection months 1–6. CONTEXT_JSON: stage, industry, location, real_estate_price_ranges, monthly_personnel_costs, value_month_1, menu_cost_summary. Miete = Durchschnitt aus real_estate_price_ranges (nur €, nicht €/m²) ODER typischen Mietpreis. Personal: EXACTLY from below.
+    templateText: `Monthly projection months 1–6. CONTEXT_JSON: stage, industry, location, opening_month, real_estate_price_ranges, monthly_personnel_costs, value_month_1, menu_cost_summary. Miete = Durchschnitt aus real_estate_price_ranges (nur €, nicht €/m²) ODER typischen Mietpreis. Personal: EXACTLY from below.
 {{PERSONNEL_COSTS}}
 ${JSON_STRICT}
 CONTEXT_JSON:
 {{CONTEXT_JSON}}
 Output: { "monthly_projection": [ { "month": "YYYY-MM", "potential_customers": 0, "potential_customers_note": "...", "revenue": 0, "cost_items": [ { "category": "Miete", "amount": 0, "cost_type": "fixed" }, { "category": "Strom", "amount": 0, "cost_type": "fixed" }, { "category": "Wareneinsatz", "amount": 0, "cost_type": "variable" }, { "category": "Personal", "amount": 0, "cost_type": "fixed" }, { "category": "Marketing", "amount": 0, "cost_type": "variable" }, { "category": "Sonstiges", "amount": 0, "cost_type": "fixed" } ], "total_costs": 0, "taxes": 0, "net_profit": 0, "competitor_impact_note": "..." } ], "sources_used": ["..."] }
-MANDATORY: taxes = geschätzte Steuerabzüge (Gewerbesteuer, Körperschaft-/Einkommensteuer) pro Monat. net_profit = revenue - total_costs - taxes.`,
+MANDATORY: months 1–6 MUST start at opening_month (if opening_month=2026-04 then first row is 2026-04 and sixth row is 2026-09). NEVER use past years unless opening_month is in that year. taxes = geschätzte Steuerabzüge (Gewerbesteuer, Körperschaft-/Einkommensteuer) pro Monat. net_profit = revenue - total_costs - taxes.`,
   },
   {
     key: "P26g",
@@ -1284,13 +1288,13 @@ MANDATORY: taxes = geschätzte Steuerabzüge (Gewerbesteuer, Körperschaft-/Eink
     stepKey: "financial_monthly_h2",
     version: 1,
     outputSchemaKey: "financial_monthly_projection",
-    templateText: `Monthly projection months 7–12. CONTEXT_JSON: stage, industry, location, real_estate_price_ranges, monthly_personnel_costs, value_month_12, menu_cost_summary. Miete = Durchschnitt aus real_estate_price_ranges (nur €, nicht €/m²) ODER typischen Mietpreis. Personal: EXACTLY from below. Show growth to month 12.
+    templateText: `Monthly projection months 7–12. CONTEXT_JSON: stage, industry, location, opening_month, real_estate_price_ranges, monthly_personnel_costs, value_month_12, menu_cost_summary. Miete = Durchschnitt aus real_estate_price_ranges (nur €, nicht €/m²) ODER typischen Mietpreis. Personal: EXACTLY from below. Show growth to month 12.
 {{PERSONNEL_COSTS}}
 ${JSON_STRICT}
 CONTEXT_JSON:
 {{CONTEXT_JSON}}
 Output: { "monthly_projection": [ { "month": "YYYY-MM", "potential_customers": 0, "potential_customers_note": "...", "revenue": 0, "cost_items": [ { "category": "Miete", "amount": 0, "cost_type": "fixed" }, { "category": "Strom", "amount": 0, "cost_type": "fixed" }, { "category": "Wareneinsatz", "amount": 0, "cost_type": "variable" }, { "category": "Personal", "amount": 0, "cost_type": "fixed" }, { "category": "Marketing", "amount": 0, "cost_type": "variable" }, { "category": "Sonstiges", "amount": 0, "cost_type": "fixed" } ], "total_costs": 0, "taxes": 0, "net_profit": 0, "competitor_impact_note": "..." } ], "sources_used": ["..."] }
-MANDATORY: taxes = geschätzte Steuerabzüge (Gewerbesteuer, Körperschaft-/Einkommensteuer) pro Monat. net_profit = revenue - total_costs - taxes.`,
+MANDATORY: months 7–12 MUST continue directly after H1 using opening_month (if opening_month=2026-04 then first row here is 2026-10 and last row is 2027-03). NEVER use unrelated years. taxes = geschätzte Steuerabzüge (Gewerbesteuer, Körperschaft-/Einkommensteuer) pro Monat. net_profit = revenue - total_costs - taxes.`,
   },
   {
     key: "P27",
