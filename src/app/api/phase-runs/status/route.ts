@@ -14,9 +14,13 @@ export async function GET(req: Request) {
     const url = new URL(req.url);
     const phaseId = url.searchParams.get("phaseId") ?? "";
     const jobId = url.searchParams.get("jobId");
+    const phaseRunJob = (prisma as unknown as { phaseRunJob?: any }).phaseRunJob;
 
     if (jobId) {
-      const job = await prisma.phaseRunJob.findUnique({ where: { id: jobId } });
+      if (!phaseRunJob?.findUnique) {
+        return NextResponse.json({ error: "Phase run jobs are not available" }, { status: 503 });
+      }
+      const job = await phaseRunJob.findUnique({ where: { id: jobId } });
       if (!job || job.companyId !== company.id) {
         return NextResponse.json({ error: "Not found" }, { status: 404 });
       }
@@ -35,7 +39,23 @@ export async function GET(req: Request) {
   }
 }
 
-type PhaseRunJobRow = Awaited<ReturnType<typeof prisma.phaseRunJob.findFirst>>;
+type PhaseRunJobRow = {
+  id: string;
+  phaseId: string;
+  mode: string;
+  status: string;
+  totalSteps: number;
+  completedSteps: number;
+  currentWorkflowKey: string | null;
+  currentStepKey: string | null;
+  currentLabel: string | null;
+  lastMessage: string | null;
+  errorMessage: string | null;
+  cancelRequested: boolean;
+  startedAt: Date | null;
+  finishedAt: Date | null;
+  createdAt: Date;
+};
 
 function serializeJob(job: NonNullable<PhaseRunJobRow>) {
   return {
