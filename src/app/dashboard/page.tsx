@@ -287,7 +287,7 @@ export default async function DashboardPage({
       }
       if (artifactType === "pestel_analysis") {
         const nativePestel = artifacts.find(
-          (a) => a.type === "pestel_analysis" && a.runId && workflowRunIds.has(a.runId)
+          (a) => String(a.type) === "pestel_analysis" && a.runId && workflowRunIds.has(a.runId)
         );
         if (nativePestel) return nativePestel;
         // Compatibility: older PESTEL outputs can be stored as trend_analysis with "PESTEL" in title.
