@@ -119,7 +119,7 @@ export default function Nav({ userEmail }: { userEmail?: string | null }) {
           <div className="hidden items-center gap-2 md:flex">
             <div className="inline-flex rounded-xl border border-[var(--card-border)] bg-[var(--background)]/70 p-1">
               <a
-                href="/login?next=%2Fhome"
+                href="/"
                 className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
                   !pathname.startsWith("/dashboard/mosaic")
                     ? "bg-teal-600 text-white"
@@ -129,7 +129,7 @@ export default function Nav({ userEmail }: { userEmail?: string | null }) {
                 {studyTabLabel}
               </a>
               <a
-                href="/login?next=%2Fdashboard%2Fmosaic"
+                href="/dashboard/mosaic"
                 className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
                   pathname.startsWith("/dashboard/mosaic")
                     ? "bg-teal-600 text-white"
