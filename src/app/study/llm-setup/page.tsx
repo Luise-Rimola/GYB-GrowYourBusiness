@@ -44,7 +44,13 @@ export default async function LlmSetupPage({
 }) {
   const company = await requireCompany();
   const sp = await searchParams;
-  const settings = await prisma.companySettings.findUnique({ where: { companyId: company.id } });
+  let settings = await prisma.companySettings.findUnique({ where: { companyId: company.id } });
+  if (settings?.llmApiUrl && !sanitizeStoredApiUrl(settings.llmApiUrl)) {
+    settings = await prisma.companySettings.update({
+      where: { companyId: company.id },
+      data: { llmApiUrl: null },
+    });
+  }
   const locale = await getServerLocale();
   const t = getTranslations(locale);
 

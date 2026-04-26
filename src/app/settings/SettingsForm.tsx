@@ -67,13 +67,15 @@ export function SettingsForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
       <div>
         <label className="mb-1 block text-sm font-medium text-[var(--foreground)]">
           {t.apiUrl}
         </label>
         <input
           type="url"
+          autoComplete="off"
+          spellCheck={false}
           value={values.llmApiUrl}
           onChange={(e) => setValues((v) => ({ ...v, llmApiUrl: e.target.value }))}
           placeholder={t.placeholderUrl}
@@ -86,6 +88,9 @@ export function SettingsForm({
         </label>
         <input
           type="password"
+          autoComplete="new-password"
+          data-lpignore="true"
+          data-1p-ignore="true"
           value={values.llmApiKey}
           onChange={(e) => setValues((v) => ({ ...v, llmApiKey: e.target.value }))}
           placeholder={t.placeholderKey}

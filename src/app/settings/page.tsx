@@ -50,9 +50,15 @@ export default async function SettingsPage({
   const t = getTranslations(locale);
   const session = await getSessionFromCookies();
   const company = await getOrCreateDemoCompany();
-  const settings = await prisma.companySettings.findUnique({
+  let settings = await prisma.companySettings.findUnique({
     where: { companyId: company.id },
   });
+  if (settings?.llmApiUrl && !sanitizeStoredApiUrl(settings.llmApiUrl)) {
+    settings = await prisma.companySettings.update({
+      where: { companyId: company.id },
+      data: { llmApiUrl: null },
+    });
+  }
   const latestProfile = await prisma.companyProfile.findFirst({
     where: { companyId: company.id },
     orderBy: { version: "desc" },

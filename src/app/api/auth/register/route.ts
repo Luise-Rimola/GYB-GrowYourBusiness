@@ -67,7 +67,7 @@ export async function POST(req: Request) {
       where: { companyId: company.id },
       create: {
         companyId: company.id,
-        llmModel: "kimi-k2",
+        llmModel: process.env.LLM_MODEL_DEFAULT?.trim() || "gpt-4o-mini",
       },
       update: {},
     });
