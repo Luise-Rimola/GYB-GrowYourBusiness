@@ -48,12 +48,14 @@ export function IntakeForm({
   hiddenFields,
   assistantEmbed,
   embedFlush,
+  hasLlmConfigured = true,
 }: {
   existing: Record<string, unknown>;
   submitAction: (formData: FormData) => Promise<void>;
   hiddenFields?: Record<string, string>;
   assistantEmbed?: boolean;
   embedFlush?: boolean;
+  hasLlmConfigured?: boolean;
 }) {
   const { locale } = useLanguage();
   const c = getIntakeFormCopy(locale);
@@ -81,11 +83,25 @@ export function IntakeForm({
   const currentMonth = new Date().toISOString().slice(0, 7);
 
   const submitWithFlow = (flow: "auto_web" | "auto_no_web" | "manual") => {
+    if ((flow === "auto_web" || flow === "auto_no_web") && !hasLlmConfigured) return;
     const el = formRef.current;
     if (!el) return;
     if (profileFlowRef.current) profileFlowRef.current.value = flow;
+    if (
+      assistantEmbed &&
+      (flow === "auto_web" || flow === "auto_no_web") &&
+      typeof window !== "undefined" &&
+      window.parent !== window
+    ) {
+      window.parent.postMessage({ type: "assistant-iframe-done", reason: "profile-auto-start" }, window.location.origin);
+    }
     el.requestSubmit();
   };
+  const autoDisabled = !hasLlmConfigured;
+  const autoDisabledTitle =
+    locale === "de"
+      ? "Bitte zuerst LLM-API in den Einstellungen speichern."
+      : "Please save LLM API settings first.";
 
   const addProduct = () => setProducts((p) => [...p, { name: "", price: "", unit: "" }]);
   const removeProduct = (i: number) => {
@@ -260,7 +276,9 @@ export function IntakeForm({
               <button
                 type="button"
                 onClick={() => submitWithFlow("auto_web")}
-                className="rounded-full bg-teal-600 px-6 py-3 text-sm font-semibold text-white hover:bg-teal-700 disabled:opacity-60"
+                disabled={autoDisabled}
+                title={autoDisabled ? autoDisabledTitle : undefined}
+                className="rounded-full bg-teal-600 px-6 py-3 text-sm font-semibold text-white hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {c.enrichContinue}
               </button>
@@ -268,7 +286,9 @@ export function IntakeForm({
               <button
                 type="button"
                 onClick={() => submitWithFlow("auto_no_web")}
-                className="rounded-full bg-teal-600 px-6 py-3 text-sm font-semibold text-white hover:bg-teal-700"
+                disabled={autoDisabled}
+                title={autoDisabled ? autoDisabledTitle : undefined}
+                className="rounded-full bg-teal-600 px-6 py-3 text-sm font-semibold text-white hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {c.autoContinueNoWeb}
               </button>
@@ -896,7 +916,9 @@ export function IntakeForm({
             <button
               type="button"
               onClick={() => submitWithFlow("auto_web")}
-              className="rounded-full bg-teal-600 px-6 py-3 text-sm font-semibold text-white hover:bg-teal-700 disabled:opacity-60"
+                disabled={autoDisabled}
+                title={autoDisabled ? autoDisabledTitle : undefined}
+                className="rounded-full bg-teal-600 px-6 py-3 text-sm font-semibold text-white hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {c.enrichContinue}
             </button>
@@ -904,7 +926,9 @@ export function IntakeForm({
             <button
               type="button"
               onClick={() => submitWithFlow("auto_no_web")}
-              className="rounded-full bg-teal-600 px-6 py-3 text-sm font-semibold text-white hover:bg-teal-700"
+                disabled={autoDisabled}
+                title={autoDisabled ? autoDisabledTitle : undefined}
+                className="rounded-full bg-teal-600 px-6 py-3 text-sm font-semibold text-white hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {c.autoContinueNoWeb}
             </button>

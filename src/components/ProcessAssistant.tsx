@@ -597,8 +597,7 @@ export function WorkflowAssistantFrame({
     if (
       isProfileStepNow &&
       iframeHref &&
-      iframeHref.includes("/dashboard") &&
-      iframeHref.includes("assistant_phase=")
+      iframeHref.includes("/dashboard")
     ) {
       // Hard guard: profile step must never stay active when iframe already
       // moved into phase execution dashboard.

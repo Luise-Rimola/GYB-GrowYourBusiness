@@ -8,6 +8,7 @@ import { getTranslations } from "@/lib/i18n";
 import { PLANNING_PHASES } from "@/lib/planningFramework";
 import { startPhaseRunJob } from "@/lib/phaseRunJobs";
 import { runCompanyEnrichment } from "@/lib/companyEnrichment";
+import { prisma } from "@/lib/prisma";
 import type { Locale } from "@/lib/i18n";
 
 async function startBackgroundRunsPerPhase(companyId: string, locale: Locale): Promise<void> {
@@ -62,6 +63,11 @@ export default async function IntakePage() {
   const t = getTranslations(locale);
   const company = await getOrCreateDemoCompany();
   const { existing, formKey: intakeFormKey } = await getIntakeFormState(company.id);
+  const settings = await prisma.companySettings.findUnique({
+    where: { companyId: company.id },
+    select: { llmApiUrl: true, llmApiKey: true },
+  });
+  const hasLlmConfigured = Boolean(settings?.llmApiUrl?.trim()) || Boolean(settings?.llmApiKey?.trim());
 
   return (
     <div className="space-y-8">
@@ -69,7 +75,7 @@ export default async function IntakePage() {
         title={t.intake.title}
         description={t.intake.description}
       >
-        <IntakeForm key={intakeFormKey} existing={existing} submitAction={submitIntake} />
+        <IntakeForm key={intakeFormKey} existing={existing} submitAction={submitIntake} hasLlmConfigured={hasLlmConfigured} />
       </Section>
     </div>
   );
