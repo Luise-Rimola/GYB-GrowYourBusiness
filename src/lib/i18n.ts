@@ -69,7 +69,7 @@ export const translations = {
     },
     home: {
       title: "Grow Your Business",
-      badge: "AI-Powered Growth System",
+      badge: "AI-Powered Decision Support System",
       subtitle: "Use the system like an AI business consultant and decision support system: generate expert growth decisions with auto-KPI selection, auditable scoring, and transparent evidence trails.",
       subtitleDetails:
         "This study examines how AI can support strategic decisions in market-entry and growth phases. The tool acts as a decision support system (DSS): it structures information, links KPIs and sources, and provides transparent, evidence-based recommendations you can review before deciding.",
@@ -958,9 +958,9 @@ export const translations = {
     home: {
       title: "Grow Your Business",
       badge: "KI-gestütztes Entscheidungssystem",
-      subtitle: "Nutzen Sie das System wie einen KI-Unternehmensberater und als Entscheidungsunterstützungssystem (Decision Support System, DSS) für strategische Entscheidungen in Markteintritts- und Wachstumsphasen.",
+      subtitle: "Nutzen Sie das System wie einen KI-Unternehmensberater und als Entscheidungsunterstützungssystem (Decision Support System) für strategische Entscheidungen in Markteintritts- und Wachstumsphasen.",
       subtitleDetails:
-        "Diese Studie untersucht, wie KI strategische Entscheidungen in Markteintritts- und Wachstumsphasen unterstützen kann. Das Tool arbeitet als Decision Support System (DSS): Es strukturiert Informationen, verknüpft KPIs und Quellen und liefert nachvollziehbare, evidenzbasierte Empfehlungen als Entscheidungsgrundlage.",
+        "Diese Studie untersucht, wie KI strategische Entscheidungen in Markteintritts- und Wachstumsphasen unterstützen kann. Das Tool arbeitet als Decision Support System: Es strukturiert Informationen, verknüpft KPIs und Quellen und liefert nachvollziehbare, evidenzbasierte Empfehlungen als Entscheidungsgrundlage.",
       companyProfile: "Geschäftsprofil",
       startAssistant: "Assistent starten",
       handbookStep: "Handbuch (Überblick zu App und Studie)",

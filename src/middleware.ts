@@ -16,6 +16,7 @@ function nextWithOptionalEmbed(req: NextRequest) {
 
 function isPublicPath(pathname: string) {
   if (pathname === "/") return true;
+  if (pathname.startsWith("/dashboard")) return true;
   if (pathname === "/login" || pathname === "/register" || pathname === "/verify-email") return true;
   if (pathname.startsWith("/api/auth/")) return true;
   return false;

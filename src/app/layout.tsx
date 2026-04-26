@@ -21,7 +21,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Grow Your Business",
-  description: "AI-Powered Growth System",
+  description: "AI-Powered Decision Support System",
 };
 
 export default async function RootLayout({

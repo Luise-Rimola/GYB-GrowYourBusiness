@@ -5,7 +5,7 @@ const landingCopy = {
   de: {
     heroTitle: "Grow Your Business",
     heroSubtitle:
-      "AI-Powered Growth System für Strategie, Priorisierung und Umsetzung. Du bekommst klare Phasen, verständliche Workflows und belastbare Ergebnisse.",
+      "AI-Powered Decision Support System für Strategie, Priorisierung und Umsetzung. Du bekommst klare Phasen, verständliche Workflows und belastbare Ergebnisse.",
     ctaPrimary: "Kostenlos starten",
     ctaContinue: "Weiter zur App",
     trust1: "Strukturierte Entscheidungsvorlagen",
@@ -32,15 +32,15 @@ const landingCopy = {
     langSwitch: "Sprache",
     phases: [
       {
-        title: "Intake & Kontext",
+        title: "Unternehmensinformationen",
         text: "Firma, Ziele, KPI-Basis und Marktannahmen werden strukturiert erfasst.",
       },
       {
-        title: "Analyse & Workflow",
+        title: "KI-Analyse",
         text: "Workflows führen dich Schritt für Schritt durch belastbare Entscheidungslogik.",
       },
       {
-        title: "Entscheidung & Umsetzung",
+        title: "Entscheidungshilfen",
         text: "Empfehlungen, Dokumente und Audit-Trail machen jede Entscheidung nachvollziehbar.",
       },
     ],
@@ -66,7 +66,7 @@ const landingCopy = {
   en: {
     heroTitle: "Grow Your Business",
     heroSubtitle:
-      "AI-Powered Growth System for strategy, prioritization, and execution. Get clear phases, understandable workflows, and actionable outputs.",
+      "AI-Powered Decision Support System for strategy, prioritization, and execution. Get clear phases, understandable workflows, and actionable outputs.",
     ctaPrimary: "Start free",
     ctaContinue: "Continue to app",
     trust1: "Structured decision templates",
@@ -152,7 +152,7 @@ export default async function LandingPage({
             </div>
           </div>
           <p className="mb-4 inline-flex rounded-full border border-teal-200 bg-white/90 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-teal-700 dark:border-teal-700 dark:bg-teal-950/30 dark:text-teal-300">
-            AI-Powered Growth System
+            AI-Powered Decision Support System
           </p>
           <h1 className="max-w-4xl text-4xl font-bold tracking-tight text-[var(--foreground)] md:text-5xl">
             {c.heroTitle}

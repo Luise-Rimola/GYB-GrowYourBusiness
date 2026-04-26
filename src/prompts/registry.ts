@@ -945,7 +945,7 @@ Output schema:
     stepKey: "growth_loops",
     version: 1,
     outputSchemaKey: "growth_loops",
-    templateText: `You are a growth systems strategist.
+    templateText: `You are a decision support systems strategist.
 ${ARTIFACT_INSTRUCTION}
 Use company_profile, pmf_assessment, customer_economics_ltv_cac, conversion_funnel_analysis, go_to_market from CONTEXT_JSON.
 Design growth loops with bottlenecks, prioritization and concrete actions.
