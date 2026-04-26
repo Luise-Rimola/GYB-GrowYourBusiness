@@ -304,10 +304,29 @@ export function PhaseRunButtonForm({ formId, phaseId, buttonLabel, workflows }: 
               : `AI analysis (rerun all): ${data.totalSteps ?? "?"} step${data.totalSteps === 1 ? "" : "s"}.`,
       });
 
-      if (data.jobId) startedInThisTab.current.add(data.jobId);
+      if (data.jobId) {
+        setJob({
+          id: data.jobId,
+          phaseId,
+          mode,
+          status: "queued",
+          totalSteps: data.totalSteps ?? workflowKeys.length,
+          completedSteps: 0,
+          currentWorkflowKey: null,
+          currentStepKey: null,
+          currentLabel: null,
+          lastMessage: null,
+          errorMessage: null,
+          cancelRequested: false,
+          startedAt: null,
+          finishedAt: null,
+          createdAt: new Date().toISOString(),
+        });
+        startedInThisTab.current.add(data.jobId);
+      }
       const fresh = await fetchStatus();
       if (fresh?.id) startedInThisTab.current.add(fresh.id);
-      setJob(fresh);
+      if (fresh) setJob(fresh);
     } catch (e) {
       setMessage({
         tone: "error",
@@ -339,6 +358,9 @@ export function PhaseRunButtonForm({ formId, phaseId, buttonLabel, workflows }: 
   }
 
   const progressLabel = (() => {
+    if (starting && !job) {
+      return isDe ? "KI-Analyse wird gestartet …" : "AI analysis is starting …";
+    }
     if (!job) return null;
     if (job.status === "queued") {
       return isDe ? "Wird eingeplant …" : "Queued …";
@@ -352,6 +374,7 @@ export function PhaseRunButtonForm({ formId, phaseId, buttonLabel, workflows }: 
   })();
 
   const progressPercent = (() => {
+    if (starting && !job) return 0;
     if (!job) return 0;
     if (job.status === "completed") return 100;
     if (!job.totalSteps || job.totalSteps <= 0) return 0;

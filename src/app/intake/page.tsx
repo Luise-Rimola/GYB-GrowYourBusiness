@@ -7,6 +7,7 @@ import { getServerLocale } from "@/lib/locale";
 import { getTranslations } from "@/lib/i18n";
 import { PLANNING_PHASES } from "@/lib/planningFramework";
 import { startPhaseRunJob } from "@/lib/phaseRunJobs";
+import { runCompanyEnrichment } from "@/lib/companyEnrichment";
 import type { Locale } from "@/lib/i18n";
 
 async function startBackgroundRunsPerPhase(companyId: string, locale: Locale): Promise<void> {
@@ -32,6 +33,21 @@ async function submitIntake(formData: FormData) {
   const company = await getOrCreateDemoCompany();
   await processIntakeForm(company.id, formData);
   const profileFlow = String(formData.get("profile_flow") ?? "manual").trim();
+  if (profileFlow === "auto_web") {
+    const locale = await getServerLocale();
+    const companyName = String(formData.get("company_name") ?? "").trim();
+    const website = String(formData.get("website") ?? "").trim();
+    const location = String(formData.get("location") ?? "").trim();
+    void runCompanyEnrichment({
+      companyId: company.id,
+      companyName,
+      website,
+      location,
+      locale,
+    }).catch((err) => {
+      console.error("[intake/background-enrichment][async]", err);
+    });
+  }
   if (profileFlow === "auto_web" || profileFlow === "auto_no_web") {
     const locale = await getServerLocale();
     void startBackgroundRunsPerPhase(company.id, locale).catch((err) => {

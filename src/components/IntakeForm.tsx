@@ -3,7 +3,6 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { fetchApi } from "@/lib/apiClient";
 import { getIntakeFormCopy } from "@/lib/intakeFormLocale";
 
 export type ProductRow = { name: string; sku?: string; price: string; unit?: string; notes?: string };
@@ -60,8 +59,6 @@ export function IntakeForm({
   const c = getIntakeFormCopy(locale);
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
-  const [enrichBusy, setEnrichBusy] = useState(false);
-  const [enrichErr, setEnrichErr] = useState<string | null>(null);
   const [companyExists, setCompanyExists] = useState<boolean>(String(existing.company_exists ?? "1") !== "0");
   const profileFlowRef = useRef<HTMLInputElement | null>(null);
   const [mobileEdit, setMobileEdit] = useState<
@@ -82,6 +79,13 @@ export function IntakeForm({
     (existing.production_steps as string) ?? ""
   );
   const currentMonth = new Date().toISOString().slice(0, 7);
+
+  const submitWithFlow = (flow: "auto_web" | "auto_no_web" | "manual") => {
+    const el = formRef.current;
+    if (!el) return;
+    if (profileFlowRef.current) profileFlowRef.current.value = flow;
+    el.requestSubmit();
+  };
 
   const addProduct = () => setProducts((p) => [...p, { name: "", price: "", unit: "" }]);
   const removeProduct = (i: number) => {
@@ -109,44 +113,6 @@ export function IntakeForm({
   };
   const updateTeam = (i: number, f: keyof TeamRow, v: string) =>
     setTeam((t) => t.map((row, j) => (j === i ? { ...row, [f]: v } : row)));
-
-  const enrichAndContinue = async () => {
-    setEnrichErr(null);
-    const el = formRef.current;
-    if (!el) return;
-    const fd = new FormData(el);
-    const company_name = String(fd.get("company_name") || "").trim();
-    const website = String(fd.get("website") || "").trim();
-    const location = String(fd.get("location") || "").trim();
-    if (!company_name) {
-      setEnrichErr(locale === "de" ? "Bitte Firmenname angeben." : "Please enter a company name.");
-      return;
-    }
-    setEnrichBusy(true);
-    try {
-      const res = await fetchApi("/api/profile/enrich-company", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        signal: AbortSignal.timeout(15000),
-        body: JSON.stringify({ company_name, website, location }),
-      });
-      const data = (await res.json()) as { error?: string };
-      if (!res.ok) throw new Error(data.error || "Enrichment failed");
-      // Continue flow: submit form after enrichment.
-      if (profileFlowRef.current) profileFlowRef.current.value = "auto_web";
-      el.requestSubmit();
-    } catch (e) {
-      setEnrichErr(
-        locale === "de"
-          ? "Web-Infos konnten nicht rechtzeitig geladen werden. Prozesse starten mit den vorhandenen Daten."
-          : "Web enrichment timed out. Starting processes with available data."
-      );
-      // Never block the assistant flow on enrichment errors/timeouts.
-      // Fall back to automatic continue without web enrichment.
-      if (profileFlowRef.current) profileFlowRef.current.value = "auto_no_web";
-      el.requestSubmit();
-    }
-  };
 
   return (
     <form
@@ -293,35 +259,29 @@ export function IntakeForm({
             {companyExists ? (
               <button
                 type="button"
-                disabled={enrichBusy}
-                onClick={enrichAndContinue}
+                onClick={() => submitWithFlow("auto_web")}
                 className="rounded-full bg-teal-600 px-6 py-3 text-sm font-semibold text-white hover:bg-teal-700 disabled:opacity-60"
               >
-                {enrichBusy ? c.enrichLoading : c.enrichContinue}
+                {c.enrichContinue}
               </button>
             ) : (
               <button
-                type="submit"
-                onClick={() => {
-                  if (profileFlowRef.current) profileFlowRef.current.value = "auto_no_web";
-                }}
+                type="button"
+                onClick={() => submitWithFlow("auto_no_web")}
                 className="rounded-full bg-teal-600 px-6 py-3 text-sm font-semibold text-white hover:bg-teal-700"
               >
                 {c.autoContinueNoWeb}
               </button>
             )}
             <button
-              type="submit"
-              onClick={() => {
-                if (profileFlowRef.current) profileFlowRef.current.value = "manual";
-              }}
+              type="button"
+              onClick={() => submitWithFlow("manual")}
               className="rounded-full border border-zinc-300 bg-white px-6 py-3 text-sm font-semibold text-zinc-800 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-100 dark:hover:bg-zinc-900"
             >
               {c.manualContinue}
             </button>
           </div>
         ) : null}
-        {enrichErr ? <p className="text-sm text-red-600 dark:text-red-400">{enrichErr}</p> : null}
       </section>
 
       <details className="group rounded-2xl border border-zinc-200 dark:border-zinc-800">
@@ -935,28 +895,23 @@ export function IntakeForm({
           {companyExists ? (
             <button
               type="button"
-              disabled={enrichBusy}
-              onClick={enrichAndContinue}
+              onClick={() => submitWithFlow("auto_web")}
               className="rounded-full bg-teal-600 px-6 py-3 text-sm font-semibold text-white hover:bg-teal-700 disabled:opacity-60"
             >
-              {enrichBusy ? c.enrichLoading : c.enrichContinue}
+              {c.enrichContinue}
             </button>
           ) : (
             <button
-              type="submit"
-              onClick={() => {
-                if (profileFlowRef.current) profileFlowRef.current.value = "auto_no_web";
-              }}
+              type="button"
+              onClick={() => submitWithFlow("auto_no_web")}
               className="rounded-full bg-teal-600 px-6 py-3 text-sm font-semibold text-white hover:bg-teal-700"
             >
               {c.autoContinueNoWeb}
             </button>
           )}
           <button
-            type="submit"
-            onClick={() => {
-              if (profileFlowRef.current) profileFlowRef.current.value = "manual";
-            }}
+            type="button"
+            onClick={() => submitWithFlow("manual")}
             className="rounded-full border border-zinc-300 bg-white px-6 py-3 text-sm font-semibold text-zinc-800 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-100 dark:hover:bg-zinc-900"
           >
             {c.manualContinue}
