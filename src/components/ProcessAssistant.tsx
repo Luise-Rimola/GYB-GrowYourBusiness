@@ -42,6 +42,28 @@ type StepInfoContent = {
   resultHint: string;
 };
 
+type AssistantPhaseRunStatus = {
+  id: string;
+  phaseId: string;
+  status: "queued" | "running" | "completed" | "failed" | "cancelled";
+  totalSteps: number;
+  completedSteps: number;
+};
+
+function getAssistantPhaseIdFromHref(href: string | null): string | null {
+  if (!href) return null;
+  try {
+    const u = new URL(href, "https://assistant.local");
+    const fromQuery = u.searchParams.get("assistant_phase") ?? u.searchParams.get("phase");
+    if (fromQuery) return fromQuery;
+    const hash = u.hash ?? "";
+    if (hash.startsWith("#phase-")) return hash.slice("#phase-".length) || null;
+  } catch {
+    /* ignore */
+  }
+  return null;
+}
+
 function phaseInfoById(phaseId: string): StepInfoContent | null {
   const byPhase: Record<string, StepInfoContent> = {
     ideation: {
@@ -318,6 +340,7 @@ export function WorkflowAssistantFrame({
   const [resolvedIframeHref, setResolvedIframeHref] = useState<string | null>(null);
   const [runProcessUnlocked, setRunProcessUnlocked] = useState<Record<number, boolean>>({});
   const [processCompleteModalOpen, setProcessCompleteModalOpen] = useState(false);
+  const [phaseRunStatus, setPhaseRunStatus] = useState<AssistantPhaseRunStatus | null>(null);
   const pendingNextIndexRef = useRef<number | null>(null);
   const pendingTimeoutRef = useRef<number | null>(null);
   const lastCompletionUrlRef = useRef<string | null>(null);
@@ -621,6 +644,62 @@ export function WorkflowAssistantFrame({
   const iframeSrc = toEmbedHref(current.href);
   const liveIframeHref = getIframeHref();
   const stepInfo = stepInfoFromHref(liveIframeHref ?? resolvedIframeHref ?? current.href);
+  const phaseIdForProgress =
+    getAssistantPhaseIdFromHref(liveIframeHref) ??
+    getAssistantPhaseIdFromHref(resolvedIframeHref) ??
+    getAssistantPhaseIdFromHref(current.href);
+
+  useEffect(() => {
+    const phaseId = phaseIdForProgress;
+    if (!phaseId) {
+      setPhaseRunStatus(null);
+      return;
+    }
+    let disposed = false;
+    let timer: number | null = null;
+
+    const fetchPhaseRunStatus = async () => {
+      try {
+        const res = await fetch(`/api/phase-runs/status?phaseId=${encodeURIComponent(phaseId)}`, {
+          credentials: "same-origin",
+        });
+        if (!res.ok) return;
+        const data = (await res.json()) as {
+          job?: AssistantPhaseRunStatus | null;
+        };
+        if (!disposed) {
+          setPhaseRunStatus(data.job ?? null);
+        }
+      } catch {
+        /* ignore transient polling failures */
+      }
+    };
+
+    void fetchPhaseRunStatus();
+    timer = window.setInterval(() => {
+      void fetchPhaseRunStatus();
+    }, 2500);
+
+    return () => {
+      disposed = true;
+      if (timer !== null) window.clearInterval(timer);
+    };
+  }, [phaseIdForProgress]);
+
+  const topProgressPercent = (() => {
+    if (!phaseRunStatus) return 0;
+    if (phaseRunStatus.status === "completed") return 100;
+    if (!phaseRunStatus.totalSteps || phaseRunStatus.totalSteps <= 0) return 0;
+    return Math.max(
+      0,
+      Math.min(100, Math.round((phaseRunStatus.completedSteps / phaseRunStatus.totalSteps) * 100)),
+    );
+  })();
+  const showTopProgress =
+    Boolean(phaseRunStatus) &&
+    (phaseRunStatus?.status === "queued" ||
+      phaseRunStatus?.status === "running" ||
+      phaseRunStatus?.status === "completed");
 
   const assistantExitHref = current.phaseId
     ? `/dashboard?view=overview&phase=${encodeURIComponent(current.phaseId)}#phase-${encodeURIComponent(current.phaseId)}`
@@ -640,6 +719,21 @@ export function WorkflowAssistantFrame({
           <p className="mt-1 text-sm text-[var(--muted)]">
             Schritt {index + 1} von {steps.length} — {completedCount} erledigt
           </p>
+          {showTopProgress ? (
+            <div className="mt-2 w-full max-w-xl">
+              <p className="mb-1 text-xs font-medium text-[var(--muted)]">
+                {phaseRunStatus?.status === "queued"
+                  ? `KI-Analyse startet … (${topProgressPercent}%)`
+                  : `KI-Analyse Fortschritt: ${phaseRunStatus?.completedSteps ?? 0}/${phaseRunStatus?.totalSteps ?? 0} (${topProgressPercent}%)`}
+              </p>
+              <div className="h-2 w-full overflow-hidden rounded-full bg-slate-200/80 dark:bg-slate-700/70">
+                <div
+                  className="h-full rounded-full bg-teal-600 transition-all duration-500 ease-out"
+                  style={{ width: `${topProgressPercent}%` }}
+                />
+              </div>
+            </div>
+          ) : null}
         </div>
         <div className="flex shrink-0 items-center gap-2 self-start sm:self-auto">
           <div className="group relative">
