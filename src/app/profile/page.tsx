@@ -41,7 +41,9 @@ async function saveProfile(formData: FormData) {
   const profileFlow = String(formData.get("profile_flow") ?? "manual").trim();
   if (profileFlow === "auto_web" || profileFlow === "auto_no_web") {
     const locale = await getServerLocale();
-    await startBackgroundRunsPerPhase(company.id, locale);
+    void startBackgroundRunsPerPhase(company.id, locale).catch((err) => {
+      console.error("[profile/background-start][async]", err);
+    });
   }
   const assistantEmbed = formData.get("assistant_embed") === "1";
   if (assistantEmbed) {

@@ -127,6 +127,7 @@ export function IntakeForm({
       const res = await fetchApi("/api/profile/enrich-company", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        signal: AbortSignal.timeout(15000),
         body: JSON.stringify({ company_name, website, location }),
       });
       const data = (await res.json()) as { error?: string };
@@ -135,8 +136,15 @@ export function IntakeForm({
       if (profileFlowRef.current) profileFlowRef.current.value = "auto_web";
       el.requestSubmit();
     } catch (e) {
-      setEnrichErr(e instanceof Error ? e.message : String(e));
-      setEnrichBusy(false);
+      setEnrichErr(
+        locale === "de"
+          ? "Web-Infos konnten nicht rechtzeitig geladen werden. Prozesse starten mit den vorhandenen Daten."
+          : "Web enrichment timed out. Starting processes with available data."
+      );
+      // Never block the assistant flow on enrichment errors/timeouts.
+      // Fall back to automatic continue without web enrichment.
+      if (profileFlowRef.current) profileFlowRef.current.value = "auto_no_web";
+      el.requestSubmit();
     }
   };
 

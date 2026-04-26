@@ -34,7 +34,9 @@ async function submitIntake(formData: FormData) {
   const profileFlow = String(formData.get("profile_flow") ?? "manual").trim();
   if (profileFlow === "auto_web" || profileFlow === "auto_no_web") {
     const locale = await getServerLocale();
-    await startBackgroundRunsPerPhase(company.id, locale);
+    void startBackgroundRunsPerPhase(company.id, locale).catch((err) => {
+      console.error("[intake/background-start][async]", err);
+    });
   }
   redirect("/profile");
 }

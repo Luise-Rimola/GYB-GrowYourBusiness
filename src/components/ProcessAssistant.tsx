@@ -570,6 +570,25 @@ export function WorkflowAssistantFrame({
     if (iframeHref) setResolvedIframeHref(iframeHref);
     const currentHref = stepsRef.current[indexRef.current]?.href ?? "";
     const isQuestionnaireStep = isStudyQuestionnaireStepHref(currentHref);
+    const isProfileStepNow = currentHref.startsWith("/profile");
+    if (
+      isProfileStepNow &&
+      iframeHref &&
+      iframeHref.includes("/dashboard") &&
+      iframeHref.includes("assistant_phase=")
+    ) {
+      // Hard guard: profile step must never stay active when iframe already
+      // moved into phase execution dashboard.
+      const idx = indexRef.current;
+      const doneHref = stepsRef.current[idx]?.href ?? currentHref;
+      markDoneHref(doneHref);
+      setLocallyDone((d) => ({ ...d, [idx]: true }));
+      queueMicrotask(() => {
+        setIndex(nextSequentialIndex(idx));
+        dispatchAssistantPulse("end");
+      });
+      return;
+    }
     if (
       isQuestionnaireStep &&
       iframeHref &&
