@@ -3,6 +3,16 @@ import { prisma } from "@/lib/prisma";
 import { getCompanyForApi } from "@/lib/companyContext";
 import { getOrCreateStudyParticipant, updateStudyParticipantById } from "@/lib/study";
 
+function isValidApiUrl(value: string): boolean {
+  if (!value) return false;
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 export async function POST(req: Request) {
   try {
     const auth = await getCompanyForApi();
@@ -17,6 +27,13 @@ export async function POST(req: Request) {
 
     const llmApiUrl = typeof body.llmApiUrl === "string" ? body.llmApiUrl.trim() : "";
     const llmModel = typeof body.llmModel === "string" ? body.llmModel.trim() : "";
+
+    if (llmApiUrl && !isValidApiUrl(llmApiUrl)) {
+      return NextResponse.json(
+        { error: "Ungültige API-URL. Bitte vollständige URL mit http:// oder https:// eingeben." },
+        { status: 400 }
+      );
+    }
 
     const updateData: {
       llmApiUrl: string | null;

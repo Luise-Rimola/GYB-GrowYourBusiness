@@ -7,6 +7,38 @@ import { getTranslations } from "@/lib/i18n";
 import { getSessionFromCookies } from "@/lib/session";
 import { SettingsForm } from "./SettingsForm";
 
+function sanitizeStoredApiUrl(value: string | null | undefined): string {
+  const raw = String(value ?? "").trim();
+  if (!raw) return "";
+  try {
+    const url = new URL(raw);
+    if (url.protocol === "http:" || url.protocol === "https:") return raw;
+    return "";
+  } catch {
+    return "";
+  }
+}
+
+function envDefaultApiUrl(): string {
+  const raw = String(process.env.LLM_API_URL_DEFAULT ?? "").trim();
+  if (!raw) return "";
+  try {
+    const url = new URL(raw);
+    if (url.protocol === "http:" || url.protocol === "https:") return raw;
+    return "";
+  } catch {
+    return "";
+  }
+}
+
+function envDefaultApiKey(): string {
+  return String(process.env.LLM_API_KEY_DEFAULT ?? "").trim();
+}
+
+function envDefaultModel(): string {
+  return String(process.env.LLM_MODEL_DEFAULT ?? "").trim() || "gpt-4o-mini";
+}
+
 export default async function SettingsPage({
   searchParams,
 }: {
@@ -46,9 +78,9 @@ export default async function SettingsPage({
         <SettingsForm
           companyId={company.id}
           initialValues={{
-            llmApiUrl: settings?.llmApiUrl ?? "",
-            llmApiKey: settings?.llmApiKey ? "••••••••" : "",
-            llmModel: settings?.llmModel ?? "gpt-4o-mini",
+            llmApiUrl: sanitizeStoredApiUrl(settings?.llmApiUrl) || envDefaultApiUrl(),
+            llmApiKey: settings?.llmApiKey ? "••••••••" : envDefaultApiKey(),
+            llmModel: settings?.llmModel?.trim() || envDefaultModel(),
           }}
           hasStoredKey={!!settings?.llmApiKey}
         />
