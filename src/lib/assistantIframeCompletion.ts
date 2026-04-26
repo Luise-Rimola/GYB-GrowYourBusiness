@@ -27,7 +27,7 @@ export function iframeShowsStepCompletion(stepHref: string, iframeHref: string |
     return u.includes("assistantContinue=fb4");
   }
   if (stepHref.startsWith("/profile")) {
-    return u.includes("profileSaved=1");
+    return u.includes("profileSaved=1") || u.includes("assistantContinue=fb2");
   }
   if (stepHref.includes("/study/fb2")) {
     return u.includes("saved=fb2") || u.includes("assistantContinue=fb2");

@@ -46,6 +46,7 @@ export async function processIntakeForm(
   const socialMediaChannels = formData.getAll("social_media_channels") as string[];
 
   const answers: Record<string, unknown> = {
+    company_exists: String(formData.get("company_exists") || "1") === "1",
     business_state: String(formData.get("business_state") || ""),
     goals,
     ai_requests: aiRequests,

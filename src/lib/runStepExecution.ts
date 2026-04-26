@@ -184,6 +184,28 @@ async function executeCompanyInternetEnrichmentStep(params: {
     }
   }
 
+  const latestForExistence = await prisma.companyProfile.findFirst({
+    where: { companyId: params.companyId },
+    orderBy: { version: "desc" },
+  });
+  const mergedExistenceProfile = {
+    ...(typeof latestForExistence?.profileJson === "object"
+      ? (latestForExistence.profileJson as Record<string, unknown>)
+      : {}),
+    company_exists: Boolean(payload.company_exists),
+    company_exists_status: String(payload.status ?? ""),
+    company_exists_message: typeof payload.message === "string" ? payload.message : null,
+    updated_at: new Date().toISOString(),
+  };
+  await prisma.companyProfile.create({
+    data: {
+      companyId: params.companyId,
+      version: (latestForExistence?.version ?? 0) + 1,
+      profileJson: mergedExistenceProfile,
+      completenessScore: latestForExistence?.completenessScore ?? 0.2,
+    },
+  });
+
   return WorkflowService.saveStep({
     runId: params.runId,
     stepKey: "company_internet_enrichment",

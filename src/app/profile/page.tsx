@@ -45,7 +45,7 @@ async function saveProfile(formData: FormData) {
   }
   const assistantEmbed = formData.get("assistant_embed") === "1";
   if (assistantEmbed) {
-    redirect("/dashboard?assistant_phase=ideation&embed=1");
+    redirect("/dashboard?assistant_phase=ideation&embed=1&profileSaved=1&assistantContinue=fb2");
   }
   redirect("/dashboard?view=execution");
 }
