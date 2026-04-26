@@ -957,7 +957,7 @@ export const translations = {
     },
     home: {
       title: "Grow Your Business",
-      badge: "KI-gestütztes Entscheidungssystem",
+      badge: "LLM-gestützter DSS-Workflow",
       subtitle: "Nutzen Sie das System wie einen KI-Unternehmensberater und als Entscheidungsunterstützungssystem (Decision Support System) für strategische Entscheidungen in Markteintritts- und Wachstumsphasen.",
       subtitleDetails:
         "Diese Studie untersucht, wie KI strategische Entscheidungen in Markteintritts- und Wachstumsphasen unterstützen kann. Das Tool arbeitet als Decision Support System: Es strukturiert Informationen, verknüpft KPIs und Quellen und liefert nachvollziehbare, evidenzbasierte Empfehlungen als Entscheidungsgrundlage.",
