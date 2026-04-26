@@ -2,6 +2,8 @@
 
 import { PendingSubmitButton } from "@/components/PendingSubmitButton";
 
+const requiredAsterisk = <span className="ml-1 text-rose-600">*</span>;
+
 type Fragebogen5FormProps = {
   action: (formData: FormData) => Promise<void>;
   t: Record<string, string>;
@@ -72,7 +74,7 @@ export function Fragebogen5Form({
           <div className="grid gap-4 sm:grid-cols-1">
             {LIKERT_KEYS.map((key) => (
               <div key={key}>
-                <label className="mb-1 block text-xs text-[var(--muted)]">{labels[key]}</label>
+                <label className="mb-1 block text-xs text-[var(--muted)]">{labels[key]}{requiredAsterisk}</label>
                 <LikertSelect name={key} fieldKey={key} initialValues={initialValues} />
               </div>
             ))}

@@ -24,6 +24,10 @@ function isPhaseDashboardAssistantHref(href: string): boolean {
   return href.includes("/dashboard") && href.includes("assistant_phase=");
 }
 
+function isStudyQuestionnaireStepHref(href: string): boolean {
+  return href.startsWith("/study/fb1") || href.includes("/study/fb2") || href.includes("/study/fb3") || href.includes("/study/fb4") || href.startsWith("/study/fb5");
+}
+
 type AssistantStep = {
   href: string;
   label: string;
@@ -380,6 +384,12 @@ export function WorkflowAssistantFrame({
     ).length;
   }, [steps, locallyDone, persistedDone]);
 
+  function isStepAlreadyDone(i: number): boolean {
+    const step = stepsRef.current[i];
+    if (!step) return false;
+    return step.completed || Boolean(locallyDone[i]) || persistedDone.has(step.href);
+  }
+
   function markDoneHref(href: string) {
     persistDoneHref(href);
     setPersistedDone((prev) => {
@@ -391,7 +401,12 @@ export function WorkflowAssistantFrame({
 
   function nextSequentialIndex(fromIndex: number) {
     const st = stepsRef.current;
-    return Math.min(fromIndex + 1, Math.max(st.length - 1, 0));
+    const lastIndex = Math.max(st.length - 1, 0);
+    let candidate = Math.min(fromIndex + 1, lastIndex);
+    while (candidate < lastIndex && isStepAlreadyDone(candidate)) {
+      candidate += 1;
+    }
+    return candidate;
   }
 
   function getIframeHref() {
@@ -490,6 +505,13 @@ export function WorkflowAssistantFrame({
     clearPendingTimers();
     pendingTimeoutRef.current = window.setTimeout(() => {
       tryCompleteFromIframe();
+      // If the embedded form did not complete (e.g. validation error inside iframe),
+      // do not keep the assistant in a locked pending state.
+      if (pendingNextIndexRef.current !== null) {
+        pendingNextIndexRef.current = null;
+        setPendingSubmit(false);
+        dispatchAssistantPulse("end");
+      }
     }, 4000);
   }
 
@@ -519,7 +541,9 @@ export function WorkflowAssistantFrame({
         return;
       }
       if (d?.type === "assistant-iframe-done") {
-        if (!pendingSubmit && !isProfileStep) return;
+        const currentHref = stepsRef.current[indexRef.current]?.href ?? "";
+        const isQuestionnaireStep = isStudyQuestionnaireStepHref(currentHref);
+        if (!pendingSubmit && !isProfileStep && !isQuestionnaireStep) return;
         lastCompletionUrlRef.current = null;
         tryCompleteRef.current();
         return;
@@ -544,7 +568,30 @@ export function WorkflowAssistantFrame({
   function onIframeLoad() {
     const iframeHref = getIframeHref();
     if (iframeHref) setResolvedIframeHref(iframeHref);
-    if (pendingSubmit || isProfileStep) {
+    const currentHref = stepsRef.current[indexRef.current]?.href ?? "";
+    const isQuestionnaireStep = isStudyQuestionnaireStepHref(currentHref);
+    if (
+      isQuestionnaireStep &&
+      iframeHref &&
+      !iframeShowsStepCompletion(currentHref, iframeHref) &&
+      !iframeHref.includes("/study/fb1") &&
+      !iframeHref.includes("/study/fb2") &&
+      !iframeHref.includes("/study/fb3") &&
+      !iframeHref.includes("/study/fb4") &&
+      !iframeHref.includes("/study/fb5")
+    ) {
+      // Keep questionnaire steps visually consistent in assistant mode:
+      // if iframe drifts to unrelated pages, snap back to the expected step.
+      try {
+        if (iframeRef.current?.contentWindow) {
+          iframeRef.current.contentWindow.location.replace(toEmbedHref(currentHref));
+          return;
+        }
+      } catch {
+        /* ignore cross-origin/replace issues */
+      }
+    }
+    if (pendingSubmit || isProfileStep || isQuestionnaireStep) {
       tryCompleteFromIframe();
       return;
     }

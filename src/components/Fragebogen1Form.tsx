@@ -5,6 +5,8 @@ import { PendingSubmitButton } from "@/components/PendingSubmitButton";
 import { getFragebogen1SelectOptions } from "@/lib/fragebogen1Options";
 import type { Locale } from "@/lib/i18n";
 
+const requiredAsterisk = <span className="ml-1 text-rose-600">*</span>;
+
 type Fragebogen1FormProps = {
   locale: Locale;
   action: (formData: FormData) => Promise<void>;
@@ -72,7 +74,7 @@ export function Fragebogen1Form({
       <Section title={t.fb1CategoryA} description="">
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label className="mb-1 block text-sm font-medium text-[var(--foreground)]">{t.fb1A1}</label>
+            <label className="mb-1 block text-sm font-medium text-[var(--foreground)]">{t.fb1A1}{requiredAsterisk}</label>
             <select
               name="A1"
               required
@@ -88,7 +90,7 @@ export function Fragebogen1Form({
             </select>
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-[var(--foreground)]">{t.fb1A2}</label>
+            <label className="mb-1 block text-sm font-medium text-[var(--foreground)]">{t.fb1A2}{requiredAsterisk}</label>
             <select
               name="A2"
               required
@@ -104,7 +106,7 @@ export function Fragebogen1Form({
             </select>
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-[var(--foreground)]">{t.fb1A3}</label>
+            <label className="mb-1 block text-sm font-medium text-[var(--foreground)]">{t.fb1A3}{requiredAsterisk}</label>
             <select
               name="A3"
               required
@@ -120,7 +122,7 @@ export function Fragebogen1Form({
             </select>
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-[var(--foreground)]">{t.fb1A4}</label>
+            <label className="mb-1 block text-sm font-medium text-[var(--foreground)]">{t.fb1A4}{requiredAsterisk}</label>
             <input
               type="text"
               name="A4"
@@ -131,7 +133,7 @@ export function Fragebogen1Form({
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-[var(--foreground)]">{t.fb1A5}</label>
+            <label className="mb-1 block text-sm font-medium text-[var(--foreground)]">{t.fb1A5}{requiredAsterisk}</label>
             <input
               type="number"
               name="A5"
@@ -143,7 +145,7 @@ export function Fragebogen1Form({
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-[var(--foreground)]">{t.fb1A6}</label>
+            <label className="mb-1 block text-sm font-medium text-[var(--foreground)]">{t.fb1A6}{requiredAsterisk}</label>
             <select
               name="A6"
               required
@@ -164,7 +166,7 @@ export function Fragebogen1Form({
       <Section title={t.fb1CategoryB} description="">
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label className="mb-1 block text-sm font-medium text-[var(--foreground)]">{t.fb1B1}</label>
+            <label className="mb-1 block text-sm font-medium text-[var(--foreground)]">{t.fb1B1}{requiredAsterisk}</label>
             <select
               name="B1"
               required
@@ -180,7 +182,7 @@ export function Fragebogen1Form({
             </select>
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-[var(--foreground)]">{t.fb1B2}</label>
+            <label className="mb-1 block text-sm font-medium text-[var(--foreground)]">{t.fb1B2}{requiredAsterisk}</label>
             <select
               name="B2"
               required
@@ -195,7 +197,7 @@ export function Fragebogen1Form({
             </select>
           </div>
           <div className="sm:col-span-2">
-            <label className="mb-1 block text-sm font-medium text-[var(--foreground)]">{t.fb1B3}</label>
+            <label className="mb-1 block text-sm font-medium text-[var(--foreground)]">{t.fb1B3}{requiredAsterisk}</label>
             <select
               name="B3"
               required
@@ -226,7 +228,7 @@ export function Fragebogen1Form({
           ).map(({ key, label }) => (
             <div key={key}>
               <label className="mb-1 block text-sm font-medium text-[var(--foreground)]">
-                {label}
+                {label}{requiredAsterisk}
               </label>
               <select
                 name={key}

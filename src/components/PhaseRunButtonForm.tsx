@@ -351,6 +351,13 @@ export function PhaseRunButtonForm({ formId, phaseId, buttonLabel, workflows }: 
     return null;
   })();
 
+  const progressPercent = (() => {
+    if (!job) return 0;
+    if (job.status === "completed") return 100;
+    if (!job.totalSteps || job.totalSteps <= 0) return 0;
+    return Math.max(0, Math.min(100, Math.round((job.completedSteps / job.totalSteps) * 100)));
+  })();
+
   const buttonText = (() => {
     if (starting) return isDe ? "Starte …" : "Starting …";
     if (isActiveJob) {
@@ -444,17 +451,27 @@ export function PhaseRunButtonForm({ formId, phaseId, buttonLabel, workflows }: 
         ) : null}
       </div>
       {progressLabel ? (
-        <div className="flex items-center gap-2">
-          <p className="text-[11px] text-[var(--muted)]">{progressLabel}</p>
-          {isActiveJob && !job?.cancelRequested ? (
-            <button
-              type="button"
-              onClick={() => void cancelJob()}
-              className="text-[11px] font-medium text-rose-600 underline-offset-2 hover:underline"
-            >
-              {isDe ? "Abbrechen" : "Cancel"}
-            </button>
-          ) : null}
+        <div className="w-full max-w-[min(28rem,85vw)]">
+          <div className="flex items-center justify-end gap-2">
+            <p className="text-[11px] text-[var(--muted)]">
+              {progressLabel} ({progressPercent}%)
+            </p>
+            {isActiveJob && !job?.cancelRequested ? (
+              <button
+                type="button"
+                onClick={() => void cancelJob()}
+                className="text-[11px] font-medium text-rose-600 underline-offset-2 hover:underline"
+              >
+                {isDe ? "Abbrechen" : "Cancel"}
+              </button>
+            ) : null}
+          </div>
+          <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-slate-200/80 dark:bg-slate-700/70">
+            <div
+              className="h-full rounded-full bg-teal-600 transition-all duration-500 ease-out"
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
         </div>
       ) : null}
       {message ? (

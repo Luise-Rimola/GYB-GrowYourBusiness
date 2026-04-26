@@ -10,6 +10,8 @@ import {
   scaleLabelFromStudy,
 } from "@/lib/fragebogenScales";
 
+const requiredAsterisk = <span className="ml-1 text-rose-600">*</span>;
+
 type Fragebogen3FormProps = {
   action: (formData: FormData) => Promise<void>;
   t: Record<string, string>;
@@ -76,7 +78,7 @@ export function Fragebogen3Form({
           <div className="grid gap-4 sm:grid-cols-2">
             {DQ_ITEMS.map(({ key }) => (
               <div key={key}>
-                <label className="mb-1 block text-xs text-[var(--muted)]">{scaleLabelFromStudy(t, key)}</label>
+                <label className="mb-1 block text-xs text-[var(--muted)]">{scaleLabelFromStudy(t, key)}{requiredAsterisk}</label>
                 <LikertSelect name={key} fieldKey={key} initialValues={initialValues} />
               </div>
             ))}
@@ -87,7 +89,7 @@ export function Fragebogen3Form({
           <div className="grid gap-4 sm:grid-cols-2">
             {EV_ITEMS.map(({ key }) => (
               <div key={key}>
-                <label className="mb-1 block text-xs text-[var(--muted)]">{scaleLabelFromStudy(t, key)}</label>
+                <label className="mb-1 block text-xs text-[var(--muted)]">{scaleLabelFromStudy(t, key)}{requiredAsterisk}</label>
                 <LikertSelect name={key} fieldKey={key} initialValues={initialValues} />
               </div>
             ))}
@@ -98,7 +100,7 @@ export function Fragebogen3Form({
           <div className="grid gap-4 sm:grid-cols-2">
             {TR_ITEMS.map(({ key }) => (
               <div key={key}>
-                <label className="mb-1 block text-xs text-[var(--muted)]">{scaleLabelFromStudy(t, key)}</label>
+                <label className="mb-1 block text-xs text-[var(--muted)]">{scaleLabelFromStudy(t, key)}{requiredAsterisk}</label>
                 <LikertSelect name={key} fieldKey={key} initialValues={initialValues} />
               </div>
             ))}
@@ -109,7 +111,7 @@ export function Fragebogen3Form({
           <div className="grid gap-4 sm:grid-cols-2">
             {CF_ITEMS.map(({ key }) => (
               <div key={key}>
-                <label className="mb-1 block text-xs text-[var(--muted)]">{scaleLabelFromStudy(t, key)}</label>
+                <label className="mb-1 block text-xs text-[var(--muted)]">{scaleLabelFromStudy(t, key)}{requiredAsterisk}</label>
                 <LikertSelect name={key} fieldKey={key} initialValues={initialValues} />
               </div>
             ))}
@@ -120,7 +122,7 @@ export function Fragebogen3Form({
           <div className="grid gap-4 sm:grid-cols-2">
             {CL_ITEMS.map(({ key }) => (
               <div key={key}>
-                <label className="mb-1 block text-xs text-[var(--muted)]">{scaleLabelFromStudy(t, key)}</label>
+                <label className="mb-1 block text-xs text-[var(--muted)]">{scaleLabelFromStudy(t, key)}{requiredAsterisk}</label>
                 <LikertSelect name={key} fieldKey={key} initialValues={initialValues} />
               </div>
             ))}
