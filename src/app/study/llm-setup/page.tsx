@@ -25,6 +25,7 @@ export default async function LlmSetupPage({
       data: { llmApiUrl: null },
     });
   }
+  const envModel = getEnvDefaultModel();
   const locale = await getServerLocale();
   const t = getTranslations(locale);
 
@@ -47,7 +48,7 @@ export default async function LlmSetupPage({
           initialValues={{
             llmApiUrl: sanitizeHttpUrl(settings?.llmApiUrl) || getEnvDefaultApiUrl(),
             llmApiKey: settings?.llmApiKey ? "••••••••" : getEnvDefaultApiKey(),
-            llmModel: settings?.llmModel?.trim() || getEnvDefaultModel(),
+            llmModel: settings?.llmModel?.trim() || envModel,
           }}
           markLlmSetupComplete
           redirectTo="/study?saved=llm"

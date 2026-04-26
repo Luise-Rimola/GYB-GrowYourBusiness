@@ -3,7 +3,7 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { getOrCreateStudyParticipant } from "@/lib/study";
 import { sendVerificationEmail } from "@/lib/email";
-import { getEnvDefaultModel } from "@/lib/llmEnvDefaults";
+import { getEnvDefaultApiKey, getEnvDefaultApiUrl, getEnvDefaultModel } from "@/lib/llmEnvDefaults";
 import {
   generateSixDigitCode,
   hashVerificationCode,
@@ -68,6 +68,8 @@ export async function POST(req: Request) {
       where: { companyId: company.id },
       create: {
         companyId: company.id,
+        llmApiUrl: getEnvDefaultApiUrl() || null,
+        llmApiKey: getEnvDefaultApiKey() || null,
         llmModel: getEnvDefaultModel(),
       },
       update: {},

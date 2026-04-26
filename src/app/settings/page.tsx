@@ -33,6 +33,7 @@ export default async function SettingsPage({
       data: { llmApiUrl: null },
     });
   }
+  const envModel = getEnvDefaultModel();
   const latestProfile = await prisma.companyProfile.findFirst({
     where: { companyId: company.id },
     orderBy: { version: "desc" },
@@ -60,7 +61,7 @@ export default async function SettingsPage({
           initialValues={{
             llmApiUrl: sanitizeHttpUrl(settings?.llmApiUrl) || getEnvDefaultApiUrl(),
             llmApiKey: settings?.llmApiKey ? "••••••••" : getEnvDefaultApiKey(),
-            llmModel: settings?.llmModel?.trim() || getEnvDefaultModel(),
+            llmModel: settings?.llmModel?.trim() || envModel,
           }}
           hasStoredKey={!!settings?.llmApiKey}
         />
