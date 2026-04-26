@@ -1,18 +1,8 @@
 import { prisma } from "../src/lib/prisma";
-
-function isValidHttpUrl(value: string | null | undefined): boolean {
-  const raw = String(value ?? "").trim();
-  if (!raw) return false;
-  try {
-    const url = new URL(raw);
-    return url.protocol === "http:" || url.protocol === "https:";
-  } catch {
-    return false;
-  }
-}
+import { getEnvDefaultModel, sanitizeHttpUrl } from "../src/lib/llmEnvDefaults";
 
 async function main() {
-  const fallbackModel = String(process.env.LLM_MODEL_DEFAULT ?? "gpt-4o-mini").trim() || "gpt-4o-mini";
+  const fallbackModel = getEnvDefaultModel();
 
   const all = await prisma.companySettings.findMany({
     select: {
@@ -30,14 +20,14 @@ async function main() {
     const updates: { llmApiUrl?: string | null; llmModel?: string | null } = {};
 
     const rawUrl = String(row.llmApiUrl ?? "").trim();
-    if (rawUrl && !isValidHttpUrl(rawUrl)) {
+    if (rawUrl && !sanitizeHttpUrl(rawUrl)) {
       updates.llmApiUrl = null;
       urlFixed += 1;
     }
 
     const model = String(row.llmModel ?? "").trim().toLowerCase();
     const looksLikeLegacyDefault = model === "kimi-k2" || model === "kimi.k2";
-    const hasCustomSetup = isValidHttpUrl(row.llmApiUrl) || String(row.llmApiKey ?? "").trim().length > 0;
+    const hasCustomSetup = Boolean(sanitizeHttpUrl(row.llmApiUrl)) || String(row.llmApiKey ?? "").trim().length > 0;
     if (looksLikeLegacyDefault && !hasCustomSetup) {
       updates.llmModel = fallbackModel;
       modelFixed += 1;

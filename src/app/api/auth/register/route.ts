@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { getOrCreateStudyParticipant } from "@/lib/study";
 import { sendVerificationEmail } from "@/lib/email";
+import { getEnvDefaultModel } from "@/lib/llmEnvDefaults";
 import {
   generateSixDigitCode,
   hashVerificationCode,
@@ -67,7 +68,7 @@ export async function POST(req: Request) {
       where: { companyId: company.id },
       create: {
         companyId: company.id,
-        llmModel: process.env.LLM_MODEL_DEFAULT?.trim() || "gpt-4o-mini",
+        llmModel: getEnvDefaultModel(),
       },
       update: {},
     });

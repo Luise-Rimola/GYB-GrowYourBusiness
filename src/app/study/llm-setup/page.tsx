@@ -3,39 +3,13 @@ import { prisma } from "@/lib/prisma";
 import { requireCompany } from "@/lib/companyContext";
 import { getServerLocale } from "@/lib/locale";
 import { getTranslations } from "@/lib/i18n";
+import {
+  getEnvDefaultApiKey,
+  getEnvDefaultApiUrl,
+  getEnvDefaultModel,
+  sanitizeHttpUrl,
+} from "@/lib/llmEnvDefaults";
 import { SettingsForm } from "@/app/settings/SettingsForm";
-
-function sanitizeStoredApiUrl(value: string | null | undefined): string {
-  const raw = String(value ?? "").trim();
-  if (!raw) return "";
-  try {
-    const url = new URL(raw);
-    if (url.protocol === "http:" || url.protocol === "https:") return raw;
-    return "";
-  } catch {
-    return "";
-  }
-}
-
-function envDefaultApiUrl(): string {
-  const raw = String(process.env.LLM_API_URL_DEFAULT ?? "").trim();
-  if (!raw) return "";
-  try {
-    const url = new URL(raw);
-    if (url.protocol === "http:" || url.protocol === "https:") return raw;
-    return "";
-  } catch {
-    return "";
-  }
-}
-
-function envDefaultApiKey(): string {
-  return String(process.env.LLM_API_KEY_DEFAULT ?? "").trim();
-}
-
-function envDefaultModel(): string {
-  return String(process.env.LLM_MODEL_DEFAULT ?? "").trim() || "gpt-4o-mini";
-}
 
 export default async function LlmSetupPage({
   searchParams,
@@ -45,7 +19,7 @@ export default async function LlmSetupPage({
   const company = await requireCompany();
   const sp = await searchParams;
   let settings = await prisma.companySettings.findUnique({ where: { companyId: company.id } });
-  if (settings?.llmApiUrl && !sanitizeStoredApiUrl(settings.llmApiUrl)) {
+  if (settings?.llmApiUrl && !sanitizeHttpUrl(settings.llmApiUrl)) {
     settings = await prisma.companySettings.update({
       where: { companyId: company.id },
       data: { llmApiUrl: null },
@@ -71,9 +45,9 @@ export default async function LlmSetupPage({
         <SettingsForm
           companyId={company.id}
           initialValues={{
-            llmApiUrl: sanitizeStoredApiUrl(settings?.llmApiUrl) || envDefaultApiUrl(),
-            llmApiKey: settings?.llmApiKey ? "••••••••" : envDefaultApiKey(),
-            llmModel: settings?.llmModel?.trim() || envDefaultModel(),
+            llmApiUrl: sanitizeHttpUrl(settings?.llmApiUrl) || getEnvDefaultApiUrl(),
+            llmApiKey: settings?.llmApiKey ? "••••••••" : getEnvDefaultApiKey(),
+            llmModel: settings?.llmModel?.trim() || getEnvDefaultModel(),
           }}
           markLlmSetupComplete
           redirectTo="/study?saved=llm"
