@@ -23,7 +23,9 @@ export function getEnvDefaultApiUrl(): string {
     readFirstNonEmpty(
       process.env.LLM_API_URL_DEFAULT,
       process.env.LLM_API_URL,
+      process.env.KIMI_API_URL_DEFAULT,
       process.env.KIMI_API_URL,
+      process.env.OPENAI_API_URL_DEFAULT,
       process.env.OPENAI_API_URL,
       process.env.OPENAI_BASE_URL,
     ),
@@ -34,7 +36,9 @@ export function getEnvDefaultApiKey(): string {
   return readFirstNonEmpty(
     process.env.LLM_API_KEY_DEFAULT,
     process.env.LLM_API_KEY,
+    process.env.KIMI_API_KEY_DEFAULT,
     process.env.KIMI_API_KEY,
+    process.env.OPENAI_API_KEY_DEFAULT,
     process.env.OPENAI_API_KEY,
   );
 }
@@ -44,7 +48,9 @@ export function getEnvDefaultModel(): string {
     readFirstNonEmpty(
       process.env.LLM_MODEL_DEFAULT,
       process.env.LLM_MODEL,
+      process.env.KIMI_MODEL_DEFAULT,
       process.env.KIMI_MODEL,
+      process.env.OPENAI_MODEL_DEFAULT,
       process.env.OPENAI_MODEL,
     ) || "gpt-4o-mini"
   );
