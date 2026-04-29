@@ -298,9 +298,9 @@ function dispatchAssistantPulse(phase: "start" | "end") {
   window.dispatchEvent(new CustomEvent(NAV_TRANSITION_EVENT, { detail: { phase } }));
 }
 
-function readPersistedDoneHrefs(): Set<string> {
+function readPersistedDoneHrefs(storageScope: string): Set<string> {
   try {
-    const raw = localStorage.getItem(ASSISTANT_DONE_HREFS_KEY);
+    const raw = localStorage.getItem(`${ASSISTANT_DONE_HREFS_KEY}:${storageScope}`);
     const arr = raw ? (JSON.parse(raw) as string[]) : [];
     return new Set(arr);
   } catch {
@@ -308,11 +308,11 @@ function readPersistedDoneHrefs(): Set<string> {
   }
 }
 
-function persistDoneHref(href: string) {
+function persistDoneHref(href: string, storageScope: string) {
   try {
-    const s = readPersistedDoneHrefs();
+    const s = readPersistedDoneHrefs(storageScope);
     s.add(href);
-    localStorage.setItem(ASSISTANT_DONE_HREFS_KEY, JSON.stringify([...s]));
+    localStorage.setItem(`${ASSISTANT_DONE_HREFS_KEY}:${storageScope}`, JSON.stringify([...s]));
   } catch {
     /* ignore */
   }
@@ -322,15 +322,15 @@ function persistDoneHref(href: string) {
 export function WorkflowAssistantFrame({
   steps,
   assistantTitle = "Studiendurchführungs Assistent",
+  storageScope = "default",
 }: {
   steps: AssistantStep[];
   assistantTitle?: string;
+  storageScope?: string;
 }) {
   const router = useRouter();
-  const firstOpen = steps.findIndex((s) => !s.completed);
-  const fallbackIndex = firstOpen >= 0 ? firstOpen : Math.max(steps.length - 1, 0);
-  const [index, setIndex] = useState(fallbackIndex);
-  const indexRef = useRef(fallbackIndex);
+  const [index, setIndex] = useState(0);
+  const indexRef = useRef(0);
   indexRef.current = index;
   const [locallyDone, setLocallyDone] = useState<Record<number, boolean>>({});
   const [persistedDone, setPersistedDone] = useState<Set<string>>(new Set());
@@ -356,9 +356,9 @@ export function WorkflowAssistantFrame({
     if (hydratedFromStorage.current) return;
     hydratedFromStorage.current = true;
     try {
-      const done = readPersistedDoneHrefs();
+      const done = readPersistedDoneHrefs(storageScope);
       setPersistedDone(done);
-      const raw = window.localStorage.getItem(ASSISTANT_INDEX_KEY);
+      const raw = window.localStorage.getItem(`${ASSISTANT_INDEX_KEY}:${storageScope}`);
       const n = raw != null ? Number(raw) : NaN;
       const url = new URL(window.location.href);
       const forceNextOpenOnStart = url.searchParams.get("start") === "1";
@@ -376,8 +376,14 @@ export function WorkflowAssistantFrame({
         window.history.replaceState(window.history.state, "", cleaned || "/assistant");
       }
 
-      if (forceNextOpenOnStart || !Number.isFinite(n)) {
+      if (forceNextOpenOnStart) {
         setIndex(fallbackFromPersisted);
+        return;
+      }
+
+      if (!Number.isFinite(n)) {
+        // New profiles/scopes start explicitly at step 1.
+        setIndex(0);
         return;
       }
 
@@ -387,15 +393,15 @@ export function WorkflowAssistantFrame({
     } catch {
       /* ignore */
     }
-  }, [steps]);
+  }, [steps, storageScope]);
 
   useEffect(() => {
     try {
-      window.localStorage.setItem(ASSISTANT_INDEX_KEY, String(index));
+      window.localStorage.setItem(`${ASSISTANT_INDEX_KEY}:${storageScope}`, String(index));
     } catch {
       /* ignore */
     }
-  }, [index]);
+  }, [index, storageScope]);
 
   useEffect(() => {
     lastCompletionUrlRef.current = null;
@@ -416,7 +422,7 @@ export function WorkflowAssistantFrame({
   }
 
   function markDoneHref(href: string) {
-    persistDoneHref(href);
+    persistDoneHref(href, storageScope);
     setPersistedDone((prev) => {
       const next = new Set(prev);
       next.add(href);
@@ -653,7 +659,17 @@ export function WorkflowAssistantFrame({
   }
 
   if (!current) return null;
-  const iframeSrc = toEmbedHref(current.href);
+  const isDashboardPhaseStep = isPhaseDashboardAssistantHref(current.href);
+  const dashboardRefreshToken =
+    isDashboardPhaseStep && phaseRunStatus
+      ? `${phaseRunStatus.status}-${phaseRunStatus.completedSteps}-${phaseRunStatus.totalSteps}`
+      : "static";
+  const iframeSrc = (() => {
+    const base = toEmbedHref(current.href);
+    if (!isDashboardPhaseStep) return base;
+    const joiner = base.includes("?") ? "&" : "?";
+    return `${base}${joiner}assistant_refresh=${encodeURIComponent(dashboardRefreshToken)}`;
+  })();
   const liveIframeHref = getIframeHref();
   const stepInfo = stepInfoFromHref(liveIframeHref ?? resolvedIframeHref ?? current.href);
   const phaseIdForProgress =
@@ -741,22 +757,16 @@ export function WorkflowAssistantFrame({
     (phaseRunStatus?.status === "queued" ||
       phaseRunStatus?.status === "running");
   const isProfileStepNow = (steps[index]?.href ?? "").startsWith("/profile");
-  const nowMs = Date.now();
-  const recentWindowMs = 6 * 60 * 60 * 1000;
-  const relevantPhaseJobs = allPhaseJobs.filter((job): job is AssistantPhaseRunStatus => {
-    if (!job || !job.createdAt) return false;
-    return (
-      nowMs - new Date(String(job.createdAt)).getTime() <= recentWindowMs &&
-      (job.status === "queued" || job.status === "running" || job.status === "completed")
-    );
-  });
+  const relevantPhaseJobs = allPhaseJobs.filter(
+    (job): job is AssistantPhaseRunStatus => Boolean(job),
+  );
   const allPhasesTotalCount = allPhaseJobs.length;
   const allPhasesCompletedCount = relevantPhaseJobs.filter((job) => job.status === "completed").length;
   const allPhasesProgressPercent =
     allPhasesTotalCount > 0
       ? Math.max(0, Math.min(100, Math.round((allPhasesCompletedCount / allPhasesTotalCount) * 100)))
       : 0;
-  const allStartedPhasesCount = relevantPhaseJobs.length;
+  const allStartedPhasesCount = relevantPhaseJobs.filter((job) => job.status !== "queued" || job.totalSteps > 0).length;
   const showAllPhasesProgress = allPhasesTotalCount > 0 && allStartedPhasesCount > 0;
 
   const assistantExitHref = current.phaseId
@@ -845,7 +855,7 @@ export function WorkflowAssistantFrame({
 
       <div className="min-h-0 flex-1 overflow-hidden">
         <iframe
-          key={`${index}-${iframeSrc}`}
+          key={`${index}-${iframeSrc}-${dashboardRefreshToken}`}
           ref={iframeRef}
           title={current.label}
           src={iframeSrc}

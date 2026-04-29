@@ -132,16 +132,6 @@ export async function loadAssistantSteps(params: {
       }),
     [] as Array<{ type: string; run: { workflowKey: string } | null }>
   );
-  const sourcesCount = await safeDb(() => prisma.source.count({ where: { companyId } }), 0);
-  const documentsCount = await safeDb(() => prisma.document.count({ where: { companyId } }), 0);
-  const companySettings = await safeDb(
-    () =>
-      prisma.companySettings.findUnique({
-        where: { companyId },
-        select: { llmApiUrl: true, llmApiKey: true },
-      }),
-    null as { llmApiUrl: string | null; llmApiKey: string | null } | null
-  );
   const scenarioEvaluationCount = await safeDb(() => prisma.scenarioEvaluation.count({ where: { companyId } }), 0);
   const fb2ByCategory = await safeDb(() => loadQuestionnaireCategories(participantId, "fb2"), [] as Array<{ category: string | null }>);
   const fb3ByCategory = await safeDb(() => loadQuestionnaireCategories(participantId, "fb3"), [] as Array<{ category: string | null }>);
@@ -149,8 +139,6 @@ export async function loadAssistantSteps(params: {
   const hasFb5Response = await safeDb(() => hasQuestionnaireResponse(participantId, "fb5"), false);
 
   const completedRuns = runs.filter((r) => ["complete", "approved"].includes(r.status)).length;
-  const hasDocsUploaded = sourcesCount > 0 || documentsCount > 0;
-  const hasLlmConfigured = Boolean(companySettings?.llmApiUrl?.trim()) || Boolean(companySettings?.llmApiKey?.trim());
   const hasArtifacts = artifacts.length > 0;
   const hasCompletedRuns = completedRuns > 0;
   const hasDecisions = decisions > 0;
@@ -302,7 +290,6 @@ export async function loadAssistantSteps(params: {
   });
 
   return [
-    { href: "/settings#llm-api", label: t.home.stepLlm, completed: hasLlmConfigured },
     ...(includeHandbookStep ? [{ href: "/manual", label: t.home.handbookStep, completed: false }] : []),
     { href: "/study/fb1", label: t.study.fb1Title, completed: participantCompletedFb1 },
     { href: "/profile", label: t.home.companyProfile, completed: profileCompletePercent >= 50 },

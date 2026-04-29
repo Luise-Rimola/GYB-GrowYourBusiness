@@ -18,6 +18,15 @@ import { PhaseRunButtonForm } from "@/components/PhaseRunButtonForm";
 import { getStudyCategoryContext, type StudyCategoryKey } from "@/lib/studyCategoryContext";
 import { unlockAllWorkflowsFromEnv } from "@/lib/workflowUnlock";
 
+async function safeDb<T>(label: string, query: () => Promise<T>, fallback: T): Promise<T> {
+  try {
+    return await query();
+  } catch (err) {
+    console.error(`[dashboard][${label}]`, err);
+    return fallback;
+  }
+}
+
 function getWorkflowArtifactLabel(workflowKey: string, artifactType: string, locale: "de" | "en") {
   if (workflowKey === "WF_IDEA_USP_VALIDATION" && artifactType === "value_proposition") {
     return locale === "de" ? "Idee- & USP-Validierung" : "Idea & USP validation";
@@ -184,36 +193,71 @@ export default async function DashboardPage({
     recentRuns,
     phaseReleasedMap,
   ] = await Promise.all([
-    prisma.artifact.findMany({
-      where: { companyId: company.id },
-      orderBy: { createdAt: "desc" },
-    }),
-    prisma.decision.findMany({ where: { companyId: company.id } }),
-    prisma.run.findMany({
-      where: { companyId: company.id },
-      select: {
-        id: true,
-        workflowKey: true,
-        status: true,
-        createdAt: true,
-        _count: { select: { artifacts: true } },
-        // Wir brauchen die Step-Validierung, um Workflows nur dann als
-        // "Abgeschlossen" zu markieren, wenn wirklich ALLE erwarteten Steps
-        // erfolgreich validiert wurden (siehe `workflowHasAllStepsValidated`).
-        steps: { select: { stepKey: true, schemaValidationPassed: true } },
-      },
-      orderBy: { createdAt: "desc" },
-    }),
-    prisma.companyProfile.findFirst({ where: { companyId: company.id }, orderBy: { version: "desc" } }),
-    prisma.artifact.findFirst({ where: { companyId: company.id, type: "baseline" } }),
-    prisma.companyKpiSet.findFirst({ where: { companyId: company.id }, orderBy: { version: "desc" } }),
-    prisma.run.findMany({
-      where: { companyId: company.id },
-      include: { _count: { select: { steps: true } } },
-      orderBy: { createdAt: "desc" },
-      take: 20,
-    }),
-    getPlanningPhaseReleasedMap(company.id),
+    safeDb(
+      "artifacts.findMany",
+      () =>
+        prisma.artifact.findMany({
+          where: { companyId: company.id },
+          orderBy: { createdAt: "desc" },
+        }),
+      [] as Awaited<ReturnType<typeof prisma.artifact.findMany>>,
+    ),
+    safeDb(
+      "decision.findMany",
+      () => prisma.decision.findMany({ where: { companyId: company.id } }),
+      [] as Awaited<ReturnType<typeof prisma.decision.findMany>>,
+    ),
+    safeDb(
+      "run.findMany.main",
+      () =>
+        prisma.run.findMany({
+          where: { companyId: company.id },
+          select: {
+            id: true,
+            workflowKey: true,
+            status: true,
+            createdAt: true,
+            _count: { select: { artifacts: true } },
+            // Wir brauchen die Step-Validierung, um Workflows nur dann als
+            // "Abgeschlossen" zu markieren, wenn wirklich ALLE erwarteten Steps
+            // erfolgreich validiert wurden (siehe `workflowHasAllStepsValidated`).
+            steps: { select: { stepKey: true, schemaValidationPassed: true } },
+          },
+          orderBy: { createdAt: "desc" },
+        }),
+      [] as any[],
+    ),
+    safeDb(
+      "companyProfile.findFirst",
+      () => prisma.companyProfile.findFirst({ where: { companyId: company.id }, orderBy: { version: "desc" } }),
+      null as Awaited<ReturnType<typeof prisma.companyProfile.findFirst>>,
+    ),
+    safeDb(
+      "artifact.findFirst.baseline",
+      () => prisma.artifact.findFirst({ where: { companyId: company.id, type: "baseline" } }),
+      null as Awaited<ReturnType<typeof prisma.artifact.findFirst>>,
+    ),
+    safeDb(
+      "companyKpiSet.findFirst",
+      () => prisma.companyKpiSet.findFirst({ where: { companyId: company.id }, orderBy: { version: "desc" } }),
+      null as Awaited<ReturnType<typeof prisma.companyKpiSet.findFirst>>,
+    ),
+    safeDb(
+      "run.findMany.recent",
+      () =>
+        prisma.run.findMany({
+          where: { companyId: company.id },
+          include: { _count: { select: { steps: true } } },
+          orderBy: { createdAt: "desc" },
+          take: 20,
+        }),
+      [] as any[],
+    ),
+    safeDb(
+      "planningPhaseRelease.map",
+      () => getPlanningPhaseReleasedMap(company.id),
+      {} as Record<string, boolean>,
+    ),
   ]);
 
   // Fehlende Dokumente aus vorhandenen (abgeschlossenen) Läufen nachziehen.

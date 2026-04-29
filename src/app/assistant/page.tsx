@@ -16,6 +16,7 @@ export default async function AssistantPage() {
     orderBy: { version: "desc" },
   });
   const profileComplete = latestProfile ? Math.round(latestProfile.completenessScore * 100) : 0;
+  const storageScope = `${company.id}:p${latestProfile?.version ?? 0}`;
 
   const steps = await loadAssistantSteps({
     companyId: company.id,
@@ -49,7 +50,7 @@ export default async function AssistantPage() {
 
   return (
     <div className="-my-10 max-md:-mx-6 max-md:w-[calc(100%+3rem)] max-md:max-w-[100vw] overflow-hidden py-2 md:mx-0 md:w-full md:py-4">
-      <WorkflowAssistantFrame steps={steps} />
+      <WorkflowAssistantFrame steps={steps} storageScope={storageScope} />
     </div>
   );
 }

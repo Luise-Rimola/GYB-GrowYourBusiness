@@ -10,6 +10,7 @@ import { startPhaseRunsInGlobalSequence } from "@/lib/phaseRunJobs";
 import { runCompanyEnrichment } from "@/lib/companyEnrichment";
 import { prisma } from "@/lib/prisma";
 import type { Locale } from "@/lib/i18n";
+import { getEnvDefaultApiKey, getEnvDefaultApiUrl, getEnvDefaultModel } from "@/lib/llmEnvDefaults";
 
 async function startBackgroundRunsPerPhase(companyId: string, locale: Locale): Promise<void> {
   const phaseEntries = PLANNING_PHASES.map((phase) => ({
@@ -62,10 +63,45 @@ async function resetActivePhaseRunJobs(companyId: string): Promise<void> {
   });
 }
 
+async function ensureCompanySettingsFromEnv(companyId: string): Promise<void> {
+  const envUrl = getEnvDefaultApiUrl();
+  const envKey = getEnvDefaultApiKey();
+  const envModel = getEnvDefaultModel();
+
+  const existing = await prisma.companySettings.findUnique({
+    where: { companyId },
+    select: { llmApiUrl: true, llmApiKey: true, llmModel: true },
+  });
+
+  if (!existing) {
+    await prisma.companySettings.create({
+      data: {
+        companyId,
+        llmApiUrl: envUrl || null,
+        llmApiKey: envKey || null,
+        llmModel: envModel || null,
+      },
+    });
+    return;
+  }
+
+  const updateData: { llmApiUrl?: string; llmApiKey?: string; llmModel?: string } = {};
+  if (!existing.llmApiUrl?.trim() && envUrl) updateData.llmApiUrl = envUrl;
+  if (!existing.llmApiKey?.trim() && envKey) updateData.llmApiKey = envKey;
+  if (!existing.llmModel?.trim() && envModel) updateData.llmModel = envModel;
+  if (Object.keys(updateData).length > 0) {
+    await prisma.companySettings.update({
+      where: { companyId },
+      data: updateData,
+    });
+  }
+}
+
 async function submitIntake(formData: FormData) {
   "use server";
   const company = await getOrCreateDemoCompany();
   await processIntakeForm(company.id, formData);
+  await ensureCompanySettingsFromEnv(company.id);
   const profileFlow = String(formData.get("profile_flow") ?? "manual").trim();
   if (profileFlow === "auto_web") {
     const locale = await getServerLocale();
