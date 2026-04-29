@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCompanyForApi } from "@/lib/companyContext";
 import { findLatestJobForPhase } from "@/lib/phaseRunJobs";
+import { PLANNING_PHASES } from "@/lib/planningFramework";
 
 export const runtime = "nodejs";
 
@@ -14,6 +15,7 @@ export async function GET(req: Request) {
     const url = new URL(req.url);
     const phaseId = url.searchParams.get("phaseId") ?? "";
     const jobId = url.searchParams.get("jobId");
+    const allPhases = url.searchParams.get("all") === "1";
     const phaseRunJob = (prisma as unknown as { phaseRunJob?: any }).phaseRunJob;
 
     if (jobId) {
@@ -28,7 +30,18 @@ export async function GET(req: Request) {
     }
 
     if (!phaseId) {
-      return NextResponse.json({ error: "phaseId or jobId required" }, { status: 400 });
+      if (!allPhases) {
+        return NextResponse.json({ error: "phaseId or jobId required" }, { status: 400 });
+      }
+      const jobs = await Promise.all(
+        PLANNING_PHASES.map((phase) =>
+          findLatestJobForPhase({ companyId: company.id, phaseId: phase.id })
+        )
+      );
+      return NextResponse.json({
+        jobs: jobs.map((job) => (job ? serializeJob(job) : null)),
+        phases: PLANNING_PHASES.map((p) => p.id),
+      });
     }
 
     const job = await findLatestJobForPhase({ companyId: company.id, phaseId });

@@ -1038,10 +1038,10 @@ export default async function DashboardPage({
                                   type="checkbox"
                                   name="workflow_keys"
                                   value={wf.key}
-                                  // Continue-Run soll auch bereits gestartete (draft/incomplete)
-                                  // Workflows mitnehmen; nur vollständig abgeschlossene
-                                  // Workflows bleiben standardmäßig abgewählt.
-                                  defaultChecked={!hasComplete}
+                                  // Nicht automatisch abwählen: Alle Prozesse sind
+                                  // standardmäßig vorausgewählt und können bei Bedarf
+                                  // manuell deaktiviert werden.
+                                  defaultChecked
                                   form={phaseFormId}
                                   data-phase-workflow={phase.id}
                                   className="h-4 w-4 rounded border-[var(--card-border)] text-teal-600 focus:ring-teal-500"

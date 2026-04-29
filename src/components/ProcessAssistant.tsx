@@ -48,6 +48,7 @@ type AssistantPhaseRunStatus = {
   status: "queued" | "running" | "completed" | "failed" | "cancelled";
   totalSteps: number;
   completedSteps: number;
+  createdAt?: string | null;
 };
 
 function getAssistantPhaseIdFromHref(href: string | null): string | null {
@@ -341,6 +342,7 @@ export function WorkflowAssistantFrame({
   const [runProcessUnlocked, setRunProcessUnlocked] = useState<Record<number, boolean>>({});
   const [processCompleteModalOpen, setProcessCompleteModalOpen] = useState(false);
   const [phaseRunStatus, setPhaseRunStatus] = useState<AssistantPhaseRunStatus | null>(null);
+  const [allPhaseJobs, setAllPhaseJobs] = useState<Array<AssistantPhaseRunStatus | null>>([]);
   const pendingNextIndexRef = useRef<number | null>(null);
   const pendingTimeoutRef = useRef<number | null>(null);
   const lastCompletionUrlRef = useRef<string | null>(null);
@@ -425,11 +427,7 @@ export function WorkflowAssistantFrame({
   function nextSequentialIndex(fromIndex: number) {
     const st = stepsRef.current;
     const lastIndex = Math.max(st.length - 1, 0);
-    let candidate = Math.min(fromIndex + 1, lastIndex);
-    while (candidate < lastIndex && isStepAlreadyDone(candidate)) {
-      candidate += 1;
-    }
-    return candidate;
+    return Math.min(fromIndex + 1, lastIndex);
   }
 
   function getIframeHref() {
@@ -555,6 +553,21 @@ export function WorkflowAssistantFrame({
     }, 700);
     return () => window.clearInterval(id);
   }, []);
+
+  useEffect(() => {
+    const currentHref = stepsRef.current[indexRef.current]?.href ?? "";
+    if (!currentHref.startsWith("/profile")) return;
+    if (!resolvedIframeHref) return;
+    if (!resolvedIframeHref.includes("/dashboard") && !resolvedIframeHref.includes("assistantContinue=fb2")) return;
+    const idx = indexRef.current;
+    const doneHref = stepsRef.current[idx]?.href ?? currentHref;
+    markDoneHref(doneHref);
+    setLocallyDone((d) => ({ ...d, [idx]: true }));
+    queueMicrotask(() => {
+      setIndex(nextSequentialIndex(idx));
+      dispatchAssistantPulse("end");
+    });
+  }, [resolvedIframeHref]);
 
   useEffect(() => {
     function onMsg(e: MessageEvent) {
@@ -685,6 +698,35 @@ export function WorkflowAssistantFrame({
     };
   }, [phaseIdForProgress]);
 
+  useEffect(() => {
+    let disposed = false;
+    let timer: number | null = null;
+    const fetchAllPhaseProgress = async () => {
+      try {
+        const res = await fetch("/api/phase-runs/status?all=1", {
+          credentials: "same-origin",
+        });
+        if (!res.ok) return;
+        const data = (await res.json()) as {
+          jobs?: Array<AssistantPhaseRunStatus | null>;
+        };
+        if (!disposed) {
+          setAllPhaseJobs(Array.isArray(data.jobs) ? data.jobs : []);
+        }
+      } catch {
+        /* ignore transient polling failures */
+      }
+    };
+    void fetchAllPhaseProgress();
+    timer = window.setInterval(() => {
+      void fetchAllPhaseProgress();
+    }, 2500);
+    return () => {
+      disposed = true;
+      if (timer !== null) window.clearInterval(timer);
+    };
+  }, []);
+
   const topProgressPercent = (() => {
     if (!phaseRunStatus) return 0;
     if (phaseRunStatus.status === "completed") return 100;
@@ -697,8 +739,25 @@ export function WorkflowAssistantFrame({
   const showTopProgress =
     Boolean(phaseRunStatus) &&
     (phaseRunStatus?.status === "queued" ||
-      phaseRunStatus?.status === "running" ||
-      phaseRunStatus?.status === "completed");
+      phaseRunStatus?.status === "running");
+  const isProfileStepNow = (steps[index]?.href ?? "").startsWith("/profile");
+  const nowMs = Date.now();
+  const recentWindowMs = 6 * 60 * 60 * 1000;
+  const relevantPhaseJobs = allPhaseJobs.filter(
+    (job): job is AssistantPhaseRunStatus =>
+      Boolean(job) &&
+      Boolean(job.createdAt) &&
+      nowMs - new Date(String(job.createdAt)).getTime() <= recentWindowMs &&
+      (job.status === "queued" || job.status === "running" || job.status === "completed")
+  );
+  const allPhasesTotalCount = allPhaseJobs.length;
+  const allPhasesCompletedCount = relevantPhaseJobs.filter((job) => job.status === "completed").length;
+  const allPhasesProgressPercent =
+    allPhasesTotalCount > 0
+      ? Math.max(0, Math.min(100, Math.round((allPhasesCompletedCount / allPhasesTotalCount) * 100)))
+      : 0;
+  const allStartedPhasesCount = relevantPhaseJobs.length;
+  const showAllPhasesProgress = allPhasesTotalCount > 0 && allStartedPhasesCount > 0;
 
   const assistantExitHref = current.phaseId
     ? `/dashboard?view=overview&phase=${encodeURIComponent(current.phaseId)}#phase-${encodeURIComponent(current.phaseId)}`
@@ -718,7 +777,20 @@ export function WorkflowAssistantFrame({
           <p className="mt-1 text-sm text-[var(--muted)]">
             Schritt {index + 1} von {steps.length} — {completedCount} erledigt
           </p>
-          {showTopProgress ? (
+          {showAllPhasesProgress ? (
+            <div className="mt-2 w-full max-w-xl">
+              <p className="mb-1 text-xs font-medium text-[var(--muted)]">
+                Phasenfortschritt: {allPhasesCompletedCount}/{allPhasesTotalCount} abgeschlossen ({allPhasesProgressPercent}%) - gestartet: {allStartedPhasesCount}/{allPhasesTotalCount}
+              </p>
+              <div className="h-2 w-full overflow-hidden rounded-full bg-slate-200/80 dark:bg-slate-700/70">
+                <div
+                  className="h-full rounded-full bg-teal-600 transition-all duration-500 ease-out"
+                  style={{ width: `${allPhasesProgressPercent}%` }}
+                />
+              </div>
+            </div>
+          ) : null}
+          {!isProfileStepNow && !showAllPhasesProgress && showTopProgress ? (
             <div className="mt-2 w-full max-w-xl">
               <p className="mb-1 text-xs font-medium text-[var(--muted)]">
                 {phaseRunStatus?.status === "queued"
@@ -812,7 +884,7 @@ export function WorkflowAssistantFrame({
         </button>
         {isProfileStep ? (
           <p className="text-xs text-[var(--muted)]">
-            Weiter im Formular unten wählen: mit Web-Infos oder nur manuell.
+            Mit den Daten aus diesem Formular kann die KI alle Analysen durchführen. Beim manuellen KI-Analyse-Start können Sie zusätzlich pro Analyse im Notizfeld weitere Informationen ergänzen, um die Ergebnisse zu verbessern.
           </p>
         ) : (
           <div className="flex flex-wrap items-center gap-3">

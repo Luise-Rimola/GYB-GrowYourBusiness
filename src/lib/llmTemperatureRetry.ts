@@ -6,6 +6,7 @@ import { LLM_UPSTREAM_FETCH_MS } from "@/lib/llmClientTimeouts";
 import { fetchLlmUpstream } from "@/lib/llmUpstreamFetch";
 
 const TEMPERATURE_REJECT_RE = /invalid temperature|only 1 is allowed|temperature\s+must\s+be/i;
+const ENGINE_OVERLOADED_RE = /engine_overloaded|overloaded|please try again later/i;
 
 /** Transient network-/socket-Fehler, die bei erneutem Versuch meistens wegsind. */
 const TRANSIENT_NETWORK_RE =
@@ -105,26 +106,50 @@ export async function fetchChatCompletionWithTemperatureRetry(
   body: Record<string, unknown>,
   outerSignal?: AbortSignal
 ): Promise<Response> {
+  const postOnce = (payload: Record<string, unknown>) =>
+    fetchLlmUpstreamWithRetry(chatUrl, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(payload),
+      signalFactory: () => upstreamSignal(outerSignal),
+    });
+
+  const retryOverloaded = async (
+    initialStatus: number,
+    initialText: string,
+    payload: Record<string, unknown>,
+  ): Promise<Response> => {
+    let status = initialStatus;
+    let errText = initialText;
+    // Provider-Überlastung ist oft nur transient — wenige kurze Retries helfen.
+    const waits = [2_000, 5_000, 10_000];
+    for (const waitMs of waits) {
+      const overloaded =
+        (status === 429 || status === 503) &&
+        ENGINE_OVERLOADED_RE.test(errText);
+      if (!overloaded) break;
+      await sleep(jitter(waitMs));
+      const retryRes = await postOnce(payload);
+      if (retryRes.ok) return retryRes as unknown as Response;
+      status = retryRes.status;
+      errText = await retryRes.text();
+    }
+    return new Response(errText, { status, statusText: "Upstream overloaded" });
+  };
+
   logUpstreamStart(chatUrl, body);
-  let res = await fetchLlmUpstreamWithRetry(chatUrl, {
-    method: "POST",
-    headers,
-    body: JSON.stringify(body),
-    signalFactory: () => upstreamSignal(outerSignal),
-  });
+  let res = await postOnce(body);
   if (res.ok) return res as unknown as Response;
 
   const errText = await res.text();
   if (res.status === 400 && TEMPERATURE_REJECT_RE.test(errText)) {
     logUpstreamStart(chatUrl, { ...body, temperature: 1 });
-    res = await fetchLlmUpstreamWithRetry(chatUrl, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({ ...body, temperature: 1 }),
-      signalFactory: () => upstreamSignal(outerSignal),
-    });
-    return res as unknown as Response;
+    const tempBody = { ...body, temperature: 1 };
+    res = await postOnce(tempBody);
+    if (res.ok) return res as unknown as Response;
+    const tempErrText = await res.text();
+    return retryOverloaded(res.status, tempErrText, tempBody);
   }
 
-  return new Response(errText, { status: res.status, statusText: res.statusText });
+  return retryOverloaded(res.status, errText, body);
 }

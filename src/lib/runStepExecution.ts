@@ -228,6 +228,76 @@ function supportsJsonMode(model: string): boolean {
   return !(m.includes("kimi") || m.includes("moonshot"));
 }
 
+async function tryRepairInvalidStepJson(params: {
+  chatUrl: string;
+  headers: Record<string, string>;
+  model: string;
+  stepKey: string;
+  schemaKey: string;
+  rawContent: string;
+  validationErrors: string[];
+}): Promise<string | null> {
+  const clippedContent = params.rawContent.slice(0, 80_000);
+  const clippedErrors = params.validationErrors.slice(0, 6).join("; ");
+  const repairPrompt =
+    [
+      "Convert the following model output into STRICT valid JSON for downstream schema validation.",
+      "Return ONLY JSON. No markdown. No commentary.",
+      `Step key: ${params.stepKey}`,
+      `Schema key: ${params.schemaKey}`,
+      `Validation errors to fix: ${clippedErrors || "unknown"}`,
+      "Preserve the original meaning and values where possible.",
+      "",
+      "Original output:",
+      clippedContent,
+    ].join("\n");
+
+  const payloadWithJsonMode: Record<string, unknown> = {
+    model: params.model,
+    messages: [{ role: "user", content: repairPrompt }],
+    temperature: 0,
+    response_format: { type: "json_object" as const },
+  };
+  const payloadPlain: Record<string, unknown> = {
+    model: params.model,
+    messages: [{ role: "user", content: repairPrompt }],
+    temperature: 0,
+  };
+
+  let repairRes: Response;
+  if (supportsJsonMode(params.model)) {
+    repairRes = await fetchChatCompletionWithTemperatureRetry(
+      params.chatUrl,
+      params.headers,
+      payloadWithJsonMode,
+    );
+    if (!repairRes.ok) {
+      repairRes = await fetchChatCompletionWithTemperatureRetry(
+        params.chatUrl,
+        params.headers,
+        payloadPlain,
+      );
+    }
+  } else {
+    repairRes = await fetchChatCompletionWithTemperatureRetry(
+      params.chatUrl,
+      params.headers,
+      payloadPlain,
+    );
+  }
+  if (!repairRes.ok) return null;
+  const rawRepair = await repairRes.text();
+  let repairData: { error?: { message?: string } };
+  try {
+    repairData = JSON.parse(rawRepair) as { error?: { message?: string } };
+  } catch {
+    return null;
+  }
+  if (repairData.error?.message) return null;
+  const repairedContent = extractAssistantTextFromChatCompletion(repairData).trim();
+  return repairedContent.length > 0 ? repairedContent : null;
+}
+
 export async function executeRunStepForCompany(params: {
   companyId: string;
   runId: string;
@@ -353,10 +423,33 @@ export async function executeRunStepForCompany(params: {
     promptTemplateVersion: prompt.template.version,
     autoVerify: true,
   });
-  if (!result.validation.ok) {
-    throw new Error(`Schema validation failed: ${result.validation.errors.slice(0, 3).join("; ")}`);
+  if (result.validation.ok) return result;
+
+  // Ein zusätzlicher Reparaturversuch reduziert harte Abbrüche bei JSON-/Schema-
+  // Ausreißern (z. B. invalid JSON oder String statt Array in einzelnen Feldern).
+  const repaired = await tryRepairInvalidStepJson({
+    chatUrl,
+    headers,
+    model,
+    stepKey: params.stepKey,
+    schemaKey: String(stepConfig.schemaKey),
+    rawContent: content,
+    validationErrors: result.validation.errors,
+  });
+  if (repaired) {
+    const repairedResult = await WorkflowService.saveStep({
+      runId: run.id,
+      stepKey: params.stepKey,
+      schemaKey: stepConfig.schemaKey as SchemaKey,
+      promptRendered,
+      userResponse: repaired,
+      promptTemplateVersion: prompt.template.version,
+      autoVerify: true,
+    });
+    if (repairedResult.validation.ok) return repairedResult;
+    throw new Error(`Schema validation failed: ${repairedResult.validation.errors.slice(0, 3).join("; ")}`);
   }
-  return result;
+  throw new Error(`Schema validation failed: ${result.validation.errors.slice(0, 3).join("; ")}`);
 }
 
 export async function executePrimaryWorkflowStepForCompany(params: {

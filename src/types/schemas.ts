@@ -1522,7 +1522,10 @@ export const techDigitalizationSchema = wrapRootArrayAs("tools", z.object({
       description: z.string().optional(),
       typical_cost: z.string().optional(),
       roi_notes: z.string().optional(),
-      recommendations: z.array(z.string()).optional(),
+      recommendations: z.preprocess(
+        (v) => (typeof v === "string" ? [v] : v),
+        z.array(z.string()),
+      ).optional(),
     })),
   ),
   recommendations: z.array(z.string()),

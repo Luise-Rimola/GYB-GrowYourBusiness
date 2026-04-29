@@ -219,6 +219,80 @@ export async function startPhaseRunJob(params: {
   return { kind: "started", jobId: job.id, totalSteps: job.totalSteps };
 }
 
+function isTerminalPhaseRunStatus(status: string): boolean {
+  return status === "completed" || status === "failed" || status === "cancelled";
+}
+
+async function waitForPhaseRunJobToFinish(jobId: string): Promise<void> {
+  const phaseRunJob = requirePhaseRunJobDelegate();
+  // Polling ist hier ausreichend: wir brauchen nur eine robuste Reihenfolge
+  // "Phase A fertig -> starte Phase B", keine Echtzeit-Subsekundenupdates.
+  for (;;) {
+    const fresh = (await phaseRunJob.findUnique({
+      where: { id: jobId },
+      select: {
+        status: true,
+        heartbeatAt: true,
+        startedAt: true,
+        createdAt: true,
+        errorMessage: true,
+      },
+    })) as {
+      status: string;
+      heartbeatAt: Date | null;
+      startedAt: Date | null;
+      createdAt: Date;
+      errorMessage: string | null;
+    } | null;
+    if (!fresh) return;
+    if (isTerminalPhaseRunStatus(fresh.status)) return;
+    const staleBefore = new Date(Date.now() - HEARTBEAT_STALE_MS);
+    const lastSign = fresh.heartbeatAt ?? fresh.startedAt ?? fresh.createdAt;
+    if ((fresh.status === "queued" || fresh.status === "running") && lastSign < staleBefore) {
+      await phaseRunJob.update({
+        where: { id: jobId },
+        data: {
+          status: "failed",
+          errorMessage:
+            fresh.errorMessage ??
+            "Kein Lebenszeichen vom Worker — Sequenz setzt mit nächster Phase fort.",
+          finishedAt: new Date(),
+          heartbeatAt: new Date(),
+        },
+      });
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+  }
+}
+
+/**
+ * Startet Phasen strikt global nacheinander:
+ * Phase 1 komplett -> Phase 2 komplett -> ...
+ */
+export async function startPhaseRunsInGlobalSequence(params: {
+  companyId: string;
+  phaseEntries: Array<{ phaseId: string; workflowKeys: string[] }>;
+  mode: PhaseRunMode;
+  locale?: "de" | "en";
+}): Promise<void> {
+  const { companyId, phaseEntries, mode, locale } = params;
+  for (const entry of phaseEntries) {
+    const workflowKeys = entry.workflowKeys.filter((k) => k !== "WF_BUSINESS_FORM");
+    if (workflowKeys.length === 0) continue;
+
+    const started = await startPhaseRunJob({
+      companyId,
+      phaseId: entry.phaseId,
+      workflowKeys,
+      mode,
+      locale,
+    });
+    if (started.kind === "empty") continue;
+    await waitForPhaseRunJobToFinish(started.jobId);
+  }
+}
+
 function clearJobBookkeeping(jobId: string): void {
   runningJobs.delete(jobId);
   jobLocales.delete(jobId);
@@ -277,6 +351,22 @@ async function runPhaseRunWorker(jobId: string): Promise<void> {
       failed: false as boolean | string,
       completedSteps: job.completedSteps,
     };
+    const queuedRunIds = Array.from(new Set(allSteps.map((s) => s.runId).filter(Boolean)));
+
+    async function markQueuedRunsIncomplete(reason: string): Promise<void> {
+      if (queuedRunIds.length === 0) return;
+      void reason;
+      await prisma.run.updateMany({
+        where: {
+          id: { in: queuedRunIds },
+          status: "running",
+        },
+        data: {
+          status: "incomplete",
+          finishedAt: new Date(),
+        },
+      });
+    }
 
     async function checkCancel(): Promise<boolean> {
       const fresh = await phaseRunJob.findUnique({
@@ -320,9 +410,9 @@ async function runPhaseRunWorker(jobId: string): Promise<void> {
           return isTransient(e.cause, depth + 1);
         };
 
-        const maxStepAttempts = 3;
-        let stepErrFinal: unknown = null;
-        for (let attempt = 1; attempt <= maxStepAttempts; attempt++) {
+        let attempt = 0;
+        for (;;) {
+          attempt += 1;
           try {
             await executeRunStepForCompany({
               companyId,
@@ -330,29 +420,40 @@ async function runPhaseRunWorker(jobId: string): Promise<void> {
               stepKey: entry.stepKey,
               locale,
             });
-            stepErrFinal = null;
             break;
           } catch (stepErr) {
-            stepErrFinal = stepErr;
-            if (attempt < maxStepAttempts && isTransient(stepErr)) {
-              const wait = 2_000 * attempt;
-              console.warn(
-                `[phaseRunWorker][${jobId}] transient step failure on ${entry.workflowKey}/${entry.stepKey} attempt ${attempt}/${maxStepAttempts} — retrying in ${wait}ms`,
-                stepErr instanceof Error ? stepErr.message : String(stepErr),
-              );
-              await new Promise((r) => setTimeout(r, wait));
-              await phaseRunJob
-                .update({ where: { id: jobId }, data: { heartbeatAt: new Date() } })
-                .catch(() => null);
-              continue;
+            if (await checkCancel()) {
+              state.cancelled = true;
+              return;
             }
-            break;
+            const transient = isTransient(stepErr);
+            const msg = stepErr instanceof Error ? stepErr.message : String(stepErr);
+            // Strikt sequentiell: am selben Prompt bleiben, bis eine valide Antwort
+            // vorliegt (oder der Nutzer abbricht). Kein automatisches Weiterlaufen
+            // zum nächsten Prompt bei Fehler.
+            const wait = transient
+              ? Math.min(90_000, 2_000 * Math.min(attempt, 20))
+              : Math.min(90_000, 10_000 * Math.min(attempt, 12));
+            await phaseRunJob
+              .update({
+                where: { id: jobId },
+                data: {
+                  heartbeatAt: new Date(),
+                  lastMessage: `Warte auf Antwort für ${entry.label} (Versuch ${attempt})`,
+                  errorMessage: `${entry.workflowKey} / ${entry.label}: ${msg}`,
+                },
+              })
+              .catch(() => null);
+            console.warn(
+              `[phaseRunWorker][${jobId}] step failure on ${entry.workflowKey}/${entry.stepKey} attempt ${attempt} — retrying in ${wait}ms`,
+              msg,
+            );
+            await new Promise((r) => setTimeout(r, wait));
+            await phaseRunJob
+              .update({ where: { id: jobId }, data: { heartbeatAt: new Date() } })
+              .catch(() => null);
+            continue;
           }
-        }
-        if (stepErrFinal) {
-          const msg = stepErrFinal instanceof Error ? stepErrFinal.message : "Unbekannter Fehler";
-          state.failed = `${entry.workflowKey} / ${entry.label}: ${msg}`;
-          return;
         }
 
         state.completedSteps += 1;
@@ -380,6 +481,7 @@ async function runPhaseRunWorker(jobId: string): Promise<void> {
     }
 
     if (state.cancelled) {
+      await markQueuedRunsIncomplete("Phase batch cancelled before all queued steps completed.");
       await phaseRunJob.update({
         where: { id: jobId },
         data: {
@@ -393,6 +495,7 @@ async function runPhaseRunWorker(jobId: string): Promise<void> {
       return;
     }
     if (state.failed) {
+      await markQueuedRunsIncomplete("Phase batch failed before all queued steps completed.");
       await phaseRunJob.update({
         where: { id: jobId },
         data: {

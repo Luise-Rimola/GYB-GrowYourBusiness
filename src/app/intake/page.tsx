@@ -6,27 +6,60 @@ import { getIntakeFormState, processIntakeForm } from "@/lib/intake";
 import { getServerLocale } from "@/lib/locale";
 import { getTranslations } from "@/lib/i18n";
 import { PLANNING_PHASES } from "@/lib/planningFramework";
-import { startPhaseRunJob } from "@/lib/phaseRunJobs";
+import { startPhaseRunsInGlobalSequence } from "@/lib/phaseRunJobs";
 import { runCompanyEnrichment } from "@/lib/companyEnrichment";
 import { prisma } from "@/lib/prisma";
 import type { Locale } from "@/lib/i18n";
 
 async function startBackgroundRunsPerPhase(companyId: string, locale: Locale): Promise<void> {
-  for (const phase of PLANNING_PHASES) {
-    const workflowKeys = phase.workflowKeys.filter((k) => k !== "WF_BUSINESS_FORM");
-    if (workflowKeys.length === 0) continue;
-    try {
-      await startPhaseRunJob({
-        companyId,
-        phaseId: phase.id,
-        workflowKeys,
-        mode: "continue",
-        locale,
-      });
-    } catch (err) {
-      console.error("[intake/background-start]", phase.id, err);
+  const phaseEntries = PLANNING_PHASES.map((phase) => ({
+    phaseId: phase.id,
+    workflowKeys: phase.workflowKeys.filter((k) => k !== "WF_BUSINESS_FORM"),
+  }));
+  await startPhaseRunsInGlobalSequence({
+    companyId,
+    phaseEntries,
+    mode: "run_all",
+    locale,
+  });
+}
+
+async function resetActivePhaseRunJobs(companyId: string): Promise<void> {
+  const phaseRunJob = (prisma as unknown as { phaseRunJob?: any }).phaseRunJob;
+  if (!phaseRunJob) return;
+
+  const activeJobs = (await phaseRunJob.findMany({
+    where: { companyId, status: { in: ["queued", "running"] } },
+    select: { id: true, stepsJson: true },
+  })) as Array<{ id: string; stepsJson: unknown }>;
+
+  const runIds = new Set<string>();
+  for (const job of activeJobs) {
+    if (!Array.isArray(job.stepsJson)) continue;
+    for (const entry of job.stepsJson as Array<{ runId?: unknown }>) {
+      if (typeof entry?.runId === "string" && entry.runId.length > 0) {
+        runIds.add(entry.runId);
+      }
     }
   }
+
+  if (runIds.size > 0) {
+    await prisma.run.updateMany({
+      where: { id: { in: [...runIds] }, status: "running" },
+      data: { status: "incomplete", finishedAt: new Date() },
+    });
+  }
+
+  await phaseRunJob.updateMany({
+    where: { companyId, status: { in: ["queued", "running"] } },
+    data: {
+      status: "failed",
+      cancelRequested: true,
+      errorMessage: "Superseded by a new full restart from intake form.",
+      finishedAt: new Date(),
+      heartbeatAt: new Date(),
+    },
+  });
 }
 
 async function submitIntake(formData: FormData) {
@@ -51,6 +84,7 @@ async function submitIntake(formData: FormData) {
   }
   if (profileFlow === "auto_web" || profileFlow === "auto_no_web") {
     const locale = await getServerLocale();
+    await resetActivePhaseRunJobs(company.id);
     void startBackgroundRunsPerPhase(company.id, locale).catch((err) => {
       console.error("[intake/background-start][async]", err);
     });

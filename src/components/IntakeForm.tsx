@@ -58,10 +58,10 @@ export function IntakeForm({
   hasLlmConfigured?: boolean;
 }) {
   const { locale } = useLanguage();
+  const isDe = locale === "de";
   const c = getIntakeFormCopy(locale);
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
-  const [companyExists, setCompanyExists] = useState<boolean>(String(existing.company_exists ?? "1") !== "0");
   const profileFlowRef = useRef<HTMLInputElement | null>(null);
   const [mobileEdit, setMobileEdit] = useState<
     null | { kind: "product" | "supplier" | "team"; index: number }
@@ -87,14 +87,6 @@ export function IntakeForm({
     const el = formRef.current;
     if (!el) return;
     if (profileFlowRef.current) profileFlowRef.current.value = flow;
-    if (
-      assistantEmbed &&
-      (flow === "auto_web" || flow === "auto_no_web") &&
-      typeof window !== "undefined" &&
-      window.parent !== window
-    ) {
-      window.parent.postMessage({ type: "assistant-iframe-done", reason: "profile-auto-start" }, window.location.origin);
-    }
     el.requestSubmit();
   };
   const autoDisabled = !hasLlmConfigured;
@@ -102,6 +94,12 @@ export function IntakeForm({
     locale === "de"
       ? "Bitte zuerst LLM-API in den Einstellungen speichern."
       : "Please save LLM API settings first.";
+  const autoRunLabel = isDe
+    ? "Weiter: KI-Analyse im Hintergrund starten"
+    : "Continue: Start AI analysis in background";
+  const manualRunLabel = isDe
+    ? "Weiter: KI-Analyse manuell durchführen"
+    : "Continue: Run AI analysis manually";
 
   const addProduct = () => setProducts((p) => [...p, { name: "", price: "", unit: "" }]);
   const removeProduct = (i: number) => {
@@ -147,14 +145,13 @@ export function IntakeForm({
     >
       {assistantEmbed ? <input type="hidden" name="assistant_embed" value="1" /> : null}
       <input ref={profileFlowRef} type="hidden" name="profile_flow" defaultValue="manual" />
-      <input type="hidden" name="company_exists" value={companyExists ? "1" : "0"} />
       {hiddenFields &&
         Object.entries(hiddenFields).map(([name, value]) => (
           <input key={name} type="hidden" name={name} value={value} />
         ))}
       <section
         className={[
-          "space-y-4 rounded-2xl border border-teal-200 bg-teal-50/30 p-6 dark:border-teal-900 dark:bg-teal-950/20",
+          "space-y-4 rounded-2xl border border-teal-200 bg-white p-6 dark:border-teal-900 dark:bg-zinc-950",
           embedFlush ? "mt-0" : "",
         ]
           .filter(Boolean)
@@ -164,27 +161,6 @@ export function IntakeForm({
           <div>
             <label className={labelClass}>{c.companyName}</label>
             <input name="company_name" defaultValue={String(existing.company_name ?? "")} className={`mt-2 ${inputClass}`} />
-            <div className="mt-3 inline-flex items-center gap-3 rounded-xl border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-700">
-              <span className="font-medium text-zinc-700 dark:text-zinc-200">{c.companyExistsToggleLabel}</span>
-              <label className="inline-flex items-center gap-1.5">
-                <input
-                  type="radio"
-                  name="company_exists_ui"
-                  checked={companyExists}
-                  onChange={() => setCompanyExists(true)}
-                />
-                <span>{c.companyExistsYes}</span>
-              </label>
-              <label className="inline-flex items-center gap-1.5">
-                <input
-                  type="radio"
-                  name="company_exists_ui"
-                  checked={!companyExists}
-                  onChange={() => setCompanyExists(false)}
-                />
-                <span>{c.companyExistsNo}</span>
-              </label>
-            </div>
           </div>
           <div>
             <label className={labelClass}>{c.location}</label>
@@ -194,20 +170,22 @@ export function IntakeForm({
             ) : null}
           </div>
         </div>
-        <div>
-          <label className={labelClass}>{c.website}</label>
-          <input name="website" type="url" defaultValue={String(existing.website ?? "")} className={`mt-2 ${inputClass}`} placeholder="https://example.com" />
-        </div>
-        <div>
-          <label className={labelClass}>{c.whereBusiness}</label>
-          <select name="business_state" defaultValue={String(existing.business_state ?? "")} className={`mt-2 ${inputClass}`}>
-            <option value="">{c.selectPlaceholder}</option>
-            {c.BUSINESS_STATES.map((s) => (
-              <option key={s.value} value={s.value}>
-                {s.label}
-              </option>
-            ))}
-          </select>
+        <div className="grid gap-4 md:grid-cols-2">
+          <div>
+            <label className={labelClass}>{c.website}</label>
+            <input name="website" type="url" defaultValue={String(existing.website ?? "")} className={`mt-2 ${inputClass}`} placeholder="https://example.com" />
+          </div>
+          <div>
+            <label className={labelClass}>{c.whereBusiness}</label>
+            <select name="business_state" defaultValue={String(existing.business_state ?? "")} className={`mt-2 ${inputClass}`}>
+              <option value="">{c.selectPlaceholder}</option>
+              {c.BUSINESS_STATES.map((s) => (
+                <option key={s.value} value={s.value}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
         {SHOW_INTAKE_GOALS_AND_AI_REQUEST_CHECKBOXES ? (
           <div>
@@ -271,41 +249,31 @@ export function IntakeForm({
           </div>
         </div>
         {!assistantEmbed ? (
-          <div className="flex flex-wrap gap-3">
-            {companyExists ? (
-              <button
-                type="button"
-                onClick={() => submitWithFlow("auto_web")}
-                disabled={autoDisabled}
-                title={autoDisabled ? autoDisabledTitle : undefined}
-                className="rounded-full bg-teal-600 px-6 py-3 text-sm font-semibold text-white hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {c.enrichContinue}
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => submitWithFlow("auto_no_web")}
-                disabled={autoDisabled}
-                title={autoDisabled ? autoDisabledTitle : undefined}
-                className="rounded-full bg-teal-600 px-6 py-3 text-sm font-semibold text-white hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {c.autoContinueNoWeb}
-              </button>
-            )}
+          <div className="space-y-3">
+            <div className="flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={() => submitWithFlow("auto_web")}
+              disabled={autoDisabled}
+              title={autoDisabled ? autoDisabledTitle : undefined}
+              className="rounded-full bg-teal-600 px-6 py-3 text-sm font-semibold text-white hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {autoRunLabel}
+            </button>
             <button
               type="button"
               onClick={() => submitWithFlow("manual")}
               className="rounded-full border border-zinc-300 bg-white px-6 py-3 text-sm font-semibold text-zinc-800 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-100 dark:hover:bg-zinc-900"
             >
-              {c.manualContinue}
+              {manualRunLabel}
             </button>
+          </div>
           </div>
         ) : null}
       </section>
 
-      <details className="group rounded-2xl border border-zinc-200 dark:border-zinc-800">
-        <summary className="cursor-pointer list-none px-6 py-4 text-lg font-bold text-zinc-900 dark:text-zinc-50 [&::-webkit-details-marker]:hidden">
+      <details className="group rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
+        <summary className="cursor-pointer list-none px-5 py-3 text-base font-semibold text-zinc-900 dark:text-zinc-50 [&::-webkit-details-marker]:hidden">
           <span className="inline-flex items-center gap-2">
             <span
               className="inline-block text-base leading-none text-zinc-600 transition-transform duration-200 group-open:rotate-90 dark:text-zinc-300"
@@ -708,6 +676,32 @@ export function IntakeForm({
         </div>
       </details>
 
+      <details className="group rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
+        <summary className="cursor-pointer list-none px-5 py-3 text-base font-semibold text-zinc-900 dark:text-zinc-50 [&::-webkit-details-marker]:hidden">
+          <span className="inline-flex items-center gap-2">
+            <span
+              className="inline-block text-base leading-none text-zinc-600 transition-transform duration-200 group-open:rotate-90 dark:text-zinc-300"
+              aria-hidden
+            >
+              ▸
+            </span>
+            Dokumente und Marktquellen hochladen
+          </span>
+        </summary>
+        <div className="border-t border-zinc-200 px-4 pb-4 pt-3 dark:border-zinc-800 md:px-6">
+          <p className="mb-3 text-sm text-zinc-600 dark:text-zinc-300">
+            Laden Sie hier Dokumente hoch oder pflegen Sie Text-Updates, bevor Sie mit dem Weiter-Button den KI-Lauf starten.
+          </p>
+          <div className="overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-800">
+            <iframe
+              title="Dokumente und Marktquellen"
+              src="/knowledge?embed=1"
+              className="h-[680px] w-full bg-white dark:bg-zinc-950"
+            />
+          </div>
+        </div>
+      </details>
+
       {mobileEdit ? (
         <div className="fixed inset-0 z-50 md:hidden" role="dialog" aria-modal aria-labelledby="intake-mobile-edit-title">
           <button
@@ -911,8 +905,8 @@ export function IntakeForm({
       ) : null}
 
       {assistantEmbed ? (
-        <div className="flex flex-wrap items-center justify-end gap-3">
-          {companyExists ? (
+        <div className="w-full space-y-3">
+          <div className="flex flex-wrap items-center justify-end gap-3">
             <button
               type="button"
               onClick={() => submitWithFlow("auto_web")}
@@ -920,26 +914,16 @@ export function IntakeForm({
                 title={autoDisabled ? autoDisabledTitle : undefined}
                 className="rounded-full bg-teal-600 px-6 py-3 text-sm font-semibold text-white hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {c.enrichContinue}
+              {autoRunLabel}
             </button>
-          ) : (
             <button
               type="button"
-              onClick={() => submitWithFlow("auto_no_web")}
-                disabled={autoDisabled}
-                title={autoDisabled ? autoDisabledTitle : undefined}
-                className="rounded-full bg-teal-600 px-6 py-3 text-sm font-semibold text-white hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
+              onClick={() => submitWithFlow("manual")}
+              className="rounded-full border border-zinc-300 bg-white px-6 py-3 text-sm font-semibold text-zinc-800 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-100 dark:hover:bg-zinc-900"
             >
-              {c.autoContinueNoWeb}
+              {manualRunLabel}
             </button>
-          )}
-          <button
-            type="button"
-            onClick={() => submitWithFlow("manual")}
-            className="rounded-full border border-zinc-300 bg-white px-6 py-3 text-sm font-semibold text-zinc-800 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-100 dark:hover:bg-zinc-900"
-          >
-            {c.manualContinue}
-          </button>
+          </div>
         </div>
       ) : null}
     </form>

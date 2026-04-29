@@ -46,7 +46,6 @@ export async function processIntakeForm(
   const socialMediaChannels = formData.getAll("social_media_channels") as string[];
 
   const answers: Record<string, unknown> = {
-    company_exists: String(formData.get("company_exists") || "1") === "1",
     business_state: String(formData.get("business_state") || ""),
     goals,
     ai_requests: aiRequests,
@@ -84,6 +83,10 @@ export async function processIntakeForm(
     retention_churn: String(formData.get("retention_churn") || ""),
     additional_notes: String(formData.get("additional_notes") || ""),
   };
+
+  if (formData.has("company_exists")) {
+    answers.company_exists = String(formData.get("company_exists") || "1") === "1";
+  }
 
   const file = formData.get("cost_excel") as File | null;
   if (file?.size && file?.name) {
