@@ -743,13 +743,13 @@ export function WorkflowAssistantFrame({
   const isProfileStepNow = (steps[index]?.href ?? "").startsWith("/profile");
   const nowMs = Date.now();
   const recentWindowMs = 6 * 60 * 60 * 1000;
-  const relevantPhaseJobs = allPhaseJobs.filter(
-    (job): job is AssistantPhaseRunStatus =>
-      Boolean(job) &&
-      Boolean(job.createdAt) &&
+  const relevantPhaseJobs = allPhaseJobs.filter((job): job is AssistantPhaseRunStatus => {
+    if (!job || !job.createdAt) return false;
+    return (
       nowMs - new Date(String(job.createdAt)).getTime() <= recentWindowMs &&
       (job.status === "queued" || job.status === "running" || job.status === "completed")
-  );
+    );
+  });
   const allPhasesTotalCount = allPhaseJobs.length;
   const allPhasesCompletedCount = relevantPhaseJobs.filter((job) => job.status === "completed").length;
   const allPhasesProgressPercent =

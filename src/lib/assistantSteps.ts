@@ -306,7 +306,6 @@ export async function loadAssistantSteps(params: {
     ...(includeHandbookStep ? [{ href: "/manual", label: t.home.handbookStep, completed: false }] : []),
     { href: "/study/fb1", label: t.study.fb1Title, completed: participantCompletedFb1 },
     { href: "/profile", label: t.home.companyProfile, completed: profileCompletePercent >= 50 },
-    { href: "/knowledge", label: t.home.step2, completed: hasDocsUploaded },
     ...studyFlowSteps,
     { href: "/decisions", label: t.home.step5, completed: hasDecisions },
     { href: "/evaluation", label: t.home.step6, completed: hasEvaluation },
