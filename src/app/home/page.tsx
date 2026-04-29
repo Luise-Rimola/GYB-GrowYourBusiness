@@ -104,6 +104,12 @@ export default async function Home({
         fb5Title: t.study.fb5Title,
       },
     },
+  }).catch((err: unknown) => {
+    console.error("[home] loadAssistantSteps failed:", err);
+    return [
+      { href: "/assistant?start=1", label: t.home.startAssistant, completed: false },
+      { href: "/manual", label: t.home.openGuide, completed: false },
+    ];
   });
 
   return (

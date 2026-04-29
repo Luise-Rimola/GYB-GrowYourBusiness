@@ -13,9 +13,9 @@ export type AssistantStep = {
 
 type RunStepState = { stepKey: string; schemaValidationPassed: boolean; createdAt: Date };
 
-function pickPreferredStepStates(steps: RunStepState[]) {
+function pickPreferredStepStates(steps: RunStepState[] | undefined) {
   const byKey = new Map<string, RunStepState[]>();
-  for (const step of steps) {
+  for (const step of steps ?? []) {
     const list = byKey.get(step.stepKey) ?? [];
     list.push(step);
     byKey.set(step.stepKey, list);
@@ -181,56 +181,99 @@ export async function loadAssistantSteps(params: {
   }
 
   const workflowIsComplete = (workflowKey: string): boolean => {
-    const wfRuns = runsByWorkflow.get(workflowKey) ?? [];
-    if (wfRuns.length === 0) return false;
-    if (wfRuns.some((r) => ["complete", "approved"].includes(r.status))) return true;
-    const latestRun = wfRuns[0];
-    const configuredSteps = workflowSteps[workflowKey] ?? [];
-    const preferred = pickPreferredStepStates(latestRun.steps);
-    const runStepsForComplete = [...preferred.entries()].map(([stepKey, v]) => ({
-      stepKey,
-      schemaValidationPassed: v.schemaValidationPassed,
-    }));
-    return isRunProcessFullyComplete(configuredSteps, runStepsForComplete);
+    try {
+      const wfRuns = runsByWorkflow.get(workflowKey) ?? [];
+      if (wfRuns.length === 0) return false;
+      if (wfRuns.some((r) => ["complete", "approved"].includes(r.status))) return true;
+      const latestRun = wfRuns[0];
+      if (!latestRun) return false;
+      const configuredSteps = workflowSteps[workflowKey] ?? [];
+      const preferred = pickPreferredStepStates(latestRun.steps);
+      const runStepsForComplete = [...preferred.entries()].map(([stepKey, v]) => ({
+        stepKey,
+        schemaValidationPassed: v.schemaValidationPassed,
+      }));
+      return isRunProcessFullyComplete(configuredSteps, runStepsForComplete);
+    } catch (err) {
+      console.warn("[assistantSteps] workflowIsComplete failed:", workflowKey, err);
+      return false;
+    }
   };
 
-  const studyFlowSteps: AssistantStep[] = PLANNING_PHASES.flatMap((phase) => {
-    const phaseName =
-      locale === "de"
-        ? phase.name
-        : (
-            {
-              ideation: "Ideation / Concept Phase",
-              validation: "Validation Phase",
-              launch: "Founding / Launch Phase",
-              scaling: "Growth Phase",
-              tech_digital: "Technology & Digitalization",
-              maturity: "Strategy Phase",
-              renewal: "Strategic Options / Exit / Transformation",
-            } as Record<string, string>
-          )[phase.id] ?? phase.name;
-    const phaseCategories = categoriesByPhase.get(phase.id) ?? [];
-    const phaseWorkflowKeys = new Set(phase.workflowKeys);
-    const phaseHasCompletedRun = [...phaseWorkflowKeys]
-      .filter((workflowKey) => workflowKey !== "WF_BUSINESS_FORM")
-      .every((workflowKey) => workflowIsComplete(workflowKey));
-    const phaseHasArtifacts = artifacts.some((a) => {
-      const wfKey = a.run?.workflowKey;
-      return Boolean(wfKey && phaseWorkflowKeys.has(wfKey));
-    });
+  let studyFlowSteps: AssistantStep[];
+  try {
+    studyFlowSteps = PLANNING_PHASES.flatMap((phase) => {
+      const phaseName =
+        locale === "de"
+          ? phase.name
+          : (
+              {
+                ideation: "Ideation / Concept Phase",
+                validation: "Validation Phase",
+                launch: "Founding / Launch Phase",
+                scaling: "Growth Phase",
+                tech_digital: "Technology & Digitalization",
+                maturity: "Strategy Phase",
+                renewal: "Strategic Options / Exit / Transformation",
+              } as Record<string, string>
+            )[phase.id] ?? phase.name;
+      const phaseCategories = categoriesByPhase.get(phase.id) ?? [];
+      const phaseWorkflowKeys = new Set(phase.workflowKeys);
+      const phaseHasCompletedRun = [...phaseWorkflowKeys]
+        .filter((workflowKey) => workflowKey !== "WF_BUSINESS_FORM")
+        .every((workflowKey) => workflowIsComplete(workflowKey));
+      const phaseHasArtifacts = artifacts.some((a) => {
+        const wfKey = a.run?.workflowKey;
+        return Boolean(wfKey && phaseWorkflowKeys.has(wfKey));
+      });
 
-    if (phaseCategories.length === 0) {
+      if (phaseCategories.length === 0) {
+        return [
+          {
+            href: "/workflow-overview",
+            label: `${t.study.studyInfoStep}: ${phaseName}`,
+            completed: false,
+          },
+          {
+            href: "/study/fb2",
+            label: `${t.study.fb2Title} (${phaseName})`,
+            completed: false,
+          },
+          {
+            href: `/dashboard?assistant_phase=${phase.id}#phase-${phase.id}`,
+            label: `${t.study.studyWorkflowStep}: ${phaseName}`,
+            completed: phaseHasCompletedRun,
+          },
+          {
+            href: `/artifacts#artifacts-phase-${phase.id}`,
+            label: `${t.common.viewArtifacts}: ${phaseName}`,
+            completed: phaseHasArtifacts,
+          },
+          {
+            href: "/study/fb3",
+            label: `${t.study.fb3Title} (${phaseName})`,
+            completed: false,
+          },
+          {
+            href: "/study/fb4",
+            label: `${t.study.fb4Title} (${phaseName})`,
+            completed: false,
+          },
+        ];
+      }
+
+      const primaryCategory = phaseCategories[0];
       return [
         {
-          href: "/workflow-overview",
+          href: `/study/info/${primaryCategory}`,
           label: `${t.study.studyInfoStep}: ${phaseName}`,
           completed: false,
         },
-        {
-          href: "/study/fb2",
-          label: `${t.study.fb2Title} (${phaseName})`,
-          completed: false,
-        },
+        ...phaseCategories.map((category) => ({
+          href: `/study/fb2/${category}`,
+          label: t.study.fb2Title,
+          completed: fb2DoneByCategory.has(category),
+        })),
         {
           href: `/dashboard?assistant_phase=${phase.id}#phase-${phase.id}`,
           label: `${t.study.studyWorkflowStep}: ${phaseName}`,
@@ -241,53 +284,22 @@ export async function loadAssistantSteps(params: {
           label: `${t.common.viewArtifacts}: ${phaseName}`,
           completed: phaseHasArtifacts,
         },
-        {
-          href: "/study/fb3",
-          label: `${t.study.fb3Title} (${phaseName})`,
-          completed: false,
-        },
-        {
-          href: "/study/fb4",
-          label: `${t.study.fb4Title} (${phaseName})`,
-          completed: false,
-        },
+        ...phaseCategories.map((category) => ({
+          href: `/study/fb3/${category}`,
+          label: t.study.fb3Title,
+          completed: fb3DoneByCategory.has(category),
+        })),
+        ...phaseCategories.map((category) => ({
+          href: `/study/fb4/${category}`,
+          label: t.study.fb4Title,
+          completed: fb4DoneByCategory.has(category),
+        })),
       ];
-    }
-
-    const primaryCategory = phaseCategories[0];
-    return [
-      {
-        href: `/study/info/${primaryCategory}`,
-        label: `${t.study.studyInfoStep}: ${phaseName}`,
-        completed: false,
-      },
-      ...phaseCategories.map((category) => ({
-        href: `/study/fb2/${category}`,
-        label: t.study.fb2Title,
-        completed: fb2DoneByCategory.has(category),
-      })),
-      {
-        href: `/dashboard?assistant_phase=${phase.id}#phase-${phase.id}`,
-        label: `${t.study.studyWorkflowStep}: ${phaseName}`,
-        completed: phaseHasCompletedRun,
-      },
-      {
-        href: `/artifacts#artifacts-phase-${phase.id}`,
-        label: `${t.common.viewArtifacts}: ${phaseName}`,
-        completed: phaseHasArtifacts,
-      },
-      ...phaseCategories.map((category) => ({
-        href: `/study/fb3/${category}`,
-        label: t.study.fb3Title,
-        completed: fb3DoneByCategory.has(category),
-      })),
-      ...phaseCategories.map((category) => ({
-        href: `/study/fb4/${category}`,
-        label: t.study.fb4Title,
-        completed: fb4DoneByCategory.has(category),
-      })),
-    ];
-  });
+    });
+  } catch (err) {
+    console.error("[assistantSteps] studyFlowSteps build failed:", err);
+    studyFlowSteps = [];
+  }
 
   return [
     ...(includeHandbookStep ? [{ href: "/manual", label: t.home.handbookStep, completed: false }] : []),

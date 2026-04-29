@@ -48,6 +48,8 @@ type AssistantPhaseRunStatus = {
   status: "queued" | "running" | "completed" | "failed" | "cancelled";
   totalSteps: number;
   completedSteps: number;
+  currentLabel?: string | null;
+  lastMessage?: string | null;
   createdAt?: string | null;
 };
 
@@ -491,6 +493,7 @@ export function WorkflowAssistantFrame({
 
   function goNext() {
     if (pendingSubmit) return;
+    if (!steps.length || !steps[index]) return;
     setProcessCompleteModalOpen(false);
     dispatchAssistantPulse("start");
 
@@ -797,12 +800,12 @@ export function WorkflowAssistantFrame({
           </div>
           <p className="mt-1 text-base font-semibold text-[var(--foreground)] sm:text-lg">{current.label}</p>
           <p className="mt-1 text-sm text-[var(--muted)]">
-            Schritt {index + 1} von {steps.length} — {completedCount} erledigt
+            Checkliste: Position {index + 1} von {steps.length} — {completedCount} Schritte bereits als erledigt markiert
           </p>
           {showAllPhasesProgress ? (
             <div className="mt-2 w-full max-w-xl">
               <p className="mb-1 text-xs font-medium text-[var(--muted)]">
-                Phasenfortschritt: {allPhasesCompletedCount}/{allPhasesTotalCount} abgeschlossen ({allPhasesProgressPercent}%) - gestartet: {allStartedPhasesCount}/{allPhasesTotalCount}
+                Übergreifend ({allPhasesTotalCount} Planungsphasen): {allPhasesCompletedCount}/{allPhasesTotalCount} mit abgeschlossenem Server-Batch ({allPhasesProgressPercent}%), gestartete Batches: {allStartedPhasesCount}/{allPhasesTotalCount}. Steigt erst nach Abschluss eines vollständigen Phasen-Laufs — nicht bei jedem einzelnen KI-Schritt.
               </p>
               <div className="h-2 w-full overflow-hidden rounded-full bg-slate-200/80 dark:bg-slate-700/70">
                 <div
@@ -812,12 +815,12 @@ export function WorkflowAssistantFrame({
               </div>
             </div>
           ) : null}
-          {!isProfileStepNow && !showAllPhasesProgress && showTopProgress ? (
-            <div className="mt-2 w-full max-w-xl">
+          {!isProfileStepNow && showTopProgress ? (
+            <div className={`w-full max-w-xl ${showAllPhasesProgress ? "mt-3" : "mt-2"}`}>
               <p className="mb-1 text-xs font-medium text-[var(--muted)]">
                 {phaseRunStatus?.status === "queued"
-                  ? `KI-Analyse startet … (${topProgressPercent}%)`
-                  : `KI-Analyse Fortschritt: ${phaseRunStatus?.completedSteps ?? 0}/${phaseRunStatus?.totalSteps ?? 0} (${topProgressPercent}%)`}
+                  ? `Aktueller Phasen-Lauf (Server) startet … (${topProgressPercent}%)`
+                  : `Aktueller Phasen-Lauf (Server): ${phaseRunStatus?.completedSteps ?? 0}/${phaseRunStatus?.totalSteps ?? 0} automatische Schritte (${topProgressPercent}%)${phaseRunStatus?.currentLabel ? ` — ${phaseRunStatus.currentLabel}` : ""}`}
               </p>
               <div className="h-2 w-full overflow-hidden rounded-full bg-slate-200/80 dark:bg-slate-700/70">
                 <div

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { getTranslations } from "@/lib/i18n";
@@ -43,7 +43,7 @@ type PhaseRunJobDto = {
 
 const POLL_INTERVAL_MS = 2500;
 
-export function PhaseRunButtonForm({ formId, phaseId, buttonLabel, workflows }: PhaseRunButtonFormProps) {
+function PhaseRunButtonFormInner({ formId, phaseId, buttonLabel, workflows }: PhaseRunButtonFormProps) {
   const router = useRouter();
   const [, startRefreshTransition] = useTransition();
   const searchParams = useSearchParams();
@@ -562,5 +562,14 @@ export function PhaseRunButtonForm({ formId, phaseId, buttonLabel, workflows }: 
         </div>
       )}
     </div>
+  );
+}
+
+/** `useSearchParams` nur innerhalb von Suspense (Next.js CSR-Bailout / Layout-Stabilität). */
+export function PhaseRunButtonForm(props: PhaseRunButtonFormProps) {
+  return (
+    <Suspense fallback={null}>
+      <PhaseRunButtonFormInner {...props} />
+    </Suspense>
   );
 }

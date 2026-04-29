@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState, useRef, useEffect, useMemo } from "react";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { getTranslations } from "@/lib/i18n";
 
@@ -38,10 +38,15 @@ const linkBase = "rounded-lg px-3 py-2 transition";
 const linkInactive = `${linkBase} border border-transparent text-[var(--muted)] hover:border-teal-100 hover:bg-teal-50 hover:text-teal-700 dark:hover:border-teal-900/50 dark:hover:bg-teal-950/50 dark:hover:text-teal-300`;
 const linkActive = `${linkBase} border border-teal-400 bg-teal-50 font-medium text-teal-800 shadow-sm dark:border-teal-600 dark:bg-teal-950/50 dark:text-teal-200`;
 
-export default function Nav({ userEmail }: { userEmail?: string | null }) {
+export default function Nav({
+  userEmail,
+  suppressForEmbed = false,
+}: {
+  userEmail?: string | null;
+  /** Vom Server gesetzt (`headers().get("x-app-embed")`), gleiche Semantik wie `?embed=1` — ohne `useSearchParams` im Layout (Next.js CSR-Bailout). */
+  suppressForEmbed?: boolean;
+}) {
   const pathname = usePathname() ?? "";
-  const searchParams = useSearchParams();
-  const isEmbed = searchParams.get("embed") === "1";
   const [isInIframe, setIsInIframe] = useState(false);
   const [open, setOpen] = useState(false);
   const [studyExpanded, setStudyExpanded] = useState(false);
@@ -77,7 +82,7 @@ export default function Nav({ userEmail }: { userEmail?: string | null }) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  if (isEmbed || isInIframe) return null;
+  if (suppressForEmbed || isInIframe) return null;
 
   return (
     <>

@@ -46,7 +46,7 @@ export default async function RootLayout({
       >
         <Providers>
           <div className="min-h-screen bg-[var(--background)] bg-grid-pattern text-[var(--foreground)]">
-            <Nav userEmail={session?.email ?? null} />
+            <Nav userEmail={session?.email ?? null} suppressForEmbed={embedFrame} />
             <main className={mainClass}>{children}</main>
           </div>
         </Providers>

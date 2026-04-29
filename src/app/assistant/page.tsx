@@ -46,6 +46,13 @@ export default async function AssistantPage() {
         fb5Title: t.study.fb5Title,
       },
     },
+  }).catch((err: unknown) => {
+    console.error("[assistant] loadAssistantSteps failed:", err);
+    return [
+      { href: "/manual", label: t.home.handbookStep, completed: false },
+      { href: "/study/fb1", label: t.study.fb1Title, completed: participant.completedFb1 },
+      { href: "/profile", label: t.home.companyProfile, completed: profileComplete >= 50 },
+    ];
   });
 
   return (
