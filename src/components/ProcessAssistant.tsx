@@ -607,75 +607,21 @@ export function WorkflowAssistantFrame({
     return () => window.removeEventListener("message", onMsg);
   }, [pendingSubmit, isProfileStep]);
 
-  function onIframeLoad() {
-    const iframeHref = getIframeHref();
-    if (iframeHref) setResolvedIframeHref(iframeHref);
-    const currentHref = stepsRef.current[indexRef.current]?.href ?? "";
-    const isQuestionnaireStep = isStudyQuestionnaireStepHref(currentHref);
-    const isProfileStepNow = currentHref.startsWith("/profile");
-    if (
-      isProfileStepNow &&
-      iframeHref &&
-      iframeHref.includes("/dashboard")
-    ) {
-      // Hard guard: profile step must never stay active when iframe already
-      // moved into phase execution dashboard.
-      const idx = indexRef.current;
-      const doneHref = stepsRef.current[idx]?.href ?? currentHref;
-      markDoneHref(doneHref);
-      setLocallyDone((d) => ({ ...d, [idx]: true }));
-      queueMicrotask(() => {
-        setIndex(nextSequentialIndex(idx));
-        dispatchAssistantPulse("end");
-      });
-      return;
-    }
-    if (
-      isQuestionnaireStep &&
-      iframeHref &&
-      !iframeShowsStepCompletion(currentHref, iframeHref) &&
-      !iframeHref.includes("/study/fb1") &&
-      !iframeHref.includes("/study/fb2") &&
-      !iframeHref.includes("/study/fb3") &&
-      !iframeHref.includes("/study/fb4") &&
-      !iframeHref.includes("/study/fb5")
-    ) {
-      // Keep questionnaire steps visually consistent in assistant mode:
-      // if iframe drifts to unrelated pages, snap back to the expected step.
+  const stepHrefForPhaseProgress = steps[index]?.href ?? "";
+  const phaseIdForProgress = useMemo(() => {
+    const fromLive = (() => {
       try {
-        if (iframeRef.current?.contentWindow) {
-          iframeRef.current.contentWindow.location.replace(toEmbedHref(currentHref));
-          return;
-        }
+        return getAssistantPhaseIdFromHref(iframeRef.current?.contentWindow?.location.href ?? null);
       } catch {
-        /* ignore cross-origin/replace issues */
+        return null;
       }
-    }
-    if (pendingSubmit || isProfileStep || isQuestionnaireStep) {
-      tryCompleteFromIframe();
-      return;
-    }
-    requestAnimationFrame(() => dispatchAssistantPulse("end"));
-  }
-
-  if (!current) return null;
-  const isDashboardPhaseStep = isPhaseDashboardAssistantHref(current.href);
-  const dashboardRefreshToken =
-    isDashboardPhaseStep && phaseRunStatus
-      ? `${phaseRunStatus.status}-${phaseRunStatus.completedSteps}-${phaseRunStatus.totalSteps}`
-      : "static";
-  const iframeSrc = (() => {
-    const base = toEmbedHref(current.href);
-    if (!isDashboardPhaseStep) return base;
-    const joiner = base.includes("?") ? "&" : "?";
-    return `${base}${joiner}assistant_refresh=${encodeURIComponent(dashboardRefreshToken)}`;
-  })();
-  const liveIframeHref = getIframeHref();
-  const stepInfo = stepInfoFromHref(liveIframeHref ?? resolvedIframeHref ?? current.href);
-  const phaseIdForProgress =
-    getAssistantPhaseIdFromHref(liveIframeHref) ??
-    getAssistantPhaseIdFromHref(resolvedIframeHref) ??
-    getAssistantPhaseIdFromHref(current.href);
+    })();
+    return (
+      fromLive ??
+      getAssistantPhaseIdFromHref(resolvedIframeHref) ??
+      getAssistantPhaseIdFromHref(stepHrefForPhaseProgress)
+    );
+  }, [resolvedIframeHref, stepHrefForPhaseProgress, index]);
 
   useEffect(() => {
     const phaseId = phaseIdForProgress;
@@ -742,6 +688,72 @@ export function WorkflowAssistantFrame({
       if (timer !== null) window.clearInterval(timer);
     };
   }, []);
+
+  function onIframeLoad() {
+    const iframeHref = getIframeHref();
+    if (iframeHref) setResolvedIframeHref(iframeHref);
+    const currentHref = stepsRef.current[indexRef.current]?.href ?? "";
+    const isQuestionnaireStep = isStudyQuestionnaireStepHref(currentHref);
+    const isProfileStepNow = currentHref.startsWith("/profile");
+    if (
+      isProfileStepNow &&
+      iframeHref &&
+      iframeHref.includes("/dashboard")
+    ) {
+      // Hard guard: profile step must never stay active when iframe already
+      // moved into phase execution dashboard.
+      const idx = indexRef.current;
+      const doneHref = stepsRef.current[idx]?.href ?? currentHref;
+      markDoneHref(doneHref);
+      setLocallyDone((d) => ({ ...d, [idx]: true }));
+      queueMicrotask(() => {
+        setIndex(nextSequentialIndex(idx));
+        dispatchAssistantPulse("end");
+      });
+      return;
+    }
+    if (
+      isQuestionnaireStep &&
+      iframeHref &&
+      !iframeShowsStepCompletion(currentHref, iframeHref) &&
+      !iframeHref.includes("/study/fb1") &&
+      !iframeHref.includes("/study/fb2") &&
+      !iframeHref.includes("/study/fb3") &&
+      !iframeHref.includes("/study/fb4") &&
+      !iframeHref.includes("/study/fb5")
+    ) {
+      // Keep questionnaire steps visually consistent in assistant mode:
+      // if iframe drifts to unrelated pages, snap back to the expected step.
+      try {
+        if (iframeRef.current?.contentWindow) {
+          iframeRef.current.contentWindow.location.replace(toEmbedHref(currentHref));
+          return;
+        }
+      } catch {
+        /* ignore cross-origin/replace issues */
+      }
+    }
+    if (pendingSubmit || isProfileStep || isQuestionnaireStep) {
+      tryCompleteFromIframe();
+      return;
+    }
+    requestAnimationFrame(() => dispatchAssistantPulse("end"));
+  }
+
+  if (!current) return null;
+  const isDashboardPhaseStep = isPhaseDashboardAssistantHref(current.href);
+  const dashboardRefreshToken =
+    isDashboardPhaseStep && phaseRunStatus
+      ? `${phaseRunStatus.status}-${phaseRunStatus.completedSteps}-${phaseRunStatus.totalSteps}`
+      : "static";
+  const iframeSrc = (() => {
+    const base = toEmbedHref(current.href);
+    if (!isDashboardPhaseStep) return base;
+    const joiner = base.includes("?") ? "&" : "?";
+    return `${base}${joiner}assistant_refresh=${encodeURIComponent(dashboardRefreshToken)}`;
+  })();
+  const liveIframeHref = getIframeHref();
+  const stepInfo = stepInfoFromHref(liveIframeHref ?? resolvedIframeHref ?? current.href);
 
   const topProgressPercent = (() => {
     if (!phaseRunStatus) return 0;

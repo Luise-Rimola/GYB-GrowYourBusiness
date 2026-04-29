@@ -412,7 +412,12 @@ export default async function DashboardPage({
     }
     return artifact.title || getWorkflowArtifactLabel(workflowKey ?? "", type, locale);
   }
-  const hasBaseline = !!baselineArtifact;
+  // Alte Läufe: KPI-Gap-Scan schreibt Artefakttyp "baseline". Aktuelle WF_BASELINE-Steps
+  // enden mit Branchenrecherche → nur "industry_research". Ohne beides zu prüfen,
+  // bleiben WF_MARKET/WF_RESEARCH fälschlich gesperrt ("Grundlagenanalyse erforderlich").
+  const hasBaseline =
+    Boolean(baselineArtifact) ||
+    Boolean(findArtifactForWorkflowType("WF_BASELINE", "industry_research"));
   const hasKpiSet = !!kpiSet;
   const hasProfile = !!profile && (profile.completenessScore ?? 0) >= 0.5;
   const hasMarketSnapshot = artifacts.some((a) => a.type === "market");
@@ -808,12 +813,13 @@ export default async function DashboardPage({
                       .map((key, idx) => {
                         const locked = isLocked[key];
                         const hasComplete = isWorkflowComplete(key);
+                        const latestRun = latestRunForWorkflow(key);
                         const hasInProgress = !hasComplete && latestRunIsInProgress(key);
                         // Fallback: Wenn ein Artifact vorhanden ist (=> "Abgeschlossen"),
                         // aber der Run noch nicht auf status=complete gesetzt wurde
                         // (historische Daten / Single-Step-Workflows vor dem Fix),
                         // dann zeigen wir trotzdem "Lauf ansehen" auf den letzten Run.
-                        const completeRun = latestCompletedRunForWorkflow(key) ?? (hasComplete ? latestRunForWorkflow(key) : undefined);
+                        const completeRun = latestCompletedRunForWorkflow(key) ?? (hasComplete ? latestRun : undefined);
                         const statusLabel = locked
                           ? (isDe ? "Gesperrt" : "Locked")
                           : hasComplete
@@ -824,8 +830,13 @@ export default async function DashboardPage({
                           : hasComplete
                             ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
                             : "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300";
+                        const overviewRowShell = locked
+                          ? "border-amber-200 bg-amber-50/55 dark:border-amber-800/80 dark:bg-amber-950/25"
+                          : hasComplete
+                            ? "border-emerald-200 bg-emerald-50/80 dark:border-emerald-700 dark:bg-emerald-950/40"
+                            : "border-teal-100 bg-teal-50/45 dark:border-teal-800/70 dark:bg-teal-950/30";
                         return (
-                          <div key={key} className="rounded-xl border border-[var(--card-border)] bg-[var(--background)]/30 p-3">
+                          <div key={key} className={`rounded-xl border p-3 ${overviewRowShell}`}>
                             <div className="flex items-start justify-between gap-2">
                               <div className="min-w-0">
                                 <p className="text-[11px] text-[var(--muted)]">{isDe ? "Schritt" : "Step"} {idx + 1}</p>
@@ -835,13 +846,23 @@ export default async function DashboardPage({
                             </div>
                             <div className="mt-2">
                               {hasInProgress ? (
-                                <form action={createRunWorkflowAction}>
-                                  <input type="hidden" name="workflow_key" value={key} />
-                                  <input type="hidden" name="return_target" value="dashboard" />
-                                  <input type="hidden" name="return_view" value="overview" />
-                                  <input type="hidden" name="return_phase" value={selectedOverviewSummary.phase.id} />
-                                  <button type="submit" className="rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-teal-700">{isDe ? "Fortsetzen" : "Continue"}</button>
-                                </form>
+                                <div className="flex flex-wrap items-center gap-2">
+                                  {latestRun ? (
+                                    <Link
+                                      href={`/runs/${latestRun.id}`}
+                                      className="rounded-lg border border-teal-600 bg-teal-50 px-3 py-1.5 text-xs font-semibold text-teal-800 hover:bg-teal-100 dark:border-teal-500 dark:bg-teal-950/50 dark:text-teal-200 dark:hover:bg-teal-900/50"
+                                    >
+                                      {isDe ? "Lauf ansehen" : "View run"}
+                                    </Link>
+                                  ) : null}
+                                  <form action={createRunWorkflowAction}>
+                                    <input type="hidden" name="workflow_key" value={key} />
+                                    <input type="hidden" name="return_target" value="dashboard" />
+                                    <input type="hidden" name="return_view" value="overview" />
+                                    <input type="hidden" name="return_phase" value={selectedOverviewSummary.phase.id} />
+                                    <button type="submit" className="rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-teal-700">{isDe ? "Fortsetzen" : "Continue"}</button>
+                                  </form>
+                                </div>
                               ) : hasComplete && completeRun ? (
                                 <Link href={`/runs/${completeRun.id}`} className="rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-teal-700">{isDe ? "Lauf ansehen" : "View run"}</Link>
                               ) : (
@@ -981,8 +1002,8 @@ export default async function DashboardPage({
             const phaseCardShell = phaseReleased
               ? "border-emerald-400/90 bg-emerald-50/45 dark:border-emerald-600 dark:bg-emerald-950/30 shadow-sm ring-1 ring-emerald-500/25"
               : phasePlanningComplete
-                ? "border-[var(--card-border)] bg-[var(--card)]/50"
-                : "border-[var(--card-border)] bg-[var(--card)]/50";
+                ? "border-teal-200/90 bg-teal-50/55 shadow-sm dark:border-teal-800/80 dark:bg-teal-950/35"
+                : "border-cyan-200/80 bg-cyan-50/50 shadow-sm dark:border-cyan-900/70 dark:bg-cyan-950/25";
             return (
               <div id={`phase-${phase.id}`} key={phase.id} className={`scroll-mt-24 rounded-2xl border p-6 ${phaseCardShell}`}>
                 <div className="mb-4">
@@ -1005,7 +1026,7 @@ export default async function DashboardPage({
                   </p>
                 </div>
                 {phaseWorkflows.length > 0 ? (
-                  <details data-phase-details={phase.id} className="group rounded-xl border border-[var(--card-border)] bg-[var(--background)]/40 p-3">
+                  <details data-phase-details={phase.id} className="group rounded-xl border border-teal-100/90 bg-white/80 p-3 shadow-sm dark:border-teal-900/50 dark:bg-teal-950/20">
                     <summary className="cursor-pointer list-none text-sm font-medium text-[var(--foreground)]">
                       <span className="inline-flex items-center gap-2">
                         <span
@@ -1032,8 +1053,9 @@ export default async function DashboardPage({
                       {phaseWorkflows.map((wf) => {
                       const locked = isLocked[wf.key];
                       const hasComplete = isWorkflowComplete(wf.key);
+                      const latestRun = latestRunForWorkflow(wf.key);
                       const hasInProgress = !hasComplete && latestRunIsInProgress(wf.key);
-                      const completeRun = latestCompletedRunForWorkflow(wf.key) ?? (hasComplete ? latestRunForWorkflow(wf.key) : undefined);
+                      const completeRun = latestCompletedRunForWorkflow(wf.key) ?? (hasComplete ? latestRun : undefined);
                       const wfArtifactTypes = WORKFLOW_TO_ARTIFACTS[wf.key] ?? [];
                       const wfArtifactItems = wfArtifactTypes.map((artifactType) => {
                         const workflowRunIds = new Set((runsByWorkflow[wf.key] ?? []).map((run) => run.id));
@@ -1069,10 +1091,10 @@ export default async function DashboardPage({
                             showUnvalidated
                               ? "border-amber-300 bg-amber-50/90 dark:border-amber-600 dark:bg-amber-900/30"
                               : isComplete
-                                ? "border-slate-300 bg-slate-200/90 dark:border-slate-600 dark:bg-slate-800/70"
+                                ? "border-emerald-200 bg-emerald-50/80 dark:border-emerald-700 dark:bg-emerald-950/40"
                                 : locked
-                                  ? "border-slate-200 bg-slate-50/50 dark:border-slate-800 dark:bg-slate-900/20"
-                                  : "border-[var(--card-border)] bg-[var(--card)]"
+                                  ? "border-amber-200 bg-amber-50/55 dark:border-amber-800/80 dark:bg-amber-950/25"
+                                  : "border-teal-100 bg-teal-50/45 dark:border-teal-800/70 dark:bg-teal-950/30"
                           }`}
                         >
                           <div className="flex items-center justify-between gap-4">
@@ -1122,15 +1144,25 @@ export default async function DashboardPage({
                                   {isDe ? "Profil ansehen" : "View profile"}
                                 </Link>
                               ) : hasInProgress ? (
-                                <form action={createRunWorkflowAction}>
-                                  <input type="hidden" name="workflow_key" value={wf.key} />
-                                  <input type="hidden" name="return_target" value="dashboard" />
-                                  <input type="hidden" name="return_view" value="execution" />
-                                  {assistantPhaseId ? <input type="hidden" name="return_assistant_phase" value={assistantPhaseId} /> : null}
-                                  <button type="submit" disabled={locked} className="rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-teal-700 disabled:opacity-50">
-                                    {isDe ? "Fortsetzen" : "Continue"}
-                                  </button>
-                                </form>
+                                <div className="flex flex-wrap items-center gap-2">
+                                  {latestRun ? (
+                                    <Link
+                                      href={`/runs/${latestRun.id}`}
+                                      className="rounded-lg border border-teal-600 bg-teal-50 px-3 py-1.5 text-xs font-semibold text-teal-800 hover:bg-teal-100 dark:border-teal-500 dark:bg-teal-950/50 dark:text-teal-200 dark:hover:bg-teal-900/50"
+                                    >
+                                      {isDe ? "Lauf ansehen" : "View run"}
+                                    </Link>
+                                  ) : null}
+                                  <form action={createRunWorkflowAction}>
+                                    <input type="hidden" name="workflow_key" value={wf.key} />
+                                    <input type="hidden" name="return_target" value="dashboard" />
+                                    <input type="hidden" name="return_view" value="execution" />
+                                    {assistantPhaseId ? <input type="hidden" name="return_assistant_phase" value={assistantPhaseId} /> : null}
+                                    <button type="submit" disabled={locked} className="rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-teal-700 disabled:opacity-50">
+                                      {isDe ? "Fortsetzen" : "Continue"}
+                                    </button>
+                                  </form>
+                                </div>
                               ) : hasComplete && completeRun ? (
                                 <>
                                   <Link href={`/runs/${completeRun.id}`} className="rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-teal-700">
