@@ -19,8 +19,7 @@
     "seed": "tsx prisma/seed.ts"
   },
   "overrides": {
-    "minimatch": ">=10.2.1",
-    "ajv": ">=8.18.0"
+    "minimatch": ">=10.2.1"
   },
   "dependencies": {
     "@prisma/client": "^6.5.0",

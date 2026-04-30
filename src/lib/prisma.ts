@@ -27,7 +27,11 @@ function normalizeDatasourceUrl(url: string | undefined): string | undefined {
 export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({
-    datasourceUrl: normalizeDatasourceUrl(process.env.DATABASE_URL),
+    datasources: {
+      db: {
+        url: normalizeDatasourceUrl(process.env.DATABASE_URL),
+      },
+    },
     log: ["error", "warn"],
   });
 

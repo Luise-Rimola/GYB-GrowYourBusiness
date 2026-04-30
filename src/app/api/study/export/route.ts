@@ -5,6 +5,36 @@ import { getCompanyForApi } from "@/lib/companyContext";
 /** Reverse-Coding: C5, CF3, CL1, CL3, US3, GOV1 (Skala 1–7 → 8 - value, DSR-Dokument) */
 const REVERSE_ITEMS = new Set(["C5", "CF3", "CL1", "CL3", "US3", "GOV1"]);
 
+type ResponseItemValue = { valueNum: number | null; valueStr: string | null };
+
+type ResponseWithItems = {
+  id: string;
+  questionnaireType: string;
+  category: string | null;
+  createdAt: Date;
+  items: Array<{ itemKey: string; valueNum: number | null; valueStr: string | null }>;
+};
+
+type StudyParticipantWithResponses = {
+  id: string;
+  externalId: string | null;
+  createdAt: Date;
+  questionnaireResponses: ResponseWithItems[];
+};
+
+type RawStudyExportRow = {
+  participantId: string;
+  externalId: string | null;
+  participantCreatedAt: string | Date | null;
+  responseId: string | null;
+  questionnaireType: string | null;
+  category: string | null;
+  responseCreatedAt: string | Date | null;
+  itemKey: string | null;
+  valueNum: number | string | null;
+  valueStr: string | null;
+};
+
 function escapeCsv(val: string | number | null | undefined): string {
   if (val === null || val === undefined) return "";
   const s = String(val);
@@ -30,8 +60,19 @@ export async function GET() {
 
   // Robust exportieren: wenn studyParticipant/questionnaireResponseItem-Delegates zur Laufzeit fehlen,
   // holen wir alles per SQL aus SQLite.
-  const hasStudyParticipantDelegate = Boolean((prisma as any).studyParticipant?.findMany);
-  const hasQuestionnaireResponseItemDelegate = Boolean((prisma as any).questionnaireResponseItem);
+  const db = prisma as typeof prisma & {
+    studyParticipant?: {
+      findMany: (args: {
+        where: { companyId: string };
+        include: { questionnaireResponses: { include: { items: true }; orderBy: { createdAt: "asc" } } };
+        orderBy: { createdAt: "asc" };
+      }) => Promise<StudyParticipantWithResponses[]>;
+    };
+    questionnaireResponseItem?: unknown;
+    $queryRaw: <T>(query: TemplateStringsArray, ...values: unknown[]) => Promise<T>;
+  };
+  const hasStudyParticipantDelegate = Boolean(db.studyParticipant?.findMany);
+  const hasQuestionnaireResponseItemDelegate = Boolean(db.questionnaireResponseItem);
 
   const participants: Array<{
     id: string;
@@ -48,7 +89,7 @@ export async function GET() {
 
   if (hasStudyParticipantDelegate && hasQuestionnaireResponseItemDelegate) {
     // Standard-Path (Delegates vorhanden)
-    const data = await (prisma as any).studyParticipant.findMany({
+    const data = await db.studyParticipant!.findMany({
       where: { companyId: company.id },
       include: {
         questionnaireResponses: {
@@ -60,32 +101,32 @@ export async function GET() {
     });
 
     for (const p of data) {
-      const responses = (p.questionnaireResponses ?? []).map((r: any) => {
+      const responses = (p.questionnaireResponses ?? []).map((r) => {
         const itemMap = new Map(
-          (r.items ?? []).map((it: any) => [
+          (r.items ?? []).map((it) => [
             it.itemKey,
-            { valueNum: it.valueNum as number | null, valueStr: it.valueStr as string | null },
+            { valueNum: it.valueNum, valueStr: it.valueStr } satisfies ResponseItemValue,
           ])
         );
         return {
-          id: r.id as string,
-          questionnaireType: r.questionnaireType as string,
-          category: (r.category as string | null) ?? null,
-          createdAt: r.createdAt as Date,
+          id: r.id,
+          questionnaireType: r.questionnaireType,
+          category: r.category ?? null,
+          createdAt: r.createdAt,
           itemMap,
         };
       });
 
       participants.push({
-        id: p.id as string,
-        externalId: (p.externalId as string | null) ?? null,
-        createdAt: p.createdAt as Date,
+        id: p.id,
+        externalId: p.externalId ?? null,
+        createdAt: p.createdAt,
         responses,
       });
     }
   } else {
     // Fallback-Path: per SQL exportieren (keine Delegates nötig)
-    const rawRows = await (prisma as any).$queryRaw<any[]>`
+    const rawRows = await db.$queryRaw<RawStudyExportRow[]>`
       SELECT
         sp."id"              AS "participantId",
         sp."externalId"     AS "externalId",
@@ -142,7 +183,7 @@ export async function GET() {
         if (!p.responseMap.has(row.responseId)) {
           p.responseMap.set(row.responseId, {
             id: row.responseId,
-            questionnaireType: row.questionnaireType,
+            questionnaireType: row.questionnaireType ?? "",
             category: row.category ?? null,
             createdAt: row.responseCreatedAt ? new Date(row.responseCreatedAt) : new Date(),
             itemMap: new Map(),

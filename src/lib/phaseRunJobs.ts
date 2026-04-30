@@ -61,8 +61,10 @@ type PhaseRunJobRecord = {
   createdAt: Date;
 };
 
-function requirePhaseRunJobDelegate(): any {
-  const delegate = (prisma as unknown as { phaseRunJob?: any }).phaseRunJob;
+type PhaseRunJobDelegate = typeof prisma.phaseRunJob;
+
+function requirePhaseRunJobDelegate(): PhaseRunJobDelegate {
+  const delegate = (prisma as unknown as { phaseRunJob?: PhaseRunJobDelegate }).phaseRunJob;
   if (!delegate) {
     throw new Error("PhaseRunJob delegate unavailable on Prisma client");
   }

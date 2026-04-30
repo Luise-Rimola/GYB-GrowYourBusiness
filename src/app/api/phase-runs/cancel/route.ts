@@ -14,7 +14,8 @@ export async function POST(req: Request) {
     const jobId = typeof body.jobId === "string" ? body.jobId : "";
     if (!jobId) return NextResponse.json({ error: "jobId required" }, { status: 400 });
 
-    const phaseRunJob = (prisma as unknown as { phaseRunJob?: any }).phaseRunJob;
+    type PhaseRunJobDelegate = typeof prisma.phaseRunJob;
+    const phaseRunJob = (prisma as unknown as { phaseRunJob?: PhaseRunJobDelegate }).phaseRunJob;
     if (!phaseRunJob?.findUnique || !phaseRunJob?.update) {
       return NextResponse.json({ error: "Phase run jobs are not available" }, { status: 503 });
     }

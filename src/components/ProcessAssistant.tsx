@@ -1,7 +1,8 @@
 "use client";
+/* eslint-disable react-hooks/set-state-in-effect */
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { NAV_TRANSITION_EVENT } from "@/components/NavigationTransition";
 import { iframeShowsStepCompletion } from "@/lib/assistantIframeCompletion";
@@ -334,7 +335,6 @@ export function WorkflowAssistantFrame({
   const router = useRouter();
   const [index, setIndex] = useState(0);
   const indexRef = useRef(0);
-  indexRef.current = index;
   const [locallyDone, setLocallyDone] = useState<Record<number, boolean>>({});
   const [persistedDone, setPersistedDone] = useState<Set<string>>(new Set());
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
@@ -348,12 +348,20 @@ export function WorkflowAssistantFrame({
   const [allPhaseJobs, setAllPhaseJobs] = useState<Array<AssistantPhaseRunStatus | null>>([]);
   const pendingNextIndexRef = useRef<number | null>(null);
   const pendingTimeoutRef = useRef<number | null>(null);
+  const submitTokenCounterRef = useRef(0);
   const lastCompletionUrlRef = useRef<string | null>(null);
   const lastManualNavAtRef = useRef<number>(0);
   const suppressAutoAdvanceUntilRef = useRef<number>(0);
   const stepsRef = useRef(steps);
-  stepsRef.current = steps;
   const isProfileStep = (steps[index]?.href ?? "").startsWith("/profile");
+
+  useEffect(() => {
+    indexRef.current = index;
+  }, [index]);
+
+  useEffect(() => {
+    stepsRef.current = steps;
+  }, [steps]);
 
   useEffect(() => {
     if (hydratedFromStorage.current) return;
@@ -418,20 +426,14 @@ export function WorkflowAssistantFrame({
     ).length;
   }, [steps, locallyDone, persistedDone]);
 
-  function isStepAlreadyDone(i: number): boolean {
-    const step = stepsRef.current[i];
-    if (!step) return false;
-    return step.completed || Boolean(locallyDone[i]) || persistedDone.has(step.href);
-  }
-
-  function markDoneHref(href: string) {
+  const markDoneHref = useCallback((href: string) => {
     persistDoneHref(href, storageScope);
     setPersistedDone((prev) => {
       const next = new Set(prev);
       next.add(href);
       return next;
     });
-  }
+  }, [storageScope]);
 
   function nextSequentialIndex(fromIndex: number) {
     const st = stepsRef.current;
@@ -507,9 +509,6 @@ export function WorkflowAssistantFrame({
 
     const nextDone = { ...locallyDone, [index]: true };
     setLocallyDone(nextDone);
-    if (current.href.startsWith("/knowledge")) {
-      document.cookie = "docs_step_done=1; path=/; max-age=31536000; samesite=lax";
-    }
 
     const nextIndex = nextSequentialIndex(index);
 
@@ -525,7 +524,8 @@ export function WorkflowAssistantFrame({
     pendingNextIndexRef.current = nextIndex;
     setPendingSubmit(true);
 
-    const token = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    submitTokenCounterRef.current += 1;
+    const token = `assistant-submit-${submitTokenCounterRef.current}`;
     const targetOrigin = typeof window !== "undefined" ? window.location.origin : "*";
     try {
       iframeRef.current?.contentWindow?.postMessage({ type: "assistant-submit", token }, targetOrigin);
@@ -547,7 +547,9 @@ export function WorkflowAssistantFrame({
   }
 
   const tryCompleteRef = useRef(tryCompleteFromIframe);
-  tryCompleteRef.current = tryCompleteFromIframe;
+  useEffect(() => {
+    tryCompleteRef.current = tryCompleteFromIframe;
+  }, [tryCompleteFromIframe]);
 
   useEffect(() => {
     return () => {
@@ -577,7 +579,7 @@ export function WorkflowAssistantFrame({
       setIndex(nextSequentialIndex(idx));
       dispatchAssistantPulse("end");
     });
-  }, [resolvedIframeHref]);
+  }, [resolvedIframeHref, markDoneHref]);
 
   useEffect(() => {
     function onMsg(e: MessageEvent) {
@@ -613,19 +615,11 @@ export function WorkflowAssistantFrame({
 
   const stepHrefForPhaseProgress = steps[index]?.href ?? "";
   const phaseIdForProgress = useMemo(() => {
-    const fromLive = (() => {
-      try {
-        return getAssistantPhaseIdFromHref(iframeRef.current?.contentWindow?.location.href ?? null);
-      } catch {
-        return null;
-      }
-    })();
     return (
-      fromLive ??
       getAssistantPhaseIdFromHref(resolvedIframeHref) ??
       getAssistantPhaseIdFromHref(stepHrefForPhaseProgress)
     );
-  }, [resolvedIframeHref, stepHrefForPhaseProgress, index]);
+  }, [resolvedIframeHref, stepHrefForPhaseProgress]);
 
   // Kein separates Polling pro Phase: reduziert parallele Requests/DB-Last.
   // Den Phasenstatus leiten wir aus `allPhaseJobs` ab.
@@ -735,20 +729,19 @@ export function WorkflowAssistantFrame({
     requestAnimationFrame(() => dispatchAssistantPulse("end"));
   }
 
-  if (!current) return null;
-  const isDashboardPhaseStep = isPhaseDashboardAssistantHref(current.href);
+  const currentHref = current?.href ?? "/home";
+  const isDashboardPhaseStep = isPhaseDashboardAssistantHref(currentHref);
   const dashboardRefreshToken =
     isDashboardPhaseStep && phaseRunStatus
       ? `${phaseRunStatus.status}-${phaseRunStatus.completedSteps}-${phaseRunStatus.totalSteps}`
       : "static";
   const iframeSrc = (() => {
-    const base = toEmbedHref(current.href);
+    const base = toEmbedHref(currentHref);
     if (!isDashboardPhaseStep) return base;
     const joiner = base.includes("?") ? "&" : "?";
     return `${base}${joiner}assistant_refresh=${encodeURIComponent(dashboardRefreshToken)}`;
   })();
-  const liveIframeHref = getIframeHref();
-  const stepInfo = stepInfoFromHref(liveIframeHref ?? resolvedIframeHref ?? current.href);
+  const stepInfo = stepInfoFromHref(resolvedIframeHref ?? currentHref);
 
   const topProgressPercent = (() => {
     if (!phaseRunStatus) return 0;
@@ -768,22 +761,64 @@ export function WorkflowAssistantFrame({
     (job): job is AssistantPhaseRunStatus => Boolean(job),
   );
   const allPhasesTotalCount = allPhaseJobs.length;
-  const allPhasesCompletedCount = relevantPhaseJobs.filter((job) => job.status === "completed").length;
-  const allPhasesProgressPercent =
-    allPhasesTotalCount > 0
-      ? Math.max(0, Math.min(100, Math.round((allPhasesCompletedCount / allPhasesTotalCount) * 100)))
-      : 0;
   const allStartedPhasesCount = relevantPhaseJobs.filter((job) => job.status !== "queued" || job.totalSteps > 0).length;
   const showAllPhasesProgress = allPhasesTotalCount > 0 && allStartedPhasesCount > 0;
-  const hasGlobalRunAllJob = relevantPhaseJobs.some((job) => job.mode === "run_all");
-  const globalRunAllTotalSteps = relevantPhaseJobs.reduce((sum, job) => sum + Math.max(0, job.totalSteps || 0), 0);
-  const globalRunAllCompletedSteps = relevantPhaseJobs.reduce((sum, job) => sum + Math.max(0, job.completedSteps || 0), 0);
+  const runAllJobs = relevantPhaseJobs.filter((job) => job.mode === "run_all");
+  const hasGlobalRunAllJob = runAllJobs.length > 0;
+  const globalRunAllTotalStepsRaw = runAllJobs.reduce((sum, job) => sum + Math.max(0, job.totalSteps || 0), 0);
+  const globalRunAllCompletedStepsRaw = runAllJobs.reduce((sum, job) => sum + Math.max(0, job.completedSteps || 0), 0);
+  const globalRunAllProgressPercentRaw =
+    globalRunAllTotalStepsRaw > 0
+      ? Math.max(0, Math.min(100, Math.round((globalRunAllCompletedStepsRaw / globalRunAllTotalStepsRaw) * 100)))
+      : 0;
+  const hasActiveGlobalRunAllJob = runAllJobs.some((job) => job.status === "queued" || job.status === "running");
+  const [globalRunAllDisplay, setGlobalRunAllDisplay] = useState({
+    completedSteps: 0,
+    totalSteps: 0,
+    percent: 0,
+  });
+  useEffect(() => {
+    if (!hasGlobalRunAllJob) {
+      setGlobalRunAllDisplay({ completedSteps: 0, totalSteps: 0, percent: 0 });
+      return;
+    }
+    setGlobalRunAllDisplay((prev) => {
+      if (hasActiveGlobalRunAllJob) {
+        return {
+          completedSteps: Math.max(prev.completedSteps, globalRunAllCompletedStepsRaw),
+          totalSteps: Math.max(prev.totalSteps, globalRunAllTotalStepsRaw),
+          percent: Math.max(prev.percent, globalRunAllProgressPercentRaw),
+        };
+      }
+      return {
+        completedSteps: globalRunAllCompletedStepsRaw,
+        totalSteps: globalRunAllTotalStepsRaw,
+        percent: globalRunAllProgressPercentRaw,
+      };
+    });
+  }, [
+    hasGlobalRunAllJob,
+    hasActiveGlobalRunAllJob,
+    globalRunAllCompletedStepsRaw,
+    globalRunAllTotalStepsRaw,
+    globalRunAllProgressPercentRaw,
+  ]);
+  const globalRunAllCurrentJob = runAllJobs.find((job) => job.status === "running")
+    ?? runAllJobs.find((job) => job.status === "queued")
+    ?? null;
+  const globalRunAllCurrentProcess =
+    globalRunAllCurrentJob?.currentLabel
+    ?? globalRunAllCurrentJob?.lastMessage
+    ?? null;
+  const globalRunAllTotalSteps = globalRunAllDisplay.totalSteps;
+  const globalRunAllCompletedSteps = globalRunAllDisplay.completedSteps;
   const globalRunAllProgressPercent =
     globalRunAllTotalSteps > 0
-      ? Math.max(0, Math.min(100, Math.round((globalRunAllCompletedSteps / globalRunAllTotalSteps) * 100)))
+      ? globalRunAllDisplay.percent
       : 0;
   const showGlobalRunAllPromptProgress = hasGlobalRunAllJob && globalRunAllTotalSteps > 0;
 
+  if (!current) return null;
   const assistantExitHref = current.phaseId
     ? `/dashboard?view=overview&phase=${encodeURIComponent(current.phaseId)}#phase-${encodeURIComponent(current.phaseId)}`
     : "/home";
@@ -807,6 +842,11 @@ export function WorkflowAssistantFrame({
               <p className="mb-1 text-xs font-medium text-[var(--muted)]">
                 KI-Analyse Fortschritt: {globalRunAllCompletedSteps}/{globalRunAllTotalSteps} ({globalRunAllProgressPercent}%)
               </p>
+              {globalRunAllCurrentProcess ? (
+                <p className="mb-1 text-[11px] text-[var(--muted)]">
+                  Aktueller Prozess: {globalRunAllCurrentProcess}
+                </p>
+              ) : null}
               <div className="h-2 w-full overflow-hidden rounded-full bg-slate-200/80 dark:bg-slate-700/70">
                 <div
                   className="h-full rounded-full bg-teal-600 transition-all duration-500 ease-out"

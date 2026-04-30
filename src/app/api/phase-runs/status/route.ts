@@ -17,7 +17,8 @@ export async function GET(req: Request) {
       ? (await getCompanyForApi())?.company?.id ?? null
       : (await getSessionFromCookies())?.companyId ?? null;
     if (!companyId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    const phaseRunJob = (prisma as unknown as { phaseRunJob?: any }).phaseRunJob;
+    type PhaseRunJobDelegate = typeof prisma.phaseRunJob;
+    const phaseRunJob = (prisma as unknown as { phaseRunJob?: PhaseRunJobDelegate }).phaseRunJob;
     const hasPhaseRunDelegate = Boolean(phaseRunJob?.findFirst);
 
     if (jobId) {
@@ -42,9 +43,17 @@ export async function GET(req: Request) {
           featureUnavailable: true,
         });
       }
+      if (!phaseRunJob) {
+        return NextResponse.json({
+          jobs: PLANNING_PHASES.map(() => null),
+          phases: PLANNING_PHASES.map((p) => p.id),
+          featureUnavailable: true,
+        });
+      }
+      const phaseRunJobDelegate = phaseRunJob;
       // Use a single query for all phases to avoid parallel DB reads on every poll cycle.
       const phaseIds = PLANNING_PHASES.map((p) => p.id);
-      const rows = (await phaseRunJob.findMany({
+      const rows = (await phaseRunJobDelegate.findMany({
         where: { companyId, phaseId: { in: phaseIds } },
         orderBy: [{ createdAt: "desc" }],
       })) as PhaseRunJobRow[];
