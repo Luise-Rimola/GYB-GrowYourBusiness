@@ -19,7 +19,7 @@ async function safeDb<T>(query: () => Promise<T>, fallback: T): Promise<T> {
   }
 }
 
-export default async function Home({
+async function HomePageContent({
   searchParams,
 }: {
   searchParams: Promise<{ saved?: string; category?: string; openExport?: string }>;
@@ -247,4 +247,52 @@ export default async function Home({
       </Link>
     </div>
   );
+}
+
+export default async function Home(props: {
+  searchParams: Promise<{ saved?: string; category?: string; openExport?: string }>;
+}) {
+  try {
+    return await HomePageContent(props);
+  } catch (err) {
+    const errorId = `home-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+    let params: { saved?: string; category?: string; openExport?: string } = {};
+    try {
+      params = await props.searchParams;
+    } catch {
+      // ignore parsing issues in telemetry fallback
+    }
+    console.error("[home][fatal-render]", {
+      errorId,
+      params,
+      error:
+        err instanceof Error
+          ? {
+              name: err.name,
+              message: err.message,
+              stack: err.stack,
+              cause: err.cause,
+            }
+          : err,
+    });
+    return (
+      <div className="mx-auto max-w-3xl rounded-2xl border border-amber-300 bg-amber-50 p-6 text-amber-950 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-100">
+        <h2 className="text-lg font-semibold">Startseite konnte nicht vollständig geladen werden</h2>
+        <p className="mt-2 text-sm">
+          Ein unerwarteter Server-Fehler wurde abgefangen. Bitte laden Sie die Startseite neu.
+        </p>
+        <p className="mt-2 rounded-md bg-amber-100/80 px-3 py-2 font-mono text-xs dark:bg-amber-900/30">
+          Fehler-ID: {errorId}
+        </p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Link href="/home" className="rounded-lg bg-teal-600 px-3 py-2 text-sm font-semibold text-white hover:bg-teal-700">
+            Startseite neu laden
+          </Link>
+          <Link href="/" className="rounded-lg border border-[var(--card-border)] px-3 py-2 text-sm font-semibold text-[var(--foreground)]">
+            Zur Landingpage
+          </Link>
+        </div>
+      </div>
+    );
+  }
 }

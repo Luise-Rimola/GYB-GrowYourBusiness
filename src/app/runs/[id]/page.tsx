@@ -277,7 +277,7 @@ async function saveRunStep(formData: FormData) {
   redirect(`/runs/${runId}${q}`);
 }
 
-export default async function RunDetailPage({
+async function RunDetailPageContent({
   params,
   searchParams,
 }: {
@@ -693,4 +693,58 @@ export default async function RunDetailPage({
       )}
     </div>
   );
+}
+
+export default async function RunDetailPage(props: {
+  params: Promise<{ id: string }>;
+  searchParams?: Promise<{ embed?: string; step?: string }>;
+}) {
+  try {
+    return await RunDetailPageContent(props);
+  } catch (err) {
+    const errorId = `run-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+    let runId = "unknown";
+    let sp: { embed?: string; step?: string } = {};
+    try {
+      runId = (await props.params)?.id ?? "unknown";
+      sp = (await props.searchParams) ?? {};
+    } catch {
+      // ignore parameter parsing errors in telemetry path
+    }
+    console.error("[runs/[id]][fatal-render]", {
+      errorId,
+      runId,
+      searchParams: sp,
+      error:
+        err instanceof Error
+          ? {
+              name: err.name,
+              message: err.message,
+              stack: err.stack,
+              cause: err.cause,
+            }
+          : err,
+    });
+    const backHref = String(sp.embed ?? "") === "1" ? "/dashboard?view=execution&embed=1" : "/dashboard?view=execution";
+    return (
+      <div className="mx-auto max-w-3xl rounded-2xl border border-amber-300 bg-amber-50 p-6 text-amber-950 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-100">
+        <h2 className="text-lg font-semibold">Prozesslauf konnte nicht vollständig geladen werden</h2>
+        <p className="mt-2 text-sm">
+          Der Lauf wurde serverseitig abgefangen, damit die Seite nutzbar bleibt. Bitte versuchen Sie den Lauf erneut
+          oder öffnen Sie die Prozessseite neu.
+        </p>
+        <p className="mt-2 rounded-md bg-amber-100/80 px-3 py-2 font-mono text-xs dark:bg-amber-900/30">
+          Fehler-ID: {errorId}
+        </p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Link href={`/runs/${encodeURIComponent(runId)}${String(sp.step ?? "").length > 0 ? `?step=${encodeURIComponent(String(sp.step))}` : ""}`} className="rounded-lg bg-teal-600 px-3 py-2 text-sm font-semibold text-white hover:bg-teal-700">
+            Lauf neu laden
+          </Link>
+          <Link href={backHref} className="rounded-lg border border-[var(--card-border)] px-3 py-2 text-sm font-semibold text-[var(--foreground)]">
+            Zur Prozessseite
+          </Link>
+        </div>
+      </div>
+    );
+  }
 }

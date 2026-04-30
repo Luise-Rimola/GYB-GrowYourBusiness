@@ -392,6 +392,24 @@ async function DashboardPageContent({
     }
     return expectedSteps.every((def) => validatedKeys.has(def.stepKey));
   }
+  function runHasAllExpectedStepsValidated(
+    workflowKey: string,
+    run: { steps?: Array<{ stepKey: string; schemaValidationPassed: boolean }> } | undefined,
+  ): boolean {
+    if (!run) return false;
+    const expectedSteps = WORKFLOW_STEP_DEFS[workflowKey];
+    if (!expectedSteps || expectedSteps.length === 0) {
+      // Für Workflows ohne Step-Definition bleibt die alte Semantik erhalten:
+      // "validiert" nur über terminalen Run-Status.
+      return false;
+    }
+    const validated = new Set(
+      (run.steps ?? [])
+        .filter((s) => s.schemaValidationPassed === true)
+        .map((s) => s.stepKey),
+    );
+    return expectedSteps.every((def) => validated.has(def.stepKey));
+  }
   function collectPhaseArtifacts(phase: (typeof PLANNING_PHASES)[number]) {
     const result: Array<{ workflowKey: string; artifactType: string; artifact: (typeof artifacts)[number] }> = [];
     for (const workflowKey of phase.workflowKeys) {
@@ -1060,7 +1078,11 @@ async function DashboardPageContent({
                       const hasComplete = isWorkflowComplete(wf.key);
                       const latestRun = latestRunForWorkflow(wf.key);
                       const hasInProgress = !hasComplete && latestRunIsInProgress(wf.key);
-                      const completeRun = latestCompletedRunForWorkflow(wf.key) ?? (hasComplete ? latestRun : undefined);
+                      const completeRun =
+                        (runsByWorkflow[wf.key] ?? []).find((r) =>
+                          runHasAllExpectedStepsValidated(wf.key, r),
+                        ) ??
+                        latestCompletedRunForWorkflow(wf.key);
                       const wfArtifactTypes = WORKFLOW_TO_ARTIFACTS[wf.key] ?? [];
                       const wfArtifactItems = wfArtifactTypes.map((artifactType) => {
                         const workflowRunIds = new Set((runsByWorkflow[wf.key] ?? []).map((run) => run.id));
@@ -1082,7 +1104,9 @@ async function DashboardPageContent({
                         return { type: artifactType, artifact };
                       });
                       const isComplete = isWorkflowComplete(wf.key);
-                      const completeRunValidated = completeRun ? isRunValidated(completeRun) : false;
+                      const completeRunValidated = completeRun
+                        ? isRunValidated(completeRun) || runHasAllExpectedStepsValidated(wf.key, completeRun)
+                        : false;
                       const isCompleteUnvalidated = isComplete && completeRun && !completeRunValidated;
                       const hasUnverifiedResponse = runsByWorkflow[wf.key]?.some(runHasUnverifiedResponse);
                       const showUnvalidated = isCompleteUnvalidated || hasUnverifiedResponse;
