@@ -47,6 +47,9 @@ export async function POST(req: Request) {
     );
   } catch (err) {
     console.error("[phase-runs/start] error:", err);
+    if (err instanceof Error && /PhaseRunJob delegate unavailable/i.test(err.message)) {
+      return NextResponse.json({ error: "Phase run jobs are not available" }, { status: 503 });
+    }
     return NextResponse.json({ error: "Failed to start phase run" }, { status: 500 });
   }
 }

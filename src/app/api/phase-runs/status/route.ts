@@ -7,16 +7,16 @@ import { PLANNING_PHASES } from "@/lib/planningFramework";
 export const runtime = "nodejs";
 
 export async function GET(req: Request) {
+  const url = new URL(req.url);
+  const phaseId = url.searchParams.get("phaseId") ?? "";
+  const jobId = url.searchParams.get("jobId");
+  const allPhases = url.searchParams.get("all") === "1";
   try {
     const auth = await getCompanyForApi();
     if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const { company } = auth;
-
-    const url = new URL(req.url);
-    const phaseId = url.searchParams.get("phaseId") ?? "";
-    const jobId = url.searchParams.get("jobId");
-    const allPhases = url.searchParams.get("all") === "1";
     const phaseRunJob = (prisma as unknown as { phaseRunJob?: any }).phaseRunJob;
+    const hasPhaseRunDelegate = Boolean(phaseRunJob?.findFirst);
 
     if (jobId) {
       if (!phaseRunJob?.findUnique) {
@@ -33,9 +33,16 @@ export async function GET(req: Request) {
       if (!allPhases) {
         return NextResponse.json({ error: "phaseId or jobId required" }, { status: 400 });
       }
+      if (!hasPhaseRunDelegate) {
+        return NextResponse.json({
+          jobs: PLANNING_PHASES.map(() => null),
+          phases: PLANNING_PHASES.map((p) => p.id),
+          featureUnavailable: true,
+        });
+      }
       const jobs = await Promise.all(
         PLANNING_PHASES.map((phase) =>
-          findLatestJobForPhase({ companyId: company.id, phaseId: phase.id })
+          findLatestJobForPhase({ companyId: company.id, phaseId: phase.id }).catch(() => null)
         )
       );
       return NextResponse.json({
@@ -44,11 +51,35 @@ export async function GET(req: Request) {
       });
     }
 
+    if (!hasPhaseRunDelegate) {
+      return NextResponse.json({ job: null, featureUnavailable: true });
+    }
     const job = await findLatestJobForPhase({ companyId: company.id, phaseId });
     return NextResponse.json({ job: job ? serializeJob(job) : null });
   } catch (err) {
-    console.error("[phase-runs/status] error:", err);
-    return NextResponse.json({ error: "Failed to read status" }, { status: 500 });
+    const errorId = `prs-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+    console.error("[phase-runs/status] error:", {
+      errorId,
+      phaseId,
+      jobId: jobId ?? null,
+      allPhases,
+      error:
+        err instanceof Error
+          ? { name: err.name, message: err.message, stack: err.stack, cause: err.cause }
+          : err,
+    });
+    if (jobId) {
+      return NextResponse.json({ job: null, transientError: true, errorId });
+    }
+    if (allPhases) {
+      return NextResponse.json({
+        jobs: PLANNING_PHASES.map(() => null),
+        phases: PLANNING_PHASES.map((p) => p.id),
+        transientError: true,
+        errorId,
+      });
+    }
+    return NextResponse.json({ job: null, transientError: true, errorId });
   }
 }
 

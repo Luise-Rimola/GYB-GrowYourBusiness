@@ -45,6 +45,7 @@ type StepInfoContent = {
 type AssistantPhaseRunStatus = {
   id: string;
   phaseId: string;
+  mode?: "continue" | "run_all";
   status: "queued" | "running" | "completed" | "failed" | "cancelled";
   totalSteps: number;
   completedSteps: number;
@@ -634,61 +635,93 @@ export function WorkflowAssistantFrame({
     }
     let disposed = false;
     let timer: number | null = null;
+    let failureCount = 0;
+
+    const schedule = (ms: number) => {
+      if (disposed) return;
+      if (timer !== null) window.clearTimeout(timer);
+      timer = window.setTimeout(() => {
+        void fetchPhaseRunStatus();
+      }, ms);
+    };
 
     const fetchPhaseRunStatus = async () => {
       try {
         const res = await fetch(`/api/phase-runs/status?phaseId=${encodeURIComponent(phaseId)}`, {
           credentials: "same-origin",
         });
-        if (!res.ok) return;
+        if (!res.ok) {
+          failureCount += 1;
+          // Bei API-Fehlern nicht im 2.5s-Loop spammen.
+          const backoffMs = Math.min(20_000, 2_500 * Math.max(1, failureCount));
+          schedule(backoffMs);
+          return;
+        }
         const data = (await res.json()) as {
           job?: AssistantPhaseRunStatus | null;
         };
         if (!disposed) {
           setPhaseRunStatus(data.job ?? null);
         }
+        failureCount = 0;
+        schedule(2_500);
       } catch {
-        /* ignore transient polling failures */
+        failureCount += 1;
+        const backoffMs = Math.min(20_000, 2_500 * Math.max(1, failureCount));
+        schedule(backoffMs);
       }
     };
 
     void fetchPhaseRunStatus();
-    timer = window.setInterval(() => {
-      void fetchPhaseRunStatus();
-    }, 2500);
 
     return () => {
       disposed = true;
-      if (timer !== null) window.clearInterval(timer);
+      if (timer !== null) window.clearTimeout(timer);
     };
   }, [phaseIdForProgress]);
 
   useEffect(() => {
     let disposed = false;
     let timer: number | null = null;
+    let failureCount = 0;
+
+    const schedule = (ms: number) => {
+      if (disposed) return;
+      if (timer !== null) window.clearTimeout(timer);
+      timer = window.setTimeout(() => {
+        void fetchAllPhaseProgress();
+      }, ms);
+    };
+
     const fetchAllPhaseProgress = async () => {
       try {
         const res = await fetch("/api/phase-runs/status?all=1", {
           credentials: "same-origin",
         });
-        if (!res.ok) return;
+        if (!res.ok) {
+          failureCount += 1;
+          const backoffMs = Math.min(20_000, 2_500 * Math.max(1, failureCount));
+          schedule(backoffMs);
+          return;
+        }
         const data = (await res.json()) as {
           jobs?: Array<AssistantPhaseRunStatus | null>;
         };
         if (!disposed) {
           setAllPhaseJobs(Array.isArray(data.jobs) ? data.jobs : []);
         }
+        failureCount = 0;
+        schedule(2_500);
       } catch {
-        /* ignore transient polling failures */
+        failureCount += 1;
+        const backoffMs = Math.min(20_000, 2_500 * Math.max(1, failureCount));
+        schedule(backoffMs);
       }
     };
     void fetchAllPhaseProgress();
-    timer = window.setInterval(() => {
-      void fetchAllPhaseProgress();
-    }, 2500);
     return () => {
       disposed = true;
-      if (timer !== null) window.clearInterval(timer);
+      if (timer !== null) window.clearTimeout(timer);
     };
   }, []);
 
@@ -783,6 +816,14 @@ export function WorkflowAssistantFrame({
       : 0;
   const allStartedPhasesCount = relevantPhaseJobs.filter((job) => job.status !== "queued" || job.totalSteps > 0).length;
   const showAllPhasesProgress = allPhasesTotalCount > 0 && allStartedPhasesCount > 0;
+  const hasGlobalRunAllJob = relevantPhaseJobs.some((job) => job.mode === "run_all");
+  const globalRunAllTotalSteps = relevantPhaseJobs.reduce((sum, job) => sum + Math.max(0, job.totalSteps || 0), 0);
+  const globalRunAllCompletedSteps = relevantPhaseJobs.reduce((sum, job) => sum + Math.max(0, job.completedSteps || 0), 0);
+  const globalRunAllProgressPercent =
+    globalRunAllTotalSteps > 0
+      ? Math.max(0, Math.min(100, Math.round((globalRunAllCompletedSteps / globalRunAllTotalSteps) * 100)))
+      : 0;
+  const showGlobalRunAllPromptProgress = hasGlobalRunAllJob && globalRunAllTotalSteps > 0;
 
   const assistantExitHref = current.phaseId
     ? `/dashboard?view=overview&phase=${encodeURIComponent(current.phaseId)}#phase-${encodeURIComponent(current.phaseId)}`
@@ -802,15 +843,15 @@ export function WorkflowAssistantFrame({
           <p className="mt-1 text-sm text-[var(--muted)]">
             Schritt {index + 1} von {steps.length} — {completedCount} erledigt
           </p>
-          {showAllPhasesProgress ? (
+          {showGlobalRunAllPromptProgress ? (
             <div className="mt-2 w-full max-w-xl">
               <p className="mb-1 text-xs font-medium text-[var(--muted)]">
-                Phasenfortschritt: {allPhasesCompletedCount}/{allPhasesTotalCount} abgeschlossen ({allPhasesProgressPercent}%) - gestartet: {allStartedPhasesCount}/{allPhasesTotalCount}
+                KI-Analyse Fortschritt: {globalRunAllCompletedSteps}/{globalRunAllTotalSteps} ({globalRunAllProgressPercent}%)
               </p>
               <div className="h-2 w-full overflow-hidden rounded-full bg-slate-200/80 dark:bg-slate-700/70">
                 <div
                   className="h-full rounded-full bg-teal-600 transition-all duration-500 ease-out"
-                  style={{ width: `${allPhasesProgressPercent}%` }}
+                  style={{ width: `${globalRunAllProgressPercent}%` }}
                 />
               </div>
             </div>

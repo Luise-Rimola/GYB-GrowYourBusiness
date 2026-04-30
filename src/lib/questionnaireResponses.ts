@@ -56,22 +56,22 @@ export async function getLatestQuestionnaireResponseJson(params: {
 
   if (params.category === null) {
     const rows = await prisma.$queryRaw<Array<{ responsesJson: unknown }>>`
-      SELECT responsesJson FROM QuestionnaireResponse
-      WHERE participantId = ${params.participantId}
-        AND questionnaireType = ${params.questionnaireType}
-        AND category IS NULL
-      ORDER BY createdAt DESC
+      SELECT "responsesJson" FROM "QuestionnaireResponse"
+      WHERE "participantId" = ${params.participantId}
+        AND "questionnaireType" = ${params.questionnaireType}
+        AND "category" IS NULL
+      ORDER BY "createdAt" DESC
       LIMIT 1
     `;
     return rows[0]?.responsesJson ?? null;
   }
 
   const rows = await prisma.$queryRaw<Array<{ responsesJson: unknown }>>`
-    SELECT responsesJson FROM QuestionnaireResponse
-    WHERE participantId = ${params.participantId}
-      AND questionnaireType = ${params.questionnaireType}
-      AND category = ${params.category}
-    ORDER BY createdAt DESC
+    SELECT "responsesJson" FROM "QuestionnaireResponse"
+    WHERE "participantId" = ${params.participantId}
+      AND "questionnaireType" = ${params.questionnaireType}
+      AND "category" = ${params.category}
+    ORDER BY "createdAt" DESC
     LIMIT 1
   `;
   return rows[0]?.responsesJson ?? null;
