@@ -36,10 +36,10 @@ function isTransientNetworkError(err: unknown): boolean {
   return walk(err);
 }
 
-function upstreamSignal(existing?: AbortSignal): AbortSignal | undefined {
+function upstreamSignal(existing?: AbortSignal, timeoutMs?: number): AbortSignal | undefined {
   if (existing) return existing;
   if (typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function") {
-    return AbortSignal.timeout(LLM_UPSTREAM_FETCH_MS);
+    return AbortSignal.timeout(timeoutMs ?? LLM_UPSTREAM_FETCH_MS);
   }
   return undefined;
 }
@@ -104,14 +104,15 @@ export async function fetchChatCompletionWithTemperatureRetry(
   chatUrl: string,
   headers: Record<string, string>,
   body: Record<string, unknown>,
-  outerSignal?: AbortSignal
+  outerSignal?: AbortSignal,
+  timeoutMs?: number,
 ): Promise<Response> {
   const postOnce = (payload: Record<string, unknown>) =>
     fetchLlmUpstreamWithRetry(chatUrl, {
       method: "POST",
       headers,
       body: JSON.stringify(payload),
-      signalFactory: () => upstreamSignal(outerSignal),
+      signalFactory: () => upstreamSignal(outerSignal, timeoutMs),
     });
 
   const retryOverloaded = async (

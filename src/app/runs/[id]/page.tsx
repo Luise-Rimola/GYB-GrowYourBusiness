@@ -479,9 +479,15 @@ async function RunDetailPageContent({
     };
   }
 
-  // Use fresh context with latest artifacts (real_estate, financial_planning, etc.) so ChatGPT gets the data
-  const freshContext = await ContextPackService.build(run.companyId, run.workflowKey);
-  const freshContextRecord = freshContext as unknown as Record<string, unknown>;
+  // Use fresh context with latest artifacts (real_estate, financial_planning, etc.) so ChatGPT gets the data.
+  // If context building fails (e.g. malformed legacy artifact payload), keep the run page usable.
+  let freshContextRecord: Record<string, unknown> = {};
+  try {
+    const freshContext = await ContextPackService.build(run.companyId, run.workflowKey);
+    freshContextRecord = freshContext as unknown as Record<string, unknown>;
+  } catch (err) {
+    console.warn("[runs/[id]] context build failed, falling back to empty context:", err);
+  }
 
   return (
     <div className="space-y-8">

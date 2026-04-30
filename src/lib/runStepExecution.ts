@@ -228,6 +228,15 @@ function supportsJsonMode(model: string): boolean {
   return !(m.includes("kimi") || m.includes("moonshot"));
 }
 
+function upstreamTimeoutMsForStep(stepKey: string): number | undefined {
+  // Research-heavy steps frequently exceed the generic 5-minute upstream timeout.
+  // Give them a larger window in background/full-run mode to avoid premature aborts.
+  if (["market_research", "best_practices", "failure_reasons"].includes(stepKey)) {
+    return 12 * 60 * 1000;
+  }
+  return undefined;
+}
+
 async function tryRepairInvalidStepJson(params: {
   chatUrl: string;
   headers: Record<string, string>;
@@ -377,15 +386,28 @@ export async function executeRunStepForCompany(params: {
     messages: [{ role: "user", content: promptRendered }],
     temperature,
   };
+  const upstreamTimeoutMs = upstreamTimeoutMsForStep(params.stepKey);
 
   let llmRes: Response;
   if (supportsJsonMode(model)) {
-    llmRes = await fetchChatCompletionWithTemperatureRetry(chatUrl, headers, payloadWithJsonMode);
+    llmRes = await fetchChatCompletionWithTemperatureRetry(
+      chatUrl,
+      headers,
+      payloadWithJsonMode,
+      undefined,
+      upstreamTimeoutMs,
+    );
     if (!llmRes.ok) {
       const firstErr = await llmRes.text();
       const status = llmRes.status;
       if (status === 401 || status === 403) throw new Error(`LLM-API Fehler (${status}): ${firstErr.slice(0, 300)}`);
-      llmRes = await fetchChatCompletionWithTemperatureRetry(chatUrl, headers, payloadPlain);
+      llmRes = await fetchChatCompletionWithTemperatureRetry(
+        chatUrl,
+        headers,
+        payloadPlain,
+        undefined,
+        upstreamTimeoutMs,
+      );
       if (!llmRes.ok) {
         const secondErr = await llmRes.text();
         throw new Error(
@@ -394,7 +416,13 @@ export async function executeRunStepForCompany(params: {
       }
     }
   } else {
-    llmRes = await fetchChatCompletionWithTemperatureRetry(chatUrl, headers, payloadPlain);
+    llmRes = await fetchChatCompletionWithTemperatureRetry(
+      chatUrl,
+      headers,
+      payloadPlain,
+      undefined,
+      upstreamTimeoutMs,
+    );
     if (!llmRes.ok) {
       const errText = await llmRes.text();
       throw new Error(`LLM-API Fehler (${llmRes.status}): ${errText.slice(0, 300)}`);
