@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { unstable_rethrow } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { StatCard } from "@/components/StatCard";
 import { Badge } from "@/components/Badge";
@@ -255,6 +256,7 @@ export default async function Home(props: {
   try {
     return await HomePageContent(props);
   } catch (err) {
+    unstable_rethrow(err);
     const errorId = `home-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
     let params: { saved?: string; category?: string; openExport?: string } = {};
     try {

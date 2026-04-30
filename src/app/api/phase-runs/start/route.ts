@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCompanyForApi } from "@/lib/companyContext";
+import { getSessionFromCookies } from "@/lib/session";
 import { startPhaseRunJob, type PhaseRunMode } from "@/lib/phaseRunJobs";
 import { getServerLocale } from "@/lib/locale";
 
@@ -7,9 +8,10 @@ export const runtime = "nodejs";
 
 export async function POST(req: Request) {
   try {
-    const auth = await getCompanyForApi();
-    if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    const { company } = auth;
+    const companyId = process.env.DEV_AUTH_BYPASS === "1"
+      ? (await getCompanyForApi())?.company?.id ?? null
+      : (await getSessionFromCookies())?.companyId ?? null;
+    if (!companyId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const body = (await req.json().catch(() => ({}))) as {
       phaseId?: unknown;
@@ -28,7 +30,7 @@ export async function POST(req: Request) {
 
     const locale = await getServerLocale();
     const result = await startPhaseRunJob({
-      companyId: company.id,
+      companyId,
       phaseId,
       workflowKeys,
       mode,

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Suspense } from "react";
-import { notFound, redirect } from "next/navigation";
+import { notFound, redirect, unstable_rethrow } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Section } from "@/components/Section";
 import { RunWizard } from "@/components/RunWizard";
@@ -708,6 +708,7 @@ export default async function RunDetailPage(props: {
   try {
     return await RunDetailPageContent(props);
   } catch (err) {
+    unstable_rethrow(err);
     const errorId = `run-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
     let runId = "unknown";
     let sp: { embed?: string; step?: string } = {};

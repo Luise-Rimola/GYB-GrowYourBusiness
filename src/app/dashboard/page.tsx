@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Script from "next/script";
+import { unstable_rethrow } from "next/navigation";
 import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { createRunWorkflowAction } from "@/app/actions";
@@ -1436,6 +1437,7 @@ export default async function DashboardPage(props: {
   try {
     return await DashboardPageContent(props);
   } catch (err) {
+    unstable_rethrow(err);
     const errorId = `dash-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
     let params: { assistant_phase?: string; run_error?: string; run_success?: string; view?: string; phase?: string } = {};
     try {

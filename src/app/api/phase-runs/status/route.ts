@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCompanyForApi } from "@/lib/companyContext";
+import { getSessionFromCookies } from "@/lib/session";
 import { findLatestJobForPhase } from "@/lib/phaseRunJobs";
 import { PLANNING_PHASES } from "@/lib/planningFramework";
 
@@ -12,9 +13,10 @@ export async function GET(req: Request) {
   const jobId = url.searchParams.get("jobId");
   const allPhases = url.searchParams.get("all") === "1";
   try {
-    const auth = await getCompanyForApi();
-    if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    const { company } = auth;
+    const companyId = process.env.DEV_AUTH_BYPASS === "1"
+      ? (await getCompanyForApi())?.company?.id ?? null
+      : (await getSessionFromCookies())?.companyId ?? null;
+    if (!companyId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const phaseRunJob = (prisma as unknown as { phaseRunJob?: any }).phaseRunJob;
     const hasPhaseRunDelegate = Boolean(phaseRunJob?.findFirst);
 
@@ -23,7 +25,7 @@ export async function GET(req: Request) {
         return NextResponse.json({ error: "Phase run jobs are not available" }, { status: 503 });
       }
       const job = await phaseRunJob.findUnique({ where: { id: jobId } });
-      if (!job || job.companyId !== company.id) {
+      if (!job || job.companyId !== companyId) {
         return NextResponse.json({ error: "Not found" }, { status: 404 });
       }
       return NextResponse.json({ job: serializeJob(job) });
@@ -42,7 +44,7 @@ export async function GET(req: Request) {
       }
       const jobs = await Promise.all(
         PLANNING_PHASES.map((phase) =>
-          findLatestJobForPhase({ companyId: company.id, phaseId: phase.id }).catch(() => null)
+          findLatestJobForPhase({ companyId, phaseId: phase.id }).catch(() => null)
         )
       );
       return NextResponse.json({
@@ -54,7 +56,7 @@ export async function GET(req: Request) {
     if (!hasPhaseRunDelegate) {
       return NextResponse.json({ job: null, featureUnavailable: true });
     }
-    const job = await findLatestJobForPhase({ companyId: company.id, phaseId });
+    const job = await findLatestJobForPhase({ companyId, phaseId });
     return NextResponse.json({ job: job ? serializeJob(job) : null });
   } catch (err) {
     const errorId = `prs-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
