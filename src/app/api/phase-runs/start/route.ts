@@ -6,6 +6,12 @@ import { getServerLocale } from "@/lib/locale";
 
 export const runtime = "nodejs";
 
+function isMaxConnSessionError(err: unknown): boolean {
+  if (!(err instanceof Error)) return false;
+  const text = `${err.name} ${err.message}`;
+  return /EMAXCONNSESSION|max clients reached|pool_size/i.test(text);
+}
+
 export async function POST(req: Request) {
   try {
     const companyId = process.env.DEV_AUTH_BYPASS === "1"
@@ -51,6 +57,12 @@ export async function POST(req: Request) {
     console.error("[phase-runs/start] error:", err);
     if (err instanceof Error && /PhaseRunJob delegate unavailable/i.test(err.message)) {
       return NextResponse.json({ error: "Phase run jobs are not available" }, { status: 503 });
+    }
+    if (isMaxConnSessionError(err)) {
+      return NextResponse.json(
+        { error: "Database is temporarily busy. Please retry in a few seconds.", transientError: true },
+        { status: 503 },
+      );
     }
     return NextResponse.json({ error: "Failed to start phase run" }, { status: 500 });
   }

@@ -265,9 +265,92 @@ function PhaseRunButtonFormInner({ formId, phaseId, buttonLabel, workflows }: Ph
         alreadyRunning?: boolean;
         empty?: boolean;
         error?: string;
+        transientError?: boolean;
       };
 
       if (!res.ok) {
+        if (res.status === 503 && data.transientError) {
+          await new Promise((resolve) => setTimeout(resolve, 1200));
+          const retryRes = await fetchApi("/api/phase-runs/start", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ phaseId, workflowKeys, mode }),
+          });
+          const retryData = (await retryRes.json().catch(() => ({}))) as {
+            jobId?: string | null;
+            totalSteps?: number;
+            alreadyRunning?: boolean;
+            empty?: boolean;
+            error?: string;
+          };
+          if (retryRes.ok) {
+            if (retryData.empty) {
+              setMessage({
+                tone: "warn",
+                text:
+                  mode === "continue"
+                    ? isDe
+                      ? "Keine offenen Schritte in dieser Phase."
+                      : "No open steps in this phase."
+                    : tDash.phaseRunsAllAlreadyActive,
+              });
+              refreshRouterSoft();
+              setStarting(false);
+              return;
+            }
+            setMessage({
+              tone: "ok",
+              text:
+                mode === "continue"
+                  ? isDe
+                    ? `KI-Analyse gestartet: ${retryData.totalSteps ?? "?"} Schritt${retryData.totalSteps === 1 ? "" : "e"}.`
+                    : `AI analysis started: ${retryData.totalSteps ?? "?"} step${retryData.totalSteps === 1 ? "" : "s"}.`
+                  : isDe
+                    ? `KI-Analyse (alles neu): ${retryData.totalSteps ?? "?"} Schritt${retryData.totalSteps === 1 ? "" : "e"}.`
+                    : `AI analysis (rerun all): ${retryData.totalSteps ?? "?"} step${retryData.totalSteps === 1 ? "" : "s"}.`,
+            });
+            if (retryData.jobId) {
+              setJob({
+                id: retryData.jobId,
+                phaseId,
+                mode,
+                status: "queued",
+                totalSteps: retryData.totalSteps ?? workflowKeys.length,
+                completedSteps: 0,
+                currentWorkflowKey: null,
+                currentStepKey: null,
+                currentLabel: null,
+                lastMessage: null,
+                errorMessage: null,
+                cancelRequested: false,
+                startedAt: null,
+                finishedAt: null,
+                createdAt: new Date().toISOString(),
+              });
+              startedInThisTab.current.add(retryData.jobId);
+            }
+            const freshRetry = await fetchStatus();
+            if (freshRetry?.id) startedInThisTab.current.add(freshRetry.id);
+            if (freshRetry) setJob(freshRetry);
+            setStarting(false);
+            return;
+          }
+        }
+        // Defensive: start can time out/500 while the job was still created server-side.
+        // Before showing a hard error, re-read current status once.
+        const freshAfterError = await fetchStatus().catch(() => null);
+        if (freshAfterError && (freshAfterError.status === "queued" || freshAfterError.status === "running")) {
+          setJob(freshAfterError);
+          startedInThisTab.current.add(freshAfterError.id);
+          setMessage({
+            tone: "ok",
+            text: isDe
+              ? `KI-Analyse läuft bereits: ${freshAfterError.completedSteps}/${freshAfterError.totalSteps}.`
+              : `AI analysis already running: ${freshAfterError.completedSteps}/${freshAfterError.totalSteps}.`,
+          });
+          setStarting(false);
+          return;
+        }
         setMessage({ tone: "error", text: data.error ?? `HTTP ${res.status}` });
         setStarting(false);
         return;
@@ -328,6 +411,20 @@ function PhaseRunButtonFormInner({ formId, phaseId, buttonLabel, workflows }: Ph
       if (fresh?.id) startedInThisTab.current.add(fresh.id);
       if (fresh) setJob(fresh);
     } catch (e) {
+      // Same safeguard for network errors on the start request: if a job exists, keep running.
+      const freshAfterCatch = await fetchStatus().catch(() => null);
+      if (freshAfterCatch && (freshAfterCatch.status === "queued" || freshAfterCatch.status === "running")) {
+        setJob(freshAfterCatch);
+        startedInThisTab.current.add(freshAfterCatch.id);
+        setMessage({
+          tone: "ok",
+          text: isDe
+            ? `KI-Analyse läuft bereits: ${freshAfterCatch.completedSteps}/${freshAfterCatch.totalSteps}.`
+            : `AI analysis already running: ${freshAfterCatch.completedSteps}/${freshAfterCatch.totalSteps}.`,
+        });
+        setStarting(false);
+        return;
+      }
       setMessage({
         tone: "error",
         text:

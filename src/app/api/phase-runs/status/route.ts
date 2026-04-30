@@ -42,11 +42,21 @@ export async function GET(req: Request) {
           featureUnavailable: true,
         });
       }
-      const jobs = await Promise.all(
-        PLANNING_PHASES.map((phase) =>
-          findLatestJobForPhase({ companyId, phaseId: phase.id }).catch(() => null)
-        )
-      );
+      // Use a single query for all phases to avoid parallel DB reads on every poll cycle.
+      const phaseIds = PLANNING_PHASES.map((p) => p.id);
+      const rows = (await phaseRunJob.findMany({
+        where: { companyId, phaseId: { in: phaseIds } },
+        orderBy: [{ createdAt: "desc" }],
+      })) as PhaseRunJobRow[];
+      const latestByPhase = new Map<string, PhaseRunJobRow>();
+      const activeByPhase = new Map<string, PhaseRunJobRow>();
+      for (const row of rows) {
+        if (!latestByPhase.has(row.phaseId)) latestByPhase.set(row.phaseId, row);
+        if (!activeByPhase.has(row.phaseId) && (row.status === "queued" || row.status === "running")) {
+          activeByPhase.set(row.phaseId, row);
+        }
+      }
+      const jobs = phaseIds.map((id) => activeByPhase.get(id) ?? latestByPhase.get(id) ?? null);
       return NextResponse.json({
         jobs: jobs.map((job) => (job ? serializeJob(job) : null)),
         phases: PLANNING_PHASES.map((p) => p.id),

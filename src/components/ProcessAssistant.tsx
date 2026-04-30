@@ -627,58 +627,17 @@ export function WorkflowAssistantFrame({
     );
   }, [resolvedIframeHref, stepHrefForPhaseProgress, index]);
 
+  // Kein separates Polling pro Phase: reduziert parallele Requests/DB-Last.
+  // Den Phasenstatus leiten wir aus `allPhaseJobs` ab.
   useEffect(() => {
     const phaseId = phaseIdForProgress;
     if (!phaseId) {
       setPhaseRunStatus(null);
       return;
     }
-    let disposed = false;
-    let timer: number | null = null;
-    let failureCount = 0;
-
-    const schedule = (ms: number) => {
-      if (disposed) return;
-      if (timer !== null) window.clearTimeout(timer);
-      timer = window.setTimeout(() => {
-        void fetchPhaseRunStatus();
-      }, ms);
-    };
-
-    const fetchPhaseRunStatus = async () => {
-      try {
-        const res = await fetch(`/api/phase-runs/status?phaseId=${encodeURIComponent(phaseId)}`, {
-          credentials: "same-origin",
-        });
-        if (!res.ok) {
-          failureCount += 1;
-          // Bei API-Fehlern nicht im 2.5s-Loop spammen.
-          const backoffMs = Math.min(20_000, 2_500 * Math.max(1, failureCount));
-          schedule(backoffMs);
-          return;
-        }
-        const data = (await res.json()) as {
-          job?: AssistantPhaseRunStatus | null;
-        };
-        if (!disposed) {
-          setPhaseRunStatus(data.job ?? null);
-        }
-        failureCount = 0;
-        schedule(2_500);
-      } catch {
-        failureCount += 1;
-        const backoffMs = Math.min(20_000, 2_500 * Math.max(1, failureCount));
-        schedule(backoffMs);
-      }
-    };
-
-    void fetchPhaseRunStatus();
-
-    return () => {
-      disposed = true;
-      if (timer !== null) window.clearTimeout(timer);
-    };
-  }, [phaseIdForProgress]);
+    const match = allPhaseJobs.find((j) => j?.phaseId === phaseId) ?? null;
+    setPhaseRunStatus(match ?? null);
+  }, [phaseIdForProgress, allPhaseJobs]);
 
   useEffect(() => {
     let disposed = false;
