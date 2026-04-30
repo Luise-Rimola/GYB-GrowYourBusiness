@@ -40,7 +40,7 @@ function getWorkflowArtifactLabel(workflowKey: string, artifactType: string, loc
   return ARTIFACT_LABELS[artifactType] ?? artifactType;
 }
 
-export default async function DashboardPage({
+async function DashboardPageContent({
   searchParams,
 }: {
   searchParams: Promise<{ assistant_phase?: string; run_error?: string; run_success?: string; view?: string; phase?: string }>;
@@ -284,10 +284,15 @@ export default async function DashboardPage({
     anyCreated = results.some(Boolean);
   }
   if (anyCreated) {
-    artifacts = await prisma.artifact.findMany({
-      where: { companyId: company.id },
-      orderBy: { createdAt: "desc" },
-    });
+    artifacts = await safeDb(
+      "artifacts.findMany.reloadAfterBackfill",
+      () =>
+        prisma.artifact.findMany({
+          where: { companyId: company.id },
+          orderBy: { createdAt: "desc" },
+        }),
+      artifacts,
+    );
   }
 
   const runsByWorkflow = Object.fromEntries(
@@ -1399,5 +1404,54 @@ export default async function DashboardPage({
       )}
     </div>
   );
+}
+
+export default async function DashboardPage(props: {
+  searchParams: Promise<{ assistant_phase?: string; run_error?: string; run_success?: string; view?: string; phase?: string }>;
+}) {
+  try {
+    return await DashboardPageContent(props);
+  } catch (err) {
+    const errorId = `dash-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+    let params: { assistant_phase?: string; run_error?: string; run_success?: string; view?: string; phase?: string } = {};
+    try {
+      params = await props.searchParams;
+    } catch {
+      // ignore parsing issues in fallback telemetry
+    }
+    console.error("[dashboard][fatal-render]", {
+      errorId,
+      params,
+      error:
+        err instanceof Error
+          ? {
+              name: err.name,
+              message: err.message,
+              stack: err.stack,
+              cause: err.cause,
+            }
+          : err,
+    });
+    return (
+      <div className="mx-auto max-w-3xl rounded-2xl border border-amber-300 bg-amber-50 p-6 text-amber-950 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-100">
+        <h2 className="text-lg font-semibold">Dashboard konnte nicht vollständig geladen werden</h2>
+        <p className="mt-2 text-sm">
+          Ein unerwarteter Fehler wurde abgefangen, damit der Assistent weiter nutzbar bleibt.
+          Bitte laden Sie die Seite neu oder öffnen Sie die Startansicht.
+        </p>
+        <p className="mt-2 rounded-md bg-amber-100/80 px-3 py-2 font-mono text-xs dark:bg-amber-900/30">
+          Fehler-ID: {errorId}
+        </p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Link href="/dashboard" className="rounded-lg bg-teal-600 px-3 py-2 text-sm font-semibold text-white hover:bg-teal-700">
+            Dashboard neu laden
+          </Link>
+          <Link href="/home" className="rounded-lg border border-[var(--card-border)] px-3 py-2 text-sm font-semibold text-[var(--foreground)]">
+            Zur Startseite
+          </Link>
+        </div>
+      </div>
+    );
+  }
 }
 
