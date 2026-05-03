@@ -5,7 +5,10 @@ import { getOrCreateDemoCompany } from "@/lib/demo";
 import { ARTIFACT_LABELS, PLANNING_PHASES, WORKFLOW_TO_ARTIFACTS } from "@/lib/planningFramework";
 import { getServerLocale } from "@/lib/locale";
 import { getTranslations } from "@/lib/i18n";
-import { getArtifactEvaluationsByCompany } from "@/lib/artifactEvaluations";
+import {
+  getArtifactEvaluationsByCompany,
+  pickNewestArtifactPerWorkflowAndType,
+} from "@/lib/artifactEvaluations";
 import { getEarlyWarningDetails, getEarlyWarningPrimaryRiskText, hasEarlyWarningSignal } from "@/lib/earlyWarning";
 import { EarlyWarningPopover } from "@/components/EarlyWarningPopover";
 
@@ -148,14 +151,7 @@ export default async function ArtifactsPage({
     }).filter(([, v]) => Boolean(v)) as Array<[string, string]>
   ).toString()}` : ""}`;
 
-  // Show newest artifact per workflow+type (keeps validation artifacts separate)
-  const seenWorkflowType = new Set<string>();
-  const artifacts = allArtifacts.filter((a) => {
-    const key = `${a.run?.workflowKey ?? "no-workflow"}:${a.type}`;
-    if (seenWorkflowType.has(key)) return false;
-    seenWorkflowType.add(key);
-    return true;
-  });
+  const artifacts = pickNewestArtifactPerWorkflowAndType(allArtifacts);
 
   const phaseSections = PLANNING_PHASES.map((phase) => {
     const phaseArtifacts = phase.workflowKeys.flatMap((wfKey) => {
@@ -196,39 +192,39 @@ export default async function ArtifactsPage({
   const ArtifactCard = ({ artifact }: { artifact: (typeof artifacts)[0] }) => {
     const isEvaluated = latestEvaluationByArtifactId.has(artifact.id);
     return (
-    <div
-      className={`rounded-lg border border-sky-200 bg-sky-50/80 px-2.5 py-2 transition ${
-        isEvaluated
-          ? "opacity-70 grayscale-[0.15] dark:border-sky-900/60 dark:bg-sky-950/30"
-          : "hover:border-sky-300 hover:shadow-md dark:border-sky-900/60 dark:bg-sky-950/25 dark:hover:border-sky-700"
-      }`}
-    >
-      <div className="flex items-center justify-between gap-3">
-        <Link href={`/artifacts/${artifact.id}`} className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-[var(--foreground)]">{displayArtifactName(artifact, locale)}</p>
-        </Link>
-        <div className="flex shrink-0 items-center gap-2">
-          {hasEarlyWarningSignal(artifact) && (
-            <EarlyWarningPopover
-              size="compact"
-              panelTitle={copy.warningWhy}
-              primaryRiskText={getEarlyWarningPrimaryRiskText(artifact)}
-              detailMessages={getEarlyWarningDetails(artifact)}
-            />
-          )}
-          <Link
-            href={`/artifacts/${artifact.id}?${new URLSearchParams({
-              return_to: currentReturnTo,
-              ...(isEmbed ? { embed: "1" } : {}),
-            }).toString()}`}
-            aria-label={isEn ? "Open document" : "Dokument öffnen"}
-            className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-[var(--card-border)] bg-white text-[var(--muted)] transition hover:bg-[var(--background)] hover:text-[var(--foreground)] dark:bg-[var(--card)]"
-          >
-            <span aria-hidden className="text-sm leading-none">→</span>
+      <div
+        className={`rounded-lg border border-sky-200 bg-sky-50/80 px-2.5 py-2 transition ${
+          isEvaluated
+            ? "opacity-70 grayscale-[0.15] dark:border-sky-900/60 dark:bg-sky-950/30"
+            : "hover:border-sky-300 hover:shadow-md dark:border-sky-900/60 dark:bg-sky-950/25 dark:hover:border-sky-700"
+        }`}
+      >
+        <div className="flex items-center justify-between gap-3">
+          <Link href={`/artifacts/${artifact.id}`} className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-[var(--foreground)]">{displayArtifactName(artifact, locale)}</p>
           </Link>
+          <div className="flex shrink-0 items-center gap-2">
+            {hasEarlyWarningSignal(artifact) && (
+              <EarlyWarningPopover
+                size="compact"
+                panelTitle={copy.warningWhy}
+                primaryRiskText={getEarlyWarningPrimaryRiskText(artifact)}
+                detailMessages={getEarlyWarningDetails(artifact)}
+              />
+            )}
+            <Link
+              href={`/artifacts/${artifact.id}?${new URLSearchParams({
+                return_to: currentReturnTo,
+                ...(isEmbed ? { embed: "1" } : {}),
+              }).toString()}`}
+              aria-label={isEn ? "Open document" : "Dokument öffnen"}
+              className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-[var(--card-border)] bg-white text-[var(--muted)] transition hover:bg-[var(--background)] hover:text-[var(--foreground)] dark:bg-[var(--card)]"
+            >
+              <span aria-hidden className="text-sm leading-none">→</span>
+            </Link>
+          </div>
         </div>
       </div>
-    </div>
     );
   };
 
@@ -412,6 +408,13 @@ export default async function ArtifactsPage({
             )}
             <div className="mt-6 flex flex-wrap gap-3">
               <a
+                href={`/api/study/export?part=document_evaluation&lang=${locale}`}
+                download="document_evaluation.csv"
+                className="inline-flex items-center justify-center rounded-xl border border-[var(--card-border)] px-4 py-2 text-sm font-medium transition hover:bg-[var(--background)]"
+              >
+                {isEn ? "Document evaluation (CSV, one row per document)" : "Dokumentenbewertung (CSV, je Zeile ein Dokument)"}
+              </a>
+              <a
                 href={`/api/export?scope=artifacts&format=spss&lang=${locale}`}
                 download="artifact-evaluations.csv"
                 className="inline-flex items-center justify-center rounded-xl border border-[var(--card-border)] px-4 py-2 text-sm font-medium transition hover:bg-[var(--background)]"
@@ -441,6 +444,13 @@ export default async function ArtifactsPage({
                 className="inline-flex items-center justify-center rounded-xl border border-[var(--card-border)] px-4 py-2 text-sm font-medium transition hover:bg-[var(--background)]"
               >
                 {copy.exportExcel}
+              </a>
+              <a
+                href={`/api/export/open-answers?section=documents&lang=${locale}`}
+                download="document-eval-open-text.xls"
+                className="inline-flex items-center justify-center rounded-xl border border-[var(--card-border)] px-4 py-2 text-sm font-medium transition hover:bg-[var(--background)]"
+              >
+                {isEn ? "Excel: open text fields only" : "Excel: nur offene Textfelder"}
               </a>
             </div>
             </>

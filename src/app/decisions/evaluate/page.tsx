@@ -27,6 +27,10 @@ export default async function DecisionsEvaluatePage({
       evaluations={evaluations}
       emptyHistory={t.decisions.evaluateEmpty}
       fv={fv}
+      openTextExcelHref={`/api/export/open-answers?section=advisor&lang=${locale}`}
+      openTextExcelLabel={
+        locale === "en" ? "Excel: open text answers only" : "Excel: nur offene Textantworten"
+      }
     />
   );
 }

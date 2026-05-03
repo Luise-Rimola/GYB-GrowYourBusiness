@@ -530,7 +530,7 @@ async function RunDetailPageContent({
                       href={`/runs/${run.id}?${stepQuery}`}
                       prefetch={false}
                       aria-current={isCurrent ? "step" : undefined}
-                      {...(embedAssistant ? ({ target: "_top", rel: "noopener noreferrer" } as const) : {})}
+                      {...(embedAssistant ? ({ scroll: false } as const) : {})}
                       className={`${chipClass} inline-block cursor-pointer no-underline transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--card)]`}
                     >
                       {i + 1}. {s.label}
@@ -643,6 +643,7 @@ async function RunDetailPageContent({
                     <Link
                       href={`/runs/${run.id}?step=${stepIndex - 1}${embedAssistant ? "&embed=1" : ""}`}
                       prefetch={false}
+                      {...(embedAssistant ? ({ scroll: false } as const) : {})}
                       className="rounded-xl border border-[var(--card-border)] bg-slate-100 px-4 py-2 text-xs font-medium text-[var(--foreground)] transition hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700"
                     >
                       ← Zurück
@@ -654,6 +655,7 @@ async function RunDetailPageContent({
                     <Link
                       href={nextStepHref}
                       prefetch={false}
+                      {...(embedAssistant ? ({ scroll: false } as const) : {})}
                       className="rounded-xl bg-teal-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-teal-700"
                     >
                       Weiter →

@@ -1,5 +1,6 @@
 import { SignJWT, jwtVerify } from "jose";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
+import type { Locale } from "./i18n";
 
 const COOKIE_NAME = "gds_session";
 const MAX_AGE_SEC = 60 * 60 * 24 * 30; // 30 Tage
@@ -53,6 +54,33 @@ export async function getSessionSafe(): Promise<SessionPayload | null> {
   } catch {
     return null;
   }
+}
+
+/**
+ * Ein Request: parallel `cookies` + `headers`, ein Cookie-Jar für Locale + Session — etwas weniger Overhead als drei serielle Aufrufe im Root-Layout.
+ */
+export async function getRootLayoutBootstrap(): Promise<{
+  locale: Locale;
+  session: SessionPayload | null;
+  embedFrame: boolean;
+}> {
+  const [jar, hdrs] = await Promise.all([cookies(), headers()]);
+  const loc = jar.get("locale")?.value;
+  const locale: Locale = loc === "en" || loc === "de" ? loc : "de";
+
+  let session: SessionPayload | null = null;
+  try {
+    const raw = jar.get(COOKIE_NAME)?.value;
+    if (raw) session = await verifySessionToken(raw);
+  } catch {
+    session = null;
+  }
+
+  return {
+    locale,
+    session,
+    embedFrame: hdrs.get("x-app-embed") === "1",
+  };
 }
 
 export async function getSessionFromCookies(): Promise<SessionPayload | null> {

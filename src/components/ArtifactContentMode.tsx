@@ -4,6 +4,7 @@ import { useRef, useState, type ReactNode } from "react";
 import { ReadableDataView } from "@/components/ReadableDataView";
 import { REPORT_HEADER_LINE } from "@/lib/reportBranding";
 import { useRouter } from "next/navigation";
+import { downloadElementAsPdf } from "@/lib/downloadReportPdf";
 
 function formatArtifactPdfName(title: string, fallbackId: string): string {
   const s = title
@@ -57,24 +58,14 @@ export function ArtifactContentMode({
     if (!el) return;
     setPdfBusy(true);
     try {
-      const html2pdf = (await import("html2pdf.js")).default;
       const safeName = formatArtifactPdfName(pdfFilenameBase, artifactId);
-      await html2pdf()
-        .set({
-          margin: [10, 10, 10, 10],
-          filename: `${safeName}.pdf`,
-          image: { type: "jpeg", quality: 0.92 },
-          html2canvas: {
-            scale: 2,
-            useCORS: true,
-            logging: false,
-            backgroundColor: "#ffffff",
-            letterRendering: true,
-          },
-          jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-        })
-        .from(el)
-        .save();
+      await downloadElementAsPdf({
+        element: el,
+        filename: `${safeName}.pdf`,
+        marginMm: 10,
+        scale: 2,
+        jpegQuality: 0.92,
+      });
     } catch (e) {
       console.error(e);
       window.alert(
@@ -113,6 +104,13 @@ export function ArtifactContentMode({
         {mode === "report" ? (
           <button
             type="button"
+            onPointerDown={() => {
+              try {
+                window.getSelection()?.removeAllRanges();
+              } catch {
+                /* ignore */
+              }
+            }}
             onClick={() => void downloadPdf()}
             disabled={pdfBusy}
             className="inline-flex items-center gap-2 rounded-lg border border-[var(--card-border)] bg-white px-4 py-2 text-sm font-semibold text-[var(--foreground)] shadow-sm transition hover:bg-slate-50 disabled:opacity-60 dark:bg-[var(--card)] dark:hover:bg-slate-900/40"

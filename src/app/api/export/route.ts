@@ -3,23 +3,17 @@ import { PDFDocument, PDFFont, PDFPage, StandardFonts, rgb } from "pdf-lib";
 import { prisma } from "@/lib/prisma";
 import { getCompanyForApi } from "@/lib/companyContext";
 import { getServerLocale } from "@/lib/locale";
-import { studyScaleLabel, type Locale } from "@/lib/i18n";
+import type { Locale } from "@/lib/i18n";
 import { getArtifactEvaluationsByCompany } from "@/lib/artifactEvaluations";
-import { getFeatureEvaluations } from "@/lib/featureEvaluations";
+import { getAllFeatureEvaluationsForCompany } from "@/lib/featureEvaluations";
 import {
-  ALL_LIKERT_SCALE_KEYS,
-  CF_ITEMS,
-  CL_ITEMS,
-  COMP_ITEMS,
-  DQ_ITEMS,
-  EV_ITEMS,
-  FIT_ITEMS,
-  GOV_ITEMS,
-  TAM_UTAUT_ITEMS,
-  TR_ITEMS,
-  US_ITEMS,
-} from "@/lib/fragebogenScales";
-import { SCENARIOS, SCENARIO_CATEGORIES } from "@/lib/scenarios";
+  SCENARIOS,
+  SCENARIO_CATEGORIES,
+  getScenarioById,
+  getScenarioCategories,
+  localizeScenario,
+} from "@/lib/scenarios";
+import { buildStudyTables as buildStudyExportTablesFromDb } from "@/lib/studyTablesForExport";
 
 type ExportScope = "study" | "artifacts" | "evaluation" | "usecase" | "advisor";
 type ExportFormat = "spss" | "pdf" | "excel";
@@ -48,13 +42,44 @@ export async function GET(req: NextRequest) {
 
   // Existing, SPSS-friendly wide export is already implemented for study.
   if (scope === "study" && format === "spss") {
-    return NextResponse.redirect(new URL("/api/study/export", req.url));
+    const u = new URL("/api/study/export", req.url);
+    const studyLayout = req.nextUrl.searchParams.get("layout");
+    if (studyLayout === "wide") u.searchParams.set("layout", "wide");
+    const lng = req.nextUrl.searchParams.get("lang");
+    if (lng === "de" || lng === "en") u.searchParams.set("lang", lng);
+    const part = req.nextUrl.searchParams.get("part");
+    if (
+      part === "fb1" ||
+      part === "f23" ||
+      part === "fb2" ||
+      part === "fb3" ||
+      part === "fb4" ||
+      part === "fb5" ||
+      part === "full" ||
+      part === "all" ||
+      part === "complete"
+    ) {
+      u.searchParams.set("part", part);
+    }
+    return NextResponse.redirect(u);
   }
 
   const companyId = auth.company.id;
+
+  if (scope === "artifacts" && format === "spss" && req.nextUrl.searchParams.get("layout") !== "eval_only") {
+    const lines = await buildArtifactLongSpssRows(companyId);
+    const csv = lines.join("\n");
+    return new NextResponse(`\uFEFF${csv}`, {
+      headers: {
+        "Content-Type": "text/csv; charset=utf-8",
+        "Content-Disposition": `attachment; filename="${scope}-export.csv"`,
+      },
+    });
+  }
+
   const tables =
     scope === "study"
-      ? await buildStudyTables(companyId, locale)
+      ? await buildStudyExportTablesFromDb(companyId, locale)
       : scope === "artifacts"
         ? await buildArtifactTables(companyId)
         : scope === "usecase"
@@ -100,7 +125,14 @@ export async function GET(req: NextRequest) {
     });
   }
 
-  const csv = tableToCsv(tables[0] ?? { title: scope, headers: [], rows: [] });
+  const spssTable =
+    format === "spss" && (scope === "evaluation" || scope === "usecase")
+      ? await buildScenarioEvaluationsSpssTable(companyId, anonymize, locale)
+      : format === "spss" && scope === "advisor"
+        ? await buildAdvisorEvaluationsSpssTable(companyId, anonymize, locale)
+        : null;
+
+  const csv = tableToCsv(spssTable ?? tables[0] ?? { title: scope, headers: [], rows: [] });
   return new NextResponse(`\uFEFF${csv}`, {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
@@ -117,163 +149,6 @@ function parseScope(v: string | null): ExportScope | null {
 function parseFormat(v: string | null): ExportFormat | null {
   if (v === "spss" || v === "pdf" || v === "excel") return v;
   return null;
-}
-
-async function buildStudyTables(companyId: string, locale: Locale): Promise<Table[]> {
-  const participants = await prisma.studyParticipant.findMany({
-    where: { companyId },
-    include: {
-      questionnaireResponses: {
-        include: { items: true },
-        orderBy: { createdAt: "asc" },
-      },
-    },
-    orderBy: { createdAt: "asc" },
-  });
-
-  const questionAnswerTable: Table = {
-    title: "Frageboegen: Fragen und Antworten",
-    headers: [
-      "fragebogen",
-      "kategorie",
-      "frage_key",
-      "frage_text",
-      "antwort",
-      "zeitpunkt",
-    ],
-    rows: [],
-  };
-
-  const latestByForm = new Map<
-    string,
-    {
-      questionnaireType: string;
-      category: string | null;
-      createdAt: Date;
-      items: Array<{ itemKey: string; valueNum: number | null; valueStr: string | null }>;
-    }
-  >();
-
-  for (const p of participants) {
-    for (const r of p.questionnaireResponses) {
-      const key = `${p.id}:${r.questionnaireType}:${r.category ?? "global"}`;
-      const prev = latestByForm.get(key);
-      if (!prev || r.createdAt > prev.createdAt) {
-        latestByForm.set(key, {
-          questionnaireType: r.questionnaireType,
-          category: r.category,
-          createdAt: r.createdAt,
-          items: r.items.map((it) => ({ itemKey: it.itemKey, valueNum: it.valueNum, valueStr: it.valueStr })),
-        });
-      }
-    }
-  }
-
-  const latestResponses = Array.from(latestByForm.values()).sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
-  for (const r of latestResponses) {
-    const sorted = [...r.items].sort((a, b) => a.itemKey.localeCompare(b.itemKey));
-    for (const item of sorted) {
-      const answer = item.valueNum != null ? String(item.valueNum) : (item.valueStr ?? "");
-      questionAnswerTable.rows.push([
-        r.questionnaireType.toUpperCase(),
-        r.category ? (SCENARIO_CATEGORIES[r.category as keyof typeof SCENARIO_CATEGORIES] ?? r.category) : "Global",
-        item.itemKey,
-        resolveQuestionText(r.questionnaireType, item.itemKey, locale),
-        answer || "—",
-        toIso(r.createdAt),
-      ]);
-    }
-  }
-
-  const analysisTable: Table = {
-    title: "Auswertung (wie in der App)",
-    headers: ["phase", "typ", "DQ", "EV", "TR", "CF", "CL"],
-    rows: [],
-  };
-
-  const directCompareTable: Table = {
-    title: "Direktvergleich (wie in der App)",
-    headers: [
-      "phase",
-      ...US_ITEMS.map((i) => i.key),
-      ...TAM_UTAUT_ITEMS.map((i) => i.key),
-      ...COMP_ITEMS.map((i) => i.key),
-      ...FIT_ITEMS.map((i) => i.key),
-      ...GOV_ITEMS.map((i) => i.key),
-    ],
-    rows: [],
-  };
-
-  const categories = Object.keys(SCENARIO_CATEGORIES) as Array<keyof typeof SCENARIO_CATEGORIES>;
-  for (const category of categories) {
-    const phase = SCENARIO_CATEGORIES[category];
-    const fb2 = latestResponses.find((r) => r.questionnaireType === "fb2" && r.category === category);
-    const fb3 = latestResponses.find((r) => r.questionnaireType === "fb3" && r.category === category);
-    const fb4 = latestResponses.find((r) => r.questionnaireType === "fb4" && r.category === category);
-    for (const entry of [
-      { label: "User (FB2)", source: fb2 },
-      { label: "Tool (FB3)", source: fb3 },
-    ]) {
-      const map = new Map((entry.source?.items ?? []).map((it) => [it.itemKey, it]));
-      const valueOf = (k: string) => {
-        const item = map.get(k);
-        if (!item) return "—";
-        if (item.valueNum != null) return String(item.valueNum);
-        return item.valueStr ?? "—";
-      };
-      analysisTable.rows.push([
-        phase,
-        entry.label,
-        avgKeys(map, DQ_ITEMS.map((i) => i.key)),
-        avgKeys(map, EV_ITEMS.map((i) => i.key)),
-        avgKeys(map, TR_ITEMS.map((i) => i.key)),
-        avgKeys(map, CF_ITEMS.map((i) => i.key)),
-        avgKeys(map, CL_ITEMS.map((i) => i.key)),
-      ]);
-    }
-
-    const compareMap = new Map((fb4?.items ?? []).map((it) => [it.itemKey, it]));
-    const compareVal = (k: string) => {
-      const item = compareMap.get(k);
-      if (!item) return "—";
-      if (item.valueNum != null) return String(item.valueNum);
-      return item.valueStr ?? "—";
-    };
-    directCompareTable.rows.push([
-      phase,
-      ...US_ITEMS.map((i) => compareVal(i.key)),
-      ...TAM_UTAUT_ITEMS.map((i) => compareVal(i.key)),
-      ...COMP_ITEMS.map((i) => compareVal(i.key)),
-      ...FIT_ITEMS.map((i) => compareVal(i.key)),
-      ...GOV_ITEMS.map((i) => compareVal(i.key)),
-    ]);
-  }
-
-  const participantTable: Table = {
-    title: "Study Participants",
-    headers: [
-      "participant_id",
-      "external_id",
-      "completed_fb1",
-      "completed_fb2_before_runs",
-      "completed_fb3_after_runs",
-      "completed_fb5",
-      "completed_llm_setup",
-      "participant_created_at",
-    ],
-    rows: participants.map((p) => [
-      p.id,
-      p.externalId ?? "",
-      boolStr(p.completedFb1),
-      boolStr(p.completedFb2BeforeRuns),
-      boolStr(p.completedFb3AfterRuns),
-      boolStr(p.completedFb5),
-      boolStr(p.completedLlmSetup),
-      toIso(p.createdAt),
-    ]),
-  };
-
-  return [questionAnswerTable, analysisTable, directCompareTable, participantTable];
 }
 
 async function buildArtifactTables(companyId: string): Promise<Table[]> {
@@ -329,11 +204,309 @@ async function buildArtifactTables(companyId: string): Promise<Table[]> {
       e.strengths ?? "",
       e.weaknesses ?? "",
       e.improvementSuggestions ?? "",
-      e.createdAt,
+      toIso(e.createdAt as Date | string),
     ]),
   };
 
   return [evalTable, artifactsTable];
+}
+
+/** SPSS: wie Excel — zuerst alle Evaluationszeilen; danach Tabelle Artefakte (wie zweites Sheet). Zeilenliste mit Kommentarzeilen zwischen Blöcken. */
+async function buildArtifactLongSpssRows(companyId: string): Promise<string[]> {
+  const [artifacts, evals] = await Promise.all([
+    prisma.artifact.findMany({
+      where: { companyId },
+      include: { run: { select: { workflowKey: true } } },
+      orderBy: { createdAt: "desc" },
+    }),
+    getArtifactEvaluationsByCompany(companyId),
+  ]);
+
+  type AE = Awaited<ReturnType<typeof getArtifactEvaluationsByCompany>>[number];
+  const artifactById = new Map(artifacts.map((a) => [a.id, a]));
+
+  const sortedEvals = evals.slice().sort((a: AE, b: AE) => {
+    const artA = artifactById.get(a.artifactId);
+    const artB = artifactById.get(b.artifactId);
+    const ta = artA ? artA.createdAt.getTime() : Number.MAX_SAFE_INTEGER;
+    const tb = artB ? artB.createdAt.getTime() : Number.MAX_SAFE_INTEGER;
+    if (ta !== tb) return ta - tb;
+    return (
+      new Date(a.createdAt as Date | string).getTime() - new Date(b.createdAt as Date | string).getTime()
+    );
+  });
+
+  const evalHeader = [
+    "artifact_id",
+    "title",
+    "type",
+    "version",
+    "workflow_key",
+    "artifact_created_at",
+    "evaluation_id",
+    "answer_quality",
+    "source_quality",
+    "realism",
+    "clarity",
+    "structure",
+    "hallucination_present",
+    "hallucination_notes",
+    "strengths",
+    "weaknesses",
+    "improvement_suggestions",
+    "evaluation_created_at",
+  ];
+  const docHeader = ["artifact_id", "title", "type", "version", "workflow_key", "artifact_created_at"];
+
+  const pushRow = (cells: string[]) => cells.map((c) => escapeCsv(String(c))).join(";");
+
+  const out: string[] = [];
+  out.push("# ==========================================================");
+  out.push("# Artifact Evaluations (alle gespeicherten Bewertungen)");
+  out.push("# ==========================================================");
+  out.push(pushRow(evalHeader));
+  for (const e of sortedEvals) {
+    const a = artifactById.get(e.artifactId);
+    out.push(
+      pushRow([
+        e.artifactId,
+        a?.title ?? "",
+        a?.type ?? "",
+        a ? String(a.version) : "",
+        a?.run?.workflowKey ?? "",
+        a ? toIso(a.createdAt) : "",
+        e.id,
+        String(e.answerQuality),
+        String(e.sourceQuality),
+        String(e.realism),
+        String(e.clarity),
+        String(e.structure),
+        boolStr(Boolean(e.hallucinationPresent)),
+        e.hallucinationNotes ?? "",
+        e.strengths ?? "",
+        e.weaknesses ?? "",
+        e.improvementSuggestions ?? "",
+        toIso(e.createdAt as Date | string),
+      ]),
+    );
+  }
+
+  out.push("");
+  out.push("# ==========================================================");
+  out.push("# Artifacts Stammdaten (wie Excel zweite Tabelle)");
+  out.push("# ==========================================================");
+  out.push(pushRow(docHeader));
+  for (const a of artifacts) {
+    out.push(
+      pushRow([
+        a.id,
+        a.title,
+        a.type,
+        String(a.version),
+        a.run?.workflowKey ?? "",
+        toIso(a.createdAt),
+      ]),
+    );
+  }
+
+  return out;
+}
+
+function toIsoDate(v: Date | string): string {
+  const d = v instanceof Date ? v : new Date(v);
+  return d.toISOString().slice(0, 10);
+}
+
+/** Likert 1–5 aus `userEvaluationJson` als 0–100 %-Skala für SPSS. */
+function likert1To5AsPercentString(v: unknown): string {
+  if (v === null || v === undefined) return "";
+  const n = typeof v === "number" ? v : Number(String(v).trim());
+  if (!Number.isFinite(n)) return "";
+  const clamped = Math.min(5, Math.max(1, n));
+  return String(Math.round((clamped / 5) * 100));
+}
+
+function overallScoreFromUserEval(ev: Record<string, unknown>): string {
+  const keys = [
+    "verstaendlichkeit",
+    "relevanz",
+    "nuetzlichkeit",
+    "vollstaendigkeit",
+    "nachvollziehbarkeit",
+    "praktikabilitaet",
+    "vertrauen",
+    "quellenqualitaet",
+  ] as const;
+  const vals: number[] = [];
+  for (const k of keys) {
+    const n = Number(ev[k]);
+    if (Number.isFinite(n) && n >= 1 && n <= 5) vals.push(n);
+  }
+  if (vals.length === 0) return "";
+  const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
+  return String(Math.round((mean / 5) * 100));
+}
+
+/** Szenario-/Use-Case-Evaluierung: eine Zeile pro abgeschlossener Bewertung (wie Übersicht `userPrefers` gesetzt). */
+async function buildScenarioEvaluationsSpssTable(
+  companyId: string,
+  anonymize: boolean,
+  locale: Locale,
+): Promise<Table> {
+  const headers = [
+    "participant_id",
+    "evaluation_id",
+    "date",
+    "phase",
+    "usecase_type",
+    "usecase_question",
+    "user_preferred",
+    "user_answer_score_pct",
+    "ai_answer_score_pct",
+    "confidence_ai_pct",
+    "understandability",
+    "relevance",
+    "usefulness",
+    "completeness",
+    "traceability",
+    "practicability",
+    "trust",
+    "source_quality",
+    "overall_score",
+  ];
+
+  const [evalRows, participant] = await Promise.all([
+    prisma.scenarioEvaluation.findMany({
+      where: { companyId, userPrefers: { not: null } },
+      orderBy: { createdAt: "asc" },
+    }),
+    prisma.studyParticipant.findUnique({
+      where: { companyId_studyId: { companyId, studyId: "DSR-2025-01" } },
+      select: { id: true, externalId: true },
+    }),
+  ]);
+
+  const loc: "de" | "en" = locale === "en" ? "en" : "de";
+  const categoryLabels = getScenarioCategories(loc);
+  const participantBase = anonymize
+    ? ""
+    : (participant?.externalId?.trim() || participant?.id || "");
+
+  const rows: string[][] = evalRows.map((s, idx) => {
+    const scenario = getScenarioById(s.scenarioId);
+    const localized = scenario ? localizeScenario(scenario, loc) : null;
+    const ev = readObj(s.userEvaluationJson);
+
+    const participantId = anonymize ? `participant_${idx + 1}` : participantBase;
+    const evaluationId = anonymize ? `evaluation_${idx + 1}` : s.id;
+    const phase = scenario?.category ?? "";
+    const usecaseType = scenario ? (categoryLabels[scenario.category] ?? scenario.category) : "";
+    const usecaseQuestion = anonymize ? "" : (localized?.question ?? "");
+
+    return [
+      participantId,
+      evaluationId,
+      toIsoDate(s.createdAt),
+      phase,
+      usecaseType,
+      usecaseQuestion,
+      s.userPrefers ?? "",
+      String(s.userConfidence),
+      s.aiConfidence == null ? "" : String(s.aiConfidence),
+      s.userConfidenceInAi == null ? "" : String(s.userConfidenceInAi),
+      likert1To5AsPercentString(ev.verstaendlichkeit),
+      likert1To5AsPercentString(ev.relevanz),
+      likert1To5AsPercentString(ev.nuetzlichkeit),
+      likert1To5AsPercentString(ev.vollstaendigkeit),
+      likert1To5AsPercentString(ev.nachvollziehbarkeit),
+      likert1To5AsPercentString(ev.praktikabilitaet),
+      likert1To5AsPercentString(ev.vertrauen),
+      likert1To5AsPercentString(ev.quellenqualitaet),
+      overallScoreFromUserEval(ev),
+    ];
+  });
+
+  return {
+    title: "Scenario evaluations (SPSS)",
+    headers,
+    rows,
+  };
+}
+
+function overallScoreFromAdvisorLikerts(a: number, s: number, r: number, c: number, st: number): string {
+  const vals = [a, s, r, c, st].filter((n) => Number.isFinite(n) && n >= 1 && n <= 5);
+  if (vals.length !== 5) return "";
+  const mean = vals.reduce((x, y) => x + y, 0) / 5;
+  return String(Math.round((mean / 5) * 100));
+}
+
+/** Berater-Evaluation (Chat + Entscheidungen): eine Zeile pro `FeatureEvaluation`. */
+async function buildAdvisorEvaluationsSpssTable(
+  companyId: string,
+  anonymize: boolean,
+  _locale: Locale,
+): Promise<Table> {
+  void _locale;
+  const headers = [
+    "participant_id",
+    "evaluation_id",
+    "date",
+    "evaluation_kind",
+    "answer_quality_pct",
+    "source_quality_pct",
+    "realism_pct",
+    "clarity_pct",
+    "structure_pct",
+    "hallucination_present",
+    "hallucination_notes",
+    "strengths",
+    "weaknesses",
+    "improvement_suggestions",
+    "overall_score_pct",
+  ];
+
+  const [evalRows, participant] = await Promise.all([
+    getAllFeatureEvaluationsForCompany(companyId),
+    prisma.studyParticipant.findUnique({
+      where: { companyId_studyId: { companyId, studyId: "DSR-2025-01" } },
+      select: { id: true, externalId: true },
+    }),
+  ]);
+
+  const participantBase = anonymize
+    ? ""
+    : (participant?.externalId?.trim() || participant?.id || "");
+
+  const rows: string[][] = evalRows.map((r, idx) => {
+    const a = r.answerQuality;
+    const s = r.sourceQuality;
+    const real = r.realism;
+    const c = r.clarity;
+    const st = r.structure;
+    return [
+      anonymize ? `participant_${idx + 1}` : participantBase,
+      anonymize ? `advisor_eval_${idx + 1}` : r.id,
+      toIsoDate(r.createdAt),
+      r.kind,
+      likert1To5AsPercentString(a),
+      likert1To5AsPercentString(s),
+      likert1To5AsPercentString(real),
+      likert1To5AsPercentString(c),
+      likert1To5AsPercentString(st),
+      boolStr(Boolean(r.hallucinationPresent)),
+      anonymize ? "" : (r.hallucinationNotes ?? ""),
+      anonymize ? "" : (r.strengths ?? ""),
+      anonymize ? "" : (r.weaknesses ?? ""),
+      anonymize ? "" : (r.improvementSuggestions ?? ""),
+      overallScoreFromAdvisorLikerts(a, s, real, c, st),
+    ];
+  });
+
+  return {
+    title: "Advisor evaluations (SPSS)",
+    headers,
+    rows,
+  };
 }
 
 async function buildEvaluationTables(companyId: string, anonymize = false): Promise<Table[]> {
@@ -466,7 +639,7 @@ async function buildUseCaseTables(companyId: string, anonymize = false): Promise
 }
 
 async function buildAdvisorTables(companyId: string, anonymize = false): Promise<Table[]> {
-  const rows = await getFeatureEvaluations(companyId, "chat");
+  const rows = await getAllFeatureEvaluationsForCompany(companyId);
   const table: Table = {
     title: "Advisor Evaluations",
     headers: [
@@ -511,7 +684,9 @@ function tableToCsv(table: Table): string {
 }
 
 function escapeCsv(v: string): string {
-  if (v.includes(";") || v.includes('"') || v.includes("\n")) return `"${v.replace(/"/g, '""')}"`;
+  if (v.includes(";") || v.includes(",") || v.includes('"') || v.includes("\n")) {
+    return `"${v.replace(/"/g, '""')}"`;
+  }
   return v;
 }
 
@@ -1125,7 +1300,7 @@ async function buildAdvisorCompanyReportPdf(tables: Table[], locale: Locale): Pr
     borderWidth: 1,
     borderColor: rgb(0.73, 0.91, 0.86),
   });
-  page.drawText(isEn ? "Advisor Chat Evaluation" : "Berater-Chat Evaluation", {
+  page.drawText(isEn ? "Advisor evaluation (chat & decisions)" : "Berater-Evaluation (Chat & Entscheidungen)", {
     x: margin + 12,
     y: y - 18,
     size: 15,
@@ -1136,7 +1311,8 @@ async function buildAdvisorCompanyReportPdf(tables: Table[], locale: Locale): Pr
 
   if (!table) return doc.save();
   for (const row of table.rows) {
-    const [, , q, s, r, c, st, h, hn, str, weak, imp, created] = row;
+    const [, kind, q, s, r, c, st, h, hn, str, weak, imp, created] = row;
+    write(`${isEn ? "Context" : "Kontext"}: ${kind === "decisions" ? (isEn ? "Decisions" : "Entscheidungen") : "Chat"}`, true);
     write(`${isEn ? "Date" : "Datum"}: ${created}`, true);
     wrapWrite(`${isEn ? "Answer quality" : "Antwortqualitaet"}: ${q}/5`, 10);
     wrapWrite(`${isEn ? "Source quality" : "Quellenqualitaet"}: ${s}/5`, 10);
@@ -1269,59 +1445,6 @@ function wrapText(text: string, maxWidth: number, size: number, font: PDFFont): 
   }
   if (line) lines.push(line);
   return lines;
-}
-
-const QUESTION_TEXT_BY_KEY: Record<string, string> = {
-  fb1A1: "Rolle im Unternehmen",
-  fb1A2: "Wo steht Ihr Unternehmen gerade (Entwicklungsstand)",
-  fb1A3: "Teamgroesse",
-  fb1A4: "Branche",
-  fb1A5: "Erfahrung in Jahren",
-  fb1A6: "Haeufigkeit strategischer Entscheidungen",
-  fb1B1: "Nutzung von LLM/KI im Arbeitskontext",
-  fb1B2: "Selbsteingeschaetzte Kompetenz im Umgang mit LLM/KI-Tools (1-7)",
-  fb1B3: "Ich vertraue KI-Outputs grundsätzlich als Input für Business-Entscheidungen. (1-7)",
-  fb1C1: "Unsere Entscheidungen sind aktuell gut strukturiert begründet. (1-7)",
-  fb1C2: "Unsere Entscheidungen sind für Dritte gut nachvollziehbar (Audit Trail). (1-7)",
-  fb1C3: "Unsere Entscheidungen sind aktuell gut durch Quellen/Daten belegt. (1-7)",
-  fb1C4: "Ich fuehle mich bei strategischen Entscheidungen sicher. (1-7)",
-  fb1C5: "In der Praxis fehlen haeufig entscheidungsrelevante Informationen/Quellen. (1-7)",
-  fb1C6: "Der Zeitaufwand bis zu einer tragfaehigen Entscheidung ist hoch. (1-7)",
-  fb1D1: "Welche zentralen Unternehmensrisiken sehen Sie aktuell?",
-  fb1D2:
-    "Worauf regelmaessig achten um Probleme frueh zu merken (z.B. Umsatz Liquiditaet Kundenfeedback)",
-  fb1D3: "Welche Prozesse/Bereiche sollten konkret analysiert werden?",
-  fb1D4:
-    "Welche Indikatoren oder KPIs (Kennzahlen zum Messen von Erfolg und Fortschritt, z.B. Umsatz Kosten Kundenquote) sind besonders relevant?",
-  fb5X1: "Insgesamt wuerde der Einsatz einer solchen Loesung Sinn ergeben.",
-  fb5X2: "Ich kann mir vorstellen, den Ansatz dauerhaft zu integrieren.",
-  fb5X3: "Die Nutzbarkeit im Alltag waere ausreichend.",
-  fb5X4: "Die Akzeptanz bei Kolleginnen/Kollegen bzw. Fuehrung waere erreichbar.",
-  fb5X5: "Der Nutzen rechtfertigt den Aufwand.",
-  fb5T1: "Welche Phasen oder Workflows haben am meisten geholfen - und warum?",
-  fb5T2: "Wie wuerden Sie die Integration konkret gestalten?",
-  fb5T3: "Was wuerde den produktiven Einsatz verhindern oder verzoegern?",
-  fb5T4: "Sonstige Anmerkungen zu Akzeptanz und Nutzung im Alltag?",
-};
-
-function resolveQuestionText(questionnaireType: string, itemKey: string, locale: Locale): string {
-  const keyed = QUESTION_TEXT_BY_KEY[`${questionnaireType}${itemKey}`];
-  if (keyed) return keyed;
-  if (ALL_LIKERT_SCALE_KEYS.has(itemKey)) return studyScaleLabel(locale, itemKey);
-  if (/^O\d+$/i.test(itemKey)) return "Offene Frage";
-  if (/^I\d+$/i.test(itemKey)) return "Interview-Frage";
-  return itemKey;
-}
-
-function avgKeys(
-  itemMap: Map<string, { itemKey: string; valueNum: number | null; valueStr: string | null }>,
-  keys: string[]
-): string {
-  const nums = keys
-    .map((k) => itemMap.get(k)?.valueNum)
-    .filter((v): v is number => typeof v === "number" && Number.isFinite(v));
-  if (nums.length === 0) return "—";
-  return (nums.reduce((a, b) => a + b, 0) / nums.length).toFixed(2);
 }
 
 function readObj(v: unknown): Record<string, unknown> {

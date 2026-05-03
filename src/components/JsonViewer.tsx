@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { useEffect, useMemo } from "react";
 
 const JsonView = dynamic(
   () => import("@uiw/react-json-view").then((mod) => mod.default),
@@ -22,13 +23,38 @@ function getItemCount(data: unknown): string {
   return "1 item";
 }
 
+/** Used to reset selection after content changes (@uiw/react-json-view Range / IndexSizeError). */
+function stableValueSignature(o: object): string {
+  try {
+    return JSON.stringify(o);
+  } catch {
+    return `fallback:${Object.keys(o).sort().join(",")}`;
+  }
+}
+
 export function JsonViewer({ data, collapsible = true, summary }: JsonViewerProps) {
-  const value =
-    data === null || data === undefined
-      ? {}
-      : typeof data === "object"
-        ? (data as object)
-        : { value: data };
+  const value = useMemo<object>(
+    () =>
+      data === null || data === undefined
+        ? {}
+        : typeof data === "object"
+          ? (data as object)
+          : { value: data },
+    [data]
+  );
+
+  const valueSignature = useMemo(() => stableValueSignature(value), [value]);
+
+  useEffect(() => {
+    const id = requestAnimationFrame(() => {
+      try {
+        window.getSelection()?.removeAllRanges();
+      } catch {
+        /* ignore */
+      }
+    });
+    return () => cancelAnimationFrame(id);
+  }, [valueSignature]);
 
   const jsonContent = (
     <div className="rounded-lg bg-slate-50 p-4 text-xs text-[var(--foreground)] dark:bg-slate-900/30">

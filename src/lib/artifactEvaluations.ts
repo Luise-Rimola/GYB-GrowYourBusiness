@@ -25,10 +25,32 @@ export type ArtifactEvaluationRecord = {
   createdAt: string;
 };
 
-let ensured = false;
+/** Wie in `/artifacts`: ein sichtbares Dokument pro Workflow + Artefakt-Typ. */
+export function workflowTypeKeyForArtifact<A extends { type: string; run?: { workflowKey: string | null } | null }>(
+  a: A,
+): string {
+  return `${a.run?.workflowKey ?? "no-workflow"}:${a.type}`;
+}
 
-export async function ensureArtifactEvaluationTable() {
-  if (ensured) return;
+/** Behält nur das erste Element pro Workflow+Typ (`artifacts` absteigend nach `createdAt`, jüngstes zuerst). */
+export function pickNewestArtifactPerWorkflowAndType<
+  A extends { type: string; run?: { workflowKey: string | null } | null },
+>(artifactsNewestFirst: A[]): A[] {
+  const seen = new Set<string>();
+  const out: A[] = [];
+  for (const a of artifactsNewestFirst) {
+    const k = workflowTypeKeyForArtifact(a);
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push(a);
+  }
+  return out;
+}
+
+/** Eine garantierte Ausführung pro Prozess; vermeidet parallele DDL-Läufe in Dev/HMR. */
+let ensureArtifactEvaluationTablePromise: Promise<void> | null = null;
+
+async function runEnsureArtifactEvaluationTable() {
   await prisma.$executeRawUnsafe(`
     CREATE TABLE IF NOT EXISTS "ArtifactEvaluation" (
       "id" TEXT PRIMARY KEY,
@@ -47,24 +69,34 @@ export async function ensureArtifactEvaluationTable() {
       "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
     )
   `);
+  // Bestehende DBs ohne Spalte: keine Fehler-/Logs mehr bei „bereits vorhanden“ (PostgreSQL 11+).
   await prisma.$executeRawUnsafe(`
-    ALTER TABLE "ArtifactEvaluation" ADD COLUMN "sourceQuality" INTEGER NOT NULL DEFAULT 3
-  `).catch(() => null);
+    ALTER TABLE "ArtifactEvaluation"
+    ADD COLUMN IF NOT EXISTS "sourceQuality" INTEGER NOT NULL DEFAULT 3
+  `);
   await prisma.$executeRawUnsafe(`
     CREATE INDEX IF NOT EXISTS idx_ArtifactEvaluation_artifactId_createdAt
     ON "ArtifactEvaluation" ("artifactId", "createdAt" DESC)
   `);
-  for (const col of [
-    "ew_sensible INTEGER",
-    "ew_clear INTEGER",
-    "ew_helpful INTEGER",
-    "ew_notes TEXT",
-    "ind_relevant INTEGER",
-    "ind_notes TEXT",
-  ]) {
-    await prisma.$executeRawUnsafe(`ALTER TABLE "ArtifactEvaluation" ADD COLUMN ${col}`).catch(() => null);
+  for (const { name, typeSql } of [
+    { name: "ew_sensible", typeSql: "INTEGER" },
+    { name: "ew_clear", typeSql: "INTEGER" },
+    { name: "ew_helpful", typeSql: "INTEGER" },
+    { name: "ew_notes", typeSql: "TEXT" },
+    { name: "ind_relevant", typeSql: "INTEGER" },
+    { name: "ind_notes", typeSql: "TEXT" },
+  ] as const) {
+    await prisma.$executeRawUnsafe(
+      `ALTER TABLE "ArtifactEvaluation" ADD COLUMN IF NOT EXISTS "${name}" ${typeSql}`
+    );
   }
-  ensured = true;
+}
+
+export async function ensureArtifactEvaluationTable() {
+  if (!ensureArtifactEvaluationTablePromise) {
+    ensureArtifactEvaluationTablePromise = runEnsureArtifactEvaluationTable();
+  }
+  await ensureArtifactEvaluationTablePromise;
 }
 
 export async function createArtifactEvaluation(input: {

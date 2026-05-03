@@ -6,9 +6,9 @@ const INTROS: Record<string, string> = {
   baseline:
     "Dieses Dokument bildet die Ausgangslage Ihres Unternehmens ab: zentrale Kennzahlen, Annahmen und Rahmenbedingungen zu Beginn der Analyse. Es dient als Referenzpunkt, um spätere Veränderungen strukturiert zu vergleichen.",
   industry_research:
-    "Dieses Dokument fasst Branchenstruktur, Marktmechanismen und relevante Trends zusammen. Es hilft, Ihr Vorhaben im Branchenkontext einzuordnen und branchentypische Chancen sowie Risiken früh zu erkennen.",
+    "Branchen- und Standortkontext für Ihr konkretes Profil: Marktlogik, Trends, Wettbewerb, Regulatorik und Kennzahlen – inkl. klarer Unterscheidung von Belegen vs. Schätzungen, priorisierter Risiken und eines kurzen vorbehaltlichen Entscheidungsfokus (nicht branchenfest auf ein Beispiel eingeschränkt).",
   market:
-    "Dieses Dokument beschreibt Zielgruppen, Kundensegmente, Wettbewerbsumfeld und Marktpotenziale in einer kompakten Übersicht. Es schafft die Grundlage für Positionierung und Priorisierung im Markteintritt.",
+    "Vier klar beschriebene Kundensegmente mit gemeinsamer Fokussierungs-Empfehlung (welches Segment zuerst), Prioritätenliste, illustrativen Gewichten fürs Umsatz-/Impact-Denken, KPI-Proxys pro Segment sowie Customer-Journey zum Hero-Segment – plus ehrlicher Hinweis zu fehlender lokaler Validierung.",
   market_research:
     "Dieses Dokument vertieft die Marktsicht durch Nachfrageindikatoren, Preisniveaus, Kundenzugänge und beobachtbare Entwicklungen. Es dient als evidenzbasierte Basis für Vertriebs- und Angebotsentscheidungen.",
   diagnostic:
@@ -36,7 +36,7 @@ const INTROS: Record<string, string> = {
   menu_preiskalkulation:
     "Dieses Dokument leitet Verkaufspreise aus Kosten, Zielmargen und Marktannahmen ab. Es unterstützt eine wirtschaftlich tragfähige Preisgestaltung.",
   real_estate:
-    "Dieses Dokument bewertet Standort- oder Immobilienoptionen anhand relevanter Kriterien wie Kosten, Lagequalität und Nutzungsfit. Es dient als Entscheidungshilfe für Standortfragen.",
+    "Standort- und Objektoptionen nach Nutzungsfit zu Ihrem Geschäftsmodell, mit Marktpreis-Referenz, vorläufigem Kurzfazit und expliziter Liste noch fehlender Mikro-Lagedaten – ohne branchenfestes Beispielmodell.",
   startup_guide:
     "Dieses Dokument beschreibt die wichtigsten Startschritte in sinnvoller Reihenfolge und mit konkreten Handlungshinweisen. Es unterstützt einen strukturierten Aufbau in der frühen Unternehmensphase.",
   customer_validation:

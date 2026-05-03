@@ -853,7 +853,7 @@ export const WorkflowService = {
           if (parsed.success) {
             const strategicOptionsTitle =
               run.workflowKey === "WF_PATENT_CHECK"
-                ? "Patentrecht & Schutzf?higkeit"
+                ? "Patentrecht & Schutzfähigkeit"
                 : "Strategic Options";
             await prisma.artifact.create({
               data: {
@@ -1108,7 +1108,7 @@ export const WorkflowService = {
               type: "growth_retention_content",
               title: "Retention, Content & UGC Strategy",
               contentJson: parsed.data as object,
-              exportHtml: null,
+              exportHtml: WorkflowService.renderGrowthRetentionContentHtml(parsed.data as Record<string, unknown>),
             });
             await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
           }
@@ -1132,9 +1132,9 @@ export const WorkflowService = {
               companyId: run.companyId,
               runId: run.id,
               type: "subsidy_research",
-              title: "Zusch?sse & F?rderprogramme",
+              title: "Zuschüsse & Förderprogramme",
               contentJson: parsed.data as object,
-              exportHtml: null,
+              exportHtml: WorkflowService.renderSubsidyResearchHtml(parsed.data as Record<string, unknown>),
             });
             await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
           }
@@ -1481,7 +1481,7 @@ export const WorkflowService = {
               type: "app_db_schema",
               title: "App-Datenbank-Schema",
               contentJson: parsed.data as object,
-              exportHtml: null,
+              exportHtml: WorkflowService.renderAppDbSchemaHtml(parsed.data as Record<string, unknown>),
             });
             await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
           }
@@ -2036,7 +2036,7 @@ export const WorkflowService = {
         if (parsed.success) {
           const strategicOptionsTitle =
             run.workflowKey === "WF_PATENT_CHECK"
-              ? "Patentrecht & Schutzf?higkeit"
+              ? "Patentrecht & Schutzfähigkeit"
               : "Strategic Options";
           await prisma.artifact.create({
             data: {
@@ -2287,7 +2287,7 @@ export const WorkflowService = {
             type: "growth_retention_content",
             title: "Retention, Content & UGC Strategy",
             contentJson: parsed.data as object,
-            exportHtml: null,
+            exportHtml: WorkflowService.renderGrowthRetentionContentHtml(parsed.data as Record<string, unknown>),
           });
           await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
         }
@@ -2311,9 +2311,9 @@ export const WorkflowService = {
             companyId: run.companyId,
             runId: run.id,
             type: "subsidy_research",
-            title: "Zusch?sse & F?rderprogramme",
+            title: "Zuschüsse & Förderprogramme",
             contentJson: parsed.data as object,
-            exportHtml: null,
+            exportHtml: WorkflowService.renderSubsidyResearchHtml(parsed.data as Record<string, unknown>),
           });
           await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
         }
@@ -2727,7 +2727,7 @@ export const WorkflowService = {
             type: "app_db_schema",
             title: "App-Datenbank-Schema",
             contentJson: parsed.data as object,
-            exportHtml: null,
+            exportHtml: WorkflowService.renderAppDbSchemaHtml(parsed.data as Record<string, unknown>),
           });
           await prisma.run.update({ where: { id: run.id }, data: { status: "complete" } });
         }
@@ -3110,6 +3110,152 @@ export const WorkflowService = {
       ${bestSection}
       ${recs.length ? `<h3>Empfehlungen</h3><ul>${recs.map((r) => `<li>${r}</li>`).join("")}</ul>` : ""}
     `;
+  },
+
+  renderSubsidyResearchHtml(data: Record<string, unknown>) {
+    type Row = {
+      name: string;
+      valid_in: string;
+      benefit_summary: string;
+      prerequisites: string[];
+      application_how_to: string[];
+      official_link?: string;
+    };
+    const rows = Array.isArray(data.subsidies) ? (data.subsidies as Row[]) : [];
+    const recs = Array.isArray(data.recommendations) ? (data.recommendations as string[]) : [];
+    const listItems =
+      rows.length === 0
+        ? `<p><em>Hier liegt keine strukturierte Programmliste vor (Felder subsidies leer oder unvollständig). Unter „Quellen“ finden Sie die Verweise vom Modell.</em></p>`
+        : rows
+            .map((s) => {
+              const prereq =
+                (s.prerequisites ?? []).length > 0
+                  ? `<p><strong>Voraussetzungen:</strong></p><ul>${(s.prerequisites ?? [])
+                      .map((p) => `<li>${String(p)}</li>`)
+                      .join("")}</ul>`
+                  : "";
+              const how =
+                (s.application_how_to ?? []).length > 0
+                  ? `<p><strong>Antrag / nächste Schritte:</strong></p><ol>${(s.application_how_to ?? [])
+                      .map((step) => `<li>${String(step)}</li>`)
+                      .join("")}</ol>`
+                  : "";
+              const link = (s.official_link ?? "").trim();
+              const linkHtml = link ? `<p><a href="${link.startsWith("http") ? link : `https://${link}`}" target="_blank" rel="noopener noreferrer">${link}</a></p>` : "";
+              return `
+      <article class="mb-8 border-b border-slate-200 pb-6">
+        <h4 class="text-base font-semibold">${String(s.name ?? "")}</h4>
+        ${s.valid_in ? `<p class="mt-2"><strong>Gilt für / Kontext:</strong> ${String(s.valid_in)}</p>` : ""}
+        ${s.benefit_summary ? `<p class="mt-2"><strong>Leistung:</strong> ${String(s.benefit_summary)}</p>` : ""}
+        ${prereq}${how}${linkHtml}
+      </article>`;
+            })
+            .join("");
+    const recBlock =
+      recs.length > 0 ? `<h3 class="mt-10 text-lg font-semibold">Handlungsempfehlungen</h3><ul>${recs.map((r) => `<li>${String(r)}</li>`).join("")}</ul>` : "";
+    return `<div class="subsidy-report rp-dynamic-html-export">${listItems}${recBlock}</div>`;
+  },
+
+  renderGrowthRetentionContentHtml(data: Record<string, unknown>) {
+    const ra = data.retention_analysis;
+    const cs = data.content_strategy;
+    const cr = data.creative_strategy;
+
+    const ul = (items: unknown, heading: string): string => {
+      const arr = Array.isArray(items) ? (items as unknown[]).map((x) => String(x)).filter((s) => s.trim()) : [];
+      if (arr.length === 0) return "";
+      return `<h4 class="mt-3 text-sm font-semibold">${heading}</h4><ul class="list-disc pl-5">${arr.map((s) => `<li>${s}</li>`).join("")}</ul>`;
+    };
+
+    let body = "";
+    if (ra && typeof ra === "object") {
+      const r = ra as Record<string, unknown>;
+      body += `<section class="mb-10"><h3 class="text-lg font-semibold">Retention-Analyse</h3>`;
+      if (typeof r.maturity_score === "number") {
+        body += `<p class="mt-2"><strong>Reifegrad (0–10):</strong> ${r.maturity_score}</p>`;
+      }
+      body += ul(r.existing_flow_gaps, "Lücken bestehender Flows");
+      body += ul(r.recommended_flows, "Empfohlene Flows");
+      body += ul(r.segmentation_opportunities, "Segmentierungs-Chancen");
+      if (String(r.sms_recommendation ?? "").trim()) {
+        body += `<p class="mt-3"><strong>SMS-/Mail-Retention:</strong> ${String(r.sms_recommendation)}</p>`;
+      }
+      if (String(r.campaign_recommendation ?? "").trim()) {
+        body += `<p class="mt-2"><strong>Kampagnen-Empfehlung:</strong> ${String(r.campaign_recommendation)}</p>`;
+      }
+      body += ul(r.deliverability_risks, "Deliverability-/Zustellrisiken");
+      body += ul(r.priority_actions, "Priorisierte Maßnahmen");
+      body += `</section>`;
+    }
+
+    if (cs && typeof cs === "object") {
+      const c = cs as Record<string, unknown>;
+      body += `<section class="mb-10"><h3 class="text-lg font-semibold">Content-Strategie</h3>`;
+      body += ul(c.content_pillars, "Content-Pillars");
+      body += ul(c.channel_strategy, "Kanalstrategie");
+      body += ul(c.hook_categories, "Hook-Kategorien");
+      body += ul(c.trust_building_content, "Vertrauensaufbau-Inhalte");
+      body += ul(c.conversion_content, "Conversion-Inhalte");
+      body += ul(c.retention_content, "Retention-Inhalte");
+      body += ul(c.plan_30_day_outline, "30-Tage-Plan (Umriss)");
+      body += `</section>`;
+    }
+
+    if (cr && typeof cr === "object") {
+      const x = cr as Record<string, unknown>;
+      body += `<section class="mb-6"><h3 class="text-lg font-semibold">Creative &amp; UGC</h3>`;
+      body += ul(x.creative_angles, "Creative Angles");
+      body += ul(x.hook_frameworks, "Hook-Frameworks");
+      body += ul(x.ugc_brief_suggestions, "UGC-Brief-Vorschläge");
+      body += ul(x.creator_requirements, "Creator-Anforderungen");
+      body += ul(x.ad_concept_suggestions, "Anzeigen-Konzepte");
+      body += ul(x.test_matrix, "Testmatrix");
+      body += `</section>`;
+    }
+
+    if (!body.trim()) {
+      body =
+        "<p><em>Keine strukturierten Hauptfelder (retention_analysis / content_strategy / creative_strategy) im Export vorhanden. Nutzen Sie die Quellenliste unten oder wiederholen Sie den Schritt.</em></p>";
+    }
+
+    return `<div class="growth-retention-content-report rp-dynamic-html-export">${body}</div>`;
+  },
+
+  renderAppDbSchemaHtml(data: Record<string, unknown>) {
+    const tablesRaw = Array.isArray(data.tables) ? data.tables : [];
+    let body = "";
+    for (const t of tablesRaw) {
+      if (!t || typeof t !== "object") continue;
+      const tb = t as Record<string, unknown>;
+      const tname = String(tb.name ?? "").trim();
+      if (!tname) continue;
+      const desc = tb.description != null ? String(tb.description).trim() : "";
+      const cols = Array.isArray(tb.columns) ? tb.columns : [];
+      const rows = cols
+        .map((c) => {
+          if (!c || typeof c !== "object") return "";
+          const col = c as Record<string, unknown>;
+          const cn = String(col.name ?? "—").trim();
+          const ct = String(col.type ?? "—").trim();
+          const cons = col.constraints != null ? String(col.constraints) : "";
+          return `<li><strong>${cn}</strong> — Typ: ${ct}${cons ? `; Einschränkungen: ${cons}` : ""}</li>`;
+        })
+        .join("");
+      body += `<section style="margin-bottom:2rem;"><h3 style="font-size:0.75rem;text-transform:uppercase;color:#0f766e;">Tabellen · NAME ${tname}</h3>${desc ? `<p>${desc}</p>` : ""}<h4 style="font-size:0.75rem;margin-top:0.75rem;">Spalten</h4><ul>${rows || "<li>—</li>"}</ul></section>`;
+    }
+    const rel = Array.isArray(data.relationships) ? data.relationships.map(String).filter(Boolean) : [];
+    if (rel.length) {
+      body += `<h3>Beziehungen</h3><ul>${rel.map((r) => `<li>${r}</li>`).join("")}</ul>`;
+    }
+    const rec = Array.isArray(data.recommendations) ? data.recommendations.map(String).filter(Boolean) : [];
+    if (rec.length) {
+      body += `<h3>Empfehlungen</h3><ul>${rec.map((r) => `<li>${r}</li>`).join("")}</ul>`;
+    }
+    if (!body.trim()) {
+      body =
+        "<p><em>In den gespeicherten Daten wurden keine Tabellen dokumentiert.</em></p>";
+    }
+    return `<div class="app-db-schema-report rp-dynamic-html-export">${body}</div>`;
   },
 
   renderStartupConsultingHtml(data: { funding_recommendations?: Array<{ model: string; rationale: string; fit_score?: number }>; incorporation_recommendations?: Array<{ option: string; jurisdiction?: string; rationale: string }>; key_considerations?: string[] }) {

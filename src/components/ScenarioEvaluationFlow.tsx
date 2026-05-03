@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Section } from "@/components/Section";
+import { CopyButton } from "@/components/CopyButton";
 import { fetchApi } from "@/lib/apiClient";
 import {
   SCENARIOS,
@@ -10,6 +11,7 @@ import {
   type Scenario,
   type ScenarioCategory,
 } from "@/lib/scenarios";
+import { buildScenarioEvaluationFullPromptDe } from "@/lib/scenarioEvaluationPrompt";
 
 type Step = "select" | "user" | "ai" | "compare";
 
@@ -88,6 +90,8 @@ type ScenarioEvaluationFlowProps = {
       quellenqualitaet: number;
     }
   ) => Promise<void>;
+  /** Unternehmens-Kontext (Profil/Dokumente/Runs), serverseitig gebaut — Prompt = reine String-Zusammenfügung im Client. */
+  prefetchedCompanyContext: string;
   initialCategory?: ScenarioCategory;
 };
 
@@ -98,6 +102,7 @@ export function ScenarioEvaluationFlow({
   onSaveStep2,
   initialCategory,
   onSaveStep3,
+  prefetchedCompanyContext,
 }: ScenarioEvaluationFlowProps) {
   const [step, setStep] = useState<Step>("select");
   const [selectedScenario, setSelectedScenario] = useState<Scenario | null>(null);
@@ -122,9 +127,9 @@ export function ScenarioEvaluationFlow({
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [aiRunError, setAiRunError] = useState("");
-  const [promptText, setPromptText] = useState<string>("");
   const [promptNotes, setPromptNotes] = useState("");
   const [manualResponse, setManualResponse] = useState("");
+  const manualResponseRef = useRef<HTMLTextAreaElement>(null);
   const isEn = locale === "en";
   const categoryLabels = getScenarioCategories(isEn ? "en" : "de");
 
@@ -150,7 +155,6 @@ export function ScenarioEvaluationFlow({
     });
     setEvaluationId("");
     setAiRunError("");
-    setPromptText("");
     setPromptNotes("");
     setManualResponse("");
   };
@@ -206,37 +210,16 @@ export function ScenarioEvaluationFlow({
     }
   };
 
-  const handleFetchPrompt = async () => {
-    if (!selectedScenario) return;
-    setLoading(true);
-    try {
-      const res = await fetchApi("/api/evaluation/scenario-prompt", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          scenarioId: selectedScenario.id,
-          userAnswer: userAnswer.trim(),
-          userNotes: promptNotes.trim(),
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? (isEn ? "Error" : "Fehler"));
-      setPromptText(data.prompt ?? "");
-    } catch (e) {
-      setMessage({ type: "error", text: e instanceof Error ? e.message : t.error });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    // Keep prompt in sync automatically (like workflow runs with live notes/prompt context).
-    if (step !== "ai" || !selectedScenario) return;
-    const timer = window.setTimeout(() => {
-      void handleFetchPrompt();
-    }, 250);
-    return () => window.clearTimeout(timer);
-  }, [step, selectedScenario, userAnswer, promptNotes]);
+  const scenarioPromptFull = useMemo(() => {
+    if (step !== "ai" || !selectedScenario) return "";
+    return buildScenarioEvaluationFullPromptDe({
+      scenarioId: selectedScenario.id,
+      scenario: { question: selectedScenario.question, kpis: selectedScenario.kpis },
+      companyContext: prefetchedCompanyContext,
+      userNotes: promptNotes,
+      userAnswer,
+    });
+  }, [step, selectedScenario, prefetchedCompanyContext, userAnswer, promptNotes]);
 
   function parseManualResponse(raw: string): { answer: string; confidence: number; sources: { title: string; type?: string; url?: string }[] } {
     let answer = raw;
@@ -430,13 +413,10 @@ export function ScenarioEvaluationFlow({
 
       {step === "ai" && (
         <Section title={t.scenarioStep2Title} description={t.scenarioStep2Desc}>
-          <details className="group rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-4" open>
-            <summary className="mb-4 cursor-pointer list-none text-base font-semibold text-[var(--foreground)] [&::-webkit-details-marker]:hidden">
-              <span className="inline-flex items-center gap-2">
-                <span className="text-[var(--muted)] transition group-open:rotate-90">▸</span>
-                {isEn ? "AI Process" : "KI-Prozess"}
-              </span>
-            </summary>
+          <div className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-4">
+            <h3 className="mb-4 text-base font-semibold text-[var(--foreground)]">
+              {isEn ? "AI Process" : "KI-Prozess"}
+            </h3>
             <div className="space-y-4">
               <div>
                 <label className="mb-2 block text-sm font-semibold text-[var(--foreground)]">
@@ -451,21 +431,23 @@ export function ScenarioEvaluationFlow({
                 />
               </div>
 
-              <details className="group rounded-xl border border-[var(--card-border)] bg-slate-50/50 dark:bg-slate-900/20">
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-3 py-2.5 text-sm font-semibold text-[var(--foreground)] [&::-webkit-details-marker]:hidden">
-                  <span className="inline-flex min-w-0 items-center gap-2">
-                    <span className="shrink-0 text-[var(--muted)] transition group-open:rotate-90">▸</span>
-                    Prompt
-                  </span>
-                  <div className="flex shrink-0 items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                    <button
-                      type="button"
-                      onClick={() => navigator.clipboard.writeText(promptText)}
-                      disabled={!promptText.trim()}
-                      className="rounded-lg border border-[var(--card-border)] px-4 py-1.5 text-sm font-medium text-[var(--foreground)] transition hover:bg-[var(--background)] disabled:opacity-50"
-                    >
-                      {isEn ? "Copy" : "Kopieren"}
-                    </button>
+              <div className="rounded-xl border border-[var(--card-border)] bg-slate-50/50 dark:bg-slate-900/20">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--card-border)] px-3 py-2.5">
+                  <h4 className="text-sm font-semibold text-[var(--foreground)]">Prompt</h4>
+                  <div
+                    className="flex shrink-0 items-center gap-2"
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <CopyButton
+                      text={scenarioPromptFull}
+                      label={isEn ? "Copy" : "Kopieren"}
+                      copiedLabel={isEn ? "Copied!" : "Kopiert!"}
+                      disabled={!scenarioPromptFull.trim()}
+                      onCopied={() => {
+                        setTimeout(() => manualResponseRef.current?.focus(), 0);
+                      }}
+                    />
                     <button
                       type="button"
                       onClick={handleGetAiAnswer}
@@ -475,14 +457,15 @@ export function ScenarioEvaluationFlow({
                       {loading ? t.loading : (isEn ? "Run AI Process" : "Ausführen des KI-Prozesses")}
                     </button>
                   </div>
-                </summary>
-                <div className="border-t border-[var(--card-border)] p-3">
+                </div>
+                <div className="p-3">
                   <textarea
                     readOnly
-                    value={promptText}
+                    tabIndex={0}
+                    value={scenarioPromptFull}
                     rows={8}
                     className="max-h-[min(50vh,24rem)] w-full resize-none overflow-y-auto rounded-xl border border-[var(--card-border)] bg-slate-50 p-3 text-xs font-mono text-[var(--foreground)] dark:bg-slate-900/30"
-                    placeholder={isEn ? "Prompt is generated automatically..." : "Prompt wird automatisch geladen..."}
+                    placeholder={isEn ? "Select scenario and complete step 1 first." : "Szenario wählen und Schritt 1 ausfüllen."}
                   />
                   {aiRunError ? (
                     <p className="mt-2 rounded-lg border border-rose-300 bg-rose-50 px-3 py-2 text-xs text-rose-800 dark:border-rose-800 dark:bg-rose-950/30 dark:text-rose-200">
@@ -490,13 +473,14 @@ export function ScenarioEvaluationFlow({
                     </p>
                   ) : null}
                 </div>
-              </details>
+              </div>
 
               <div>
                 <label className="mb-2 block text-sm font-semibold text-[var(--foreground)]">
                   {isEn ? "Answer" : "Antwort"}
                 </label>
                 <textarea
+                  ref={manualResponseRef}
                   value={manualResponse}
                   onChange={(e) => setManualResponse(e.target.value)}
                   rows={6}
@@ -518,7 +502,7 @@ export function ScenarioEvaluationFlow({
                 {loading ? t.loading : (isEn ? "Save Step" : "Schritt speichern")}
               </button>
             </div>
-          </details>
+          </div>
         </Section>
       )}
 

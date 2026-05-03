@@ -8,6 +8,7 @@ export function iframeShowsStepCompletion(stepHref: string, iframeHref: string |
 
   if (stepHref.startsWith("/study/fb1")) {
     return (
+      u.includes("fromFb1=1") ||
       u.includes("saved=fb1") ||
       u.includes("saved=1") ||
       u.includes("profileSaved=1") ||
@@ -34,10 +35,16 @@ export function iframeShowsStepCompletion(stepHref: string, iframeHref: string |
     );
   }
   if (stepHref.includes("/study/fb2")) {
-    return u.includes("saved=fb2") || u.includes("assistantContinue=fb2");
+    return (
+      u.includes("fromFb2=1") || u.includes("saved=fb2") || u.includes("assistantContinue=fb2")
+    );
   }
   if (stepHref.includes("/study/fb3")) {
-    return u.includes("saved=fb3") || u.includes("assistantContinue=fb3");
+    return (
+      u.includes("fromFb3=1") ||
+      u.includes("saved=fb3") ||
+      u.includes("assistantContinue=fb3")
+    );
   }
   if (stepHref.includes("/study/fb4")) {
     return u.includes("saved=fb4") || u.includes("assistantContinue=fb4");

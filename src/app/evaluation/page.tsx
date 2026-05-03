@@ -6,6 +6,7 @@ import { Section } from "@/components/Section";
 import { getServerLocale } from "@/lib/locale";
 import { getTranslations } from "@/lib/i18n";
 import { ScenarioEvaluationFlow } from "@/components/ScenarioEvaluationFlow";
+import { buildScenarioEvaluationContext } from "@/services/chatAdvisor";
 import { EvaluationOverviewTable } from "@/components/EvaluationOverviewTable";
 import { getSessionFromCookies } from "@/lib/session";
 
@@ -115,7 +116,7 @@ export default async function EvaluationPage({
   }
   const category = params.category as import("@/lib/scenarios").ScenarioCategory | undefined;
   const company = await getOrCreateDemoCompany();
-  const [useCaseEvals, scenarioEvals] = await Promise.all([
+  const [useCaseEvals, scenarioEvals, scenarioPromptCompanyContext] = await Promise.all([
     prisma.useCaseEvaluation.findMany({
       where: { companyId: company.id },
       orderBy: { createdAt: "desc" },
@@ -127,6 +128,7 @@ export default async function EvaluationPage({
       orderBy: { createdAt: "desc" },
       take: 50,
     }),
+    buildScenarioEvaluationContext(company.id),
   ]);
 
   const activeTab = params.tab === "overview" ? "overview" : "scenario";
@@ -311,6 +313,7 @@ export default async function EvaluationPage({
           onSaveStep1={saveScenarioStep1}
           onSaveStep2={saveScenarioStep2}
           onSaveStep3={saveScenarioStep3}
+          prefetchedCompanyContext={scenarioPromptCompanyContext}
           initialCategory={category}
         />
       )}

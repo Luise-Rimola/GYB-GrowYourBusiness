@@ -69,8 +69,16 @@ export const industryResearchSchema = z
     key_facts: z.array(z.object({
       fact: z.string(),
       source_hint: z.string().optional(),
+      /** 1-based index into sources_used when the model follows footnote style */
+      source_ref: z.number().int().positive().optional(),
     })),
     sources_used: z.array(z.string()).optional(),
+    /** Kurz: vorbehaltliche Vorhaben-Empfehlung + nächste Validierungsschritte (keine Rechts-/Anlageberatung) */
+    decision_readiness_note: z.string().optional(),
+    /** Bis zu drei priorisierte Risiken mit hohem Entscheidungseinfluss */
+    prioritized_risks_top3: z.array(z.string()).max(3).optional(),
+    /** Transparenz: welche Aussagen sind regional/quellenbasiert vs. Schätzung/Benchmark */
+    assumptions_and_evidence_note: z.string().optional(),
   })
   .strict();
 
@@ -90,6 +98,43 @@ export const marketSnapshotSchema = z
     risks: z.array(z.string()),
     sources_used: z.array(z.string()),
     strategy_indicators: strategyIndicatorsSchema,
+    /** Ein Satz + Kurzliste: Welches Segment zuerst fokussieren und warum (alle 4 bleiben im Dokument) */
+    segment_focus_decision: z.string().optional(),
+    /** Reihenfolge der vier Segmente nach strategischer Priorität (Labels wie in segments.name o. Ä.) */
+    segment_rank_order_labels: z.array(z.string()).max(4).optional(),
+    /** Illustratives Umsatz-/Impact-Mix in % über die 4 Segmente (Summe ~100); klar als Schätzung kennzeichnen */
+    illustrative_revenue_impact_pct: z
+      .array(
+        z
+          .object({
+            segment_label: z.string(),
+            pct_illustrative: z.number().min(0).max(100),
+            rationale: z.string().optional(),
+          })
+          .strict()
+      )
+      .optional(),
+    /** Pro Segment wenige KPI-Proxys (Conversion/Frequenz/Bon/Retention) — Werte oder Ranges; Schätzungen markieren */
+    segment_operational_kpis: z
+      .array(
+        z
+          .object({
+            segment_label: z.string(),
+            acquisition_or_conversion_proxy: z.string().optional(),
+            visit_or_frequency_proxy: z.string().optional(),
+            avg_order_value_proxy: z.string().optional(),
+            retention_or_repeat_proxy: z.string().optional(),
+            pain_points_measurable: z.string().optional(),
+          })
+          .strict()
+      )
+      .optional(),
+    /** Micro-Journey: kurz Acquisition → erste Transaktion → Wiederkauf (für Primärsegment) */
+    primary_segment_customer_journey: z.array(z.string()).max(12).optional(),
+    /** Lokale Mikrodaten fehlen / welche Validierung (Maps, Feld, Daten) noch nötig */
+    local_evidence_gap_note: z.string().optional(),
+    /** Transparent: was ist geschätzt vs. quellenbasiert (keine erfundenen Orts-% ohne Beleg) */
+    assumptions_vs_sources_note: z.string().optional(),
   })
   .strict();
 
@@ -422,6 +467,10 @@ export const realEstateSchema = z
     }).optional(),
     recommendations: z.array(z.string()).optional(),
     sources_used: z.array(z.string()).optional(),
+    /** Kurzfazit zur Standort-/Objekttauglichkeit für das angegebene Geschäftsmodell (vorbehaltlich Prüfungen vor Ort) */
+    location_decision_summary: z.string().optional(),
+    /** Welche lokalen Daten noch fehlen (z. B. Verkehr, Mikrolage, verbindliche Miete) — branchenneutral beschrieben */
+    local_data_gaps: z.array(z.string()).optional(),
   })
   .strict();
 
@@ -1921,10 +1970,10 @@ export const growthAiSeoSchema = z.object({
     priority_actions: z.array(z.string()),
   }).strict(),
   eeat_signals: z.object({
-    experience_signals: z.array(z.string()),
-    expertise_signals: z.array(z.string()),
-    authoritativeness_signals: z.array(z.string()),
-    trust_signals: z.array(z.string()),
+    experience_signals: z.array(z.string()).default([]),
+    expertise_signals: z.array(z.string()).default([]),
+    authoritativeness_signals: z.array(z.string()).default([]),
+    trust_signals: z.array(z.string()).default([]),
     author_pages_recommendation: z.string().optional(),
   }).strict(),
   content_blueprint: z.object({
@@ -1945,12 +1994,12 @@ export const growthAiSeoSchema = z.object({
     common_pitfalls: z.array(z.string()),
   }).strict(),
   implementation_code: z.object({
-    llms_txt_example: z.string(),
-    robots_txt_ai_bot_example: z.string(),
-    faq_json_ld_snippet: z.string(),
-    howto_json_ld_snippet: z.string(),
-    article_json_ld_snippet: z.string(),
-    organization_json_ld_snippet: z.string(),
+    llms_txt_example: z.string().default(""),
+    robots_txt_ai_bot_example: z.string().default(""),
+    faq_json_ld_snippet: z.string().default(""),
+    howto_json_ld_snippet: z.string().default(""),
+    article_json_ld_snippet: z.string().default(""),
+    organization_json_ld_snippet: z.string().default(""),
   }).strict(),
   sources_used: z.array(z.string()).optional(),
 }).strict();

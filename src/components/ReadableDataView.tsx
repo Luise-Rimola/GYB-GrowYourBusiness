@@ -48,7 +48,7 @@ const LABELS: Record<string, string> = {
   kpi_impact_range: "KPI-Auswirkung",
   assumptions: "Annahmen",
   risks: "Risiken",
-  mitigation: "Gegenmaßnahmen",
+  mitigation: "Gegenmassnahmen",
   evidence: "Evidenz",
   key_points: "Kernpunkte",
   content: "Inhalt",
@@ -128,27 +128,35 @@ function formatLabel(key: string): string {
   return key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-function formatValue(val: unknown): React.ReactNode {
+function formatValue(val: unknown, presentation: "explorer" | "report"): React.ReactNode {
   if (val === null || val === undefined || val === "") return null;
   if (typeof val === "boolean") return val ? "Ja" : "Nein";
   if (typeof val === "number") return val.toLocaleString("de-DE");
   if (Array.isArray(val)) {
     if (val.length === 0) return <span className="text-[var(--muted)]">(leer)</span>;
     if (val.every((v) => typeof v === "string")) {
+      const listCn =
+        presentation === "report"
+          ? "mt-1 list-outside list-disc space-y-1 pl-5 text-sm leading-relaxed text-slate-700 dark:text-slate-200"
+          : "mt-1 list-inside list-disc space-y-0.5 text-sm";
       return (
-        <ul className="mt-1 list-inside list-disc space-y-0.5 text-sm">
+        <ul className={listCn}>
           {val.map((v, i) => (
             <li key={i}>{String(v)}</li>
           ))}
         </ul>
       );
     }
+    const itemCn =
+      presentation === "report"
+        ? "rounded-lg border border-slate-200/80 bg-white/70 p-3 dark:border-slate-700/80 dark:bg-slate-950/40"
+        : "rounded-lg border border-[var(--card-border)] bg-slate-50/50 p-2 dark:bg-slate-900/30";
     return (
       <ul className="mt-1 space-y-2">
         {val.map((item, i) => (
-          <li key={i} className="rounded-lg border border-[var(--card-border)] bg-slate-50/50 p-2 dark:bg-slate-900/30">
+          <li key={i} className={itemCn}>
             {typeof item === "object" && item !== null ? (
-              <ReadableDataContent data={item as Record<string, unknown>} />
+              <ReadableDataContent data={item as Record<string, unknown>} presentation={presentation} />
             ) : (
               String(item)
             )}
@@ -158,12 +166,23 @@ function formatValue(val: unknown): React.ReactNode {
     );
   }
   if (typeof val === "object") {
-    return <ReadableDataContent data={val as Record<string, unknown>} />;
+    return <ReadableDataContent data={val as Record<string, unknown>} presentation={presentation} />;
   }
   return String(val);
 }
 
-function ReadableDataContent({ data }: { data: Record<string, unknown> }) {
+function ReadableDataContent({
+  data,
+  presentation = "explorer",
+}: {
+  data: Record<string, unknown>;
+  presentation?: "explorer" | "report";
+}) {
+  const dtClass =
+    presentation === "report"
+      ? "text-sm font-semibold tracking-normal text-slate-800 normal-case dark:text-slate-100"
+      : "text-xs font-semibold uppercase tracking-wide text-[var(--muted)]";
+
   const entries = Object.entries(data).filter(
     ([k, v]) =>
       !SKIP_KEYS.has(k) &&
@@ -177,11 +196,11 @@ function ReadableDataContent({ data }: { data: Record<string, unknown> }) {
   return (
     <dl className="space-y-3">
       {entries.map(([key, val]) => {
-        const formatted = formatValue(val);
+        const formatted = formatValue(val, presentation);
         if (formatted === null) return null;
         return (
           <div key={key}>
-            <dt className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
+            <dt className={dtClass}>
               {formatLabel(key)}
             </dt>
             <dd className="mt-0.5 text-sm text-[var(--foreground)]">{formatted}</dd>
@@ -198,9 +217,17 @@ type ReadableDataViewProps = {
   summary?: string;
   /** When collapsible, start expanded. Default false. */
   defaultOpen?: boolean;
+  /** `report`: labels im Satzbild statt Grossbuchstaben; dezenter Kasten (für Artefakt-Papier). */
+  presentation?: "explorer" | "report";
 };
 
-export function ReadableDataView({ data, collapsible = true, summary, defaultOpen }: ReadableDataViewProps) {
+export function ReadableDataView({
+  data,
+  collapsible = true,
+  summary,
+  defaultOpen,
+  presentation = "explorer",
+}: ReadableDataViewProps) {
   const obj: Record<string, unknown> =
     data === null || data === undefined
       ? {}
@@ -211,8 +238,14 @@ export function ReadableDataView({ data, collapsible = true, summary, defaultOpe
           : { value: data };
 
   const content = (
-    <div className="rounded-lg bg-slate-50/50 p-4 text-sm text-[var(--foreground)] dark:bg-slate-900/30">
-      <ReadableDataContent data={obj} />
+    <div
+      className={
+        presentation === "report"
+          ? "space-y-1 border border-slate-200/70 bg-slate-50/40 p-4 text-sm text-[var(--foreground)] dark:border-slate-700/60 dark:bg-slate-900/25"
+          : "rounded-lg bg-slate-50/50 p-4 text-sm text-[var(--foreground)] dark:bg-slate-900/30"
+      }
+    >
+      <ReadableDataContent data={obj} presentation={presentation} />
     </div>
   );
 
@@ -230,6 +263,10 @@ export function ReadableDataView({ data, collapsible = true, summary, defaultOpe
         <div className="border-t border-[var(--card-border)] p-4 pt-3">{content}</div>
       </details>
     );
+  }
+
+  if (presentation === "report") {
+    return <div className="max-w-none">{content}</div>;
   }
 
   return (

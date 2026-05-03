@@ -1,10 +1,12 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireCompany } from "@/lib/companyContext";
-import { prepareArtifactReportContent, getReportViewForArtifactType } from "@/lib/artifactReportDocument";
+import { prepareArtifactReportContent, resolveArtifactReportHtml } from "@/lib/artifactReportDocument";
+import { getServerLocale } from "@/lib/locale";
 import { ReportPaperLayout } from "@/components/ReportPaperLayout";
 import { SourcesFooter } from "@/components/SourcesFooter";
 import { ArtifactPrintChrome } from "@/components/ArtifactPrintChrome";
+import { ArtifactReportBody } from "@/components/ArtifactReportBody";
 
 export default async function ArtifactPrintPage({
   params,
@@ -21,26 +23,28 @@ export default async function ArtifactPrintPage({
   }
 
   const content = await prepareArtifactReportContent(artifact);
-  const ReportView = getReportViewForArtifactType(artifact.type);
+  const locale = await getServerLocale();
   const sources = (content.sources_used as string[]) ?? [];
+  const reportHtml = resolveArtifactReportHtml(
+    artifact.exportHtml,
+    content,
+    artifact.type,
+    artifact.title,
+  );
 
   return (
     <>
       <ArtifactPrintChrome backHref={`/artifacts/${id}`} />
       <div className="mx-auto max-w-[210mm] px-2 pb-12 print:px-0 print:pb-0">
         <ReportPaperLayout title={artifact.title} generatedAt={artifact.createdAt}>
-          {ReportView ? (
-            <div className="report-paper-prose space-y-6">
-              <ReportView content={content} />
-            </div>
-          ) : (
-            <div
-              className="report-paper-html min-h-[120px] text-sm leading-relaxed"
-              dangerouslySetInnerHTML={{
-                __html: artifact.exportHtml ?? "<p><em>Kein Inhalt</em></p>",
-              }}
+          <div className="report-paper-prose min-h-[120px] space-y-6 text-sm leading-relaxed">
+            <ArtifactReportBody
+              artifactType={artifact.type}
+              content={content as Record<string, unknown>}
+              resolvedHtml={reportHtml}
+              locale={locale}
             />
-          )}
+          </div>
           {sources.length > 0 ? (
             <section className="report-paper-sources mt-10 break-inside-avoid border-t border-slate-300 pt-6">
               <h2 className="mb-3 text-lg font-semibold text-slate-900">Quellen</h2>

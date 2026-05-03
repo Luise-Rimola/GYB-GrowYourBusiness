@@ -15,7 +15,7 @@ function normalizeDatasourceUrl(url: string | undefined): string | undefined {
       parsed.searchParams.set("pgbouncer", "true");
     }
     const configuredLimit = Number(parsed.searchParams.get("connection_limit") ?? "0");
-    if (!Number.isFinite(configuredLimit) || configuredLimit <= 0 || configuredLimit > 1) {
+    if (!Number.isFinite(configuredLimit) || configuredLimit <= 0) {
       parsed.searchParams.set("connection_limit", "1");
     }
     return parsed.toString();

@@ -33,7 +33,8 @@ export function HomeExportPackageButton({ locale, autoOpen = false, showButton =
     ];
   }, [isEn]);
 
-  const docsZipLink = useMemo(() => `/api/export/documents-pdf-zip?lang=${isEn ? "en" : "de"}`, [isEn]);
+  const docsPdfZipLink = useMemo(() => `/api/export/documents-pdf-zip?lang=${isEn ? "en" : "de"}`, [isEn]);
+  const docsExcelZipLink = useMemo(() => `/api/export/documents-excel-zip?lang=${isEn ? "en" : "de"}`, [isEn]);
 
   useEffect(() => {
     if (autoOpen) setOpen(true);
@@ -75,7 +76,8 @@ export function HomeExportPackageButton({ locale, autoOpen = false, showButton =
       isEn ? "Anonymized export package:" : "Anonymisiertes Exportpaket:",
       "",
       ...lines,
-      `${isEn ? "All generated documents (PDF ZIP)" : "Alle erstellten Dokumente (PDF ZIP)"}: ${base}${docsZipLink}`,
+      `${isEn ? "All generated documents (PDF ZIP)" : "Alle erstellten Dokumente (PDF-ZIP)"}: ${base}${docsPdfZipLink}`,
+      `${isEn ? "All generated documents (Excel ZIP)" : "Alle erstellten Dokumente (Excel-ZIP)"}: ${base}${docsExcelZipLink}`,
     ].join("\n");
     const subject = isEn ? "Full anonymized study package" : "Vollständiges anonymisiertes Studienpaket";
     window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
@@ -100,8 +102,8 @@ export function HomeExportPackageButton({ locale, autoOpen = false, showButton =
             </h3>
             <p className="mt-2 text-sm text-[var(--muted)]">
               {isEn
-                ? "Questionnaires, document evaluation, use-case evaluation, advisor evaluation (each as SPSS/PDF/Excel), plus all created documents as PDF ZIP."
-                : "Fragebögen, Dokumente-Evaluation, Use-Case-Evaluation, Berater-Evaluation (jeweils SPSS/PDF/Excel) plus alle erstellten Dokumente als PDF-ZIP."}
+                ? "Questionnaires, document evaluation, use-case evaluation, advisor evaluation (each as SPSS/PDF/Excel), plus all created documents as PDF ZIP or Excel ZIP."
+                : "Fragebögen, Dokumente-Evaluation, Use-Case-Evaluation, Berater-Evaluation (jeweils SPSS/PDF/Excel) plus alle erstellten Dokumente als PDF-ZIP oder Excel-ZIP."}
             </p>
             <CollapsibleDetails
               defaultOpen={false}
@@ -123,10 +125,15 @@ export function HomeExportPackageButton({ locale, autoOpen = false, showButton =
                 ))}
                 <div className="rounded-xl border border-[var(--card-border)] bg-[var(--background)]/40 p-3">
                   <div className="text-sm font-semibold text-[var(--foreground)]">
-                    {isEn ? "All created documents as PDF ZIP" : "Alle erstellten Dokumente als PDF-ZIP"}
+                    {isEn ? "All created documents (ZIP)" : "Alle erstellten Dokumente (ZIP)"}
                   </div>
-                  <div className="mt-2">
-                    <a href={docsZipLink} className="rounded-lg border border-teal-300 px-3 py-1 text-xs font-semibold text-teal-700 hover:bg-teal-50">ZIP</a>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <a href={docsPdfZipLink} className="rounded-lg border border-teal-300 px-3 py-1 text-xs font-semibold text-teal-700 hover:bg-teal-50">
+                      {isEn ? "PDF ZIP" : "PDF-ZIP"}
+                    </a>
+                    <a href={docsExcelZipLink} className="rounded-lg border border-teal-300 px-3 py-1 text-xs font-semibold text-teal-700 hover:bg-teal-50">
+                      {isEn ? "Excel ZIP" : "Excel-ZIP"}
+                    </a>
                   </div>
                 </div>
               </div>

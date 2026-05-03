@@ -1,4 +1,5 @@
 import type { ComponentType } from "react";
+import { AppDbSchemaReportView } from "@/components/AppDbSchemaReportView";
 import {
   BaselineReportView,
   IndustryResearchReportView,
@@ -51,6 +52,7 @@ export const ARTIFACT_REPORT_VIEW_MAP: Record<
   marketing_strategy: MarketingStrategyView,
   swot_analysis: SwotReportView,
   value_proposition: ValuePropositionReportView,
+  app_db_schema: AppDbSchemaReportView,
   knowledge_digest: null,
   strategy_pack: null,
 };

@@ -21,7 +21,8 @@ function parseFb3FormData(formData: FormData) {
   const tr = { TR1: Number(formData.get("TR1")), TR2: Number(formData.get("TR2")), TR3: Number(formData.get("TR3")) };
   const cf = { CF1: Number(formData.get("CF1")), CF2: Number(formData.get("CF2")), CF3: Number(formData.get("CF3")) };
   const cl = { CL1: Number(formData.get("CL1")), CL2: Number(formData.get("CL2")), CL3: Number(formData.get("CL3")) };
-  return { dq, ev, tr, cf, cl };
+  const open = { O1: String(formData.get("O1") || "").trim(), O2: String(formData.get("O2") || "").trim(), O3: String(formData.get("O3") || "").trim() };
+  return { dq, ev, tr, cf, cl, open };
 }
 
 async function saveFb3(formData: FormData) {
@@ -50,7 +51,9 @@ async function saveFb3(formData: FormData) {
   }
 
   redirect(
-    category ? `/home?saved=fb3&category=${encodeURIComponent(category)}` : "/home?saved=fb3"
+    category
+      ? `/home?fromFb3=1&category=${encodeURIComponent(category)}`
+      : "/home?fromFb3=1"
   );
 }
 

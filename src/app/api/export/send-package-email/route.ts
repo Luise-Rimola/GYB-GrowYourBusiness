@@ -39,6 +39,7 @@ export async function POST(req: NextRequest) {
       { path: `/api/export?scope=advisor&format=pdf&lang=${locale}&anon=1`, filename: `advisor-evaluation-${locale}.pdf` },
       { path: `/api/export?scope=advisor&format=excel&lang=${locale}&anon=1`, filename: `advisor-evaluation-${locale}.xls` },
       { path: `/api/export/documents-pdf-zip?lang=${locale}`, filename: `all-documents-pdf-${locale}.zip` },
+      { path: `/api/export/documents-excel-zip?lang=${locale}`, filename: `all-documents-excel-${locale}.zip` },
     ];
 
     const downloaded = await Promise.all(
@@ -62,8 +63,8 @@ export async function POST(req: NextRequest) {
         : `Vollstaendiges anonymisiertes Exportpaket (${new Date().toISOString().slice(0, 10)})`;
     const html =
       locale === "en"
-        ? "<p>Hello,</p><p>Attached is the full anonymized package (questionnaires, document evaluation, use-case evaluation, advisor evaluation, and all generated documents as PDF ZIP).</p>"
-        : "<p>Hallo,</p><p>anbei das vollstaendige anonymisierte Paket (Frageboegen, Dokumente-Evaluation, Use-Case-Evaluation, Berater-Evaluation und alle erstellten Dokumente als PDF-ZIP).</p>";
+        ? "<p>Hello,</p><p>Attached is the full anonymized package (questionnaires, document evaluation, use-case evaluation, advisor evaluation, and all generated documents as PDF ZIP and Excel ZIP).</p>"
+        : "<p>Hallo,</p><p>anbei das vollstaendige anonymisierte Paket (Frageboegen, Dokumente-Evaluation, Use-Case-Evaluation, Berater-Evaluation und alle erstellten Dokumente als PDF-ZIP und Excel-ZIP).</p>";
 
     const result = await resend.emails.send({
       from: emailFrom,

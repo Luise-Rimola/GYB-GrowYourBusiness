@@ -89,7 +89,7 @@ const REPORT_FIELD_LABELS_DE: Record<string, string> = {
   key_blockers: "Haupt-Hindernisse",
   preconditions: "Voraussetzungen",
   frequency: "Häufigkeit",
-  mitigation: "Gegenmaßnahme",
+  mitigation: "Gegenmassnahme",
   founder_simple_summary: "Kurzfassung",
   fit_score: "Eignung",
   jurisdiction: "Rechtsraum",
@@ -218,6 +218,9 @@ export function IndustryResearchReportView({ content }: { content: Record<string
   const regulations = (content.regulations as string[]) ?? [];
   const facts = (content.key_facts as Array<{ fact?: string; source_hint?: string; source_ref?: number }>) ?? [];
   const typicalMetrics = content.typical_metrics as Record<string, unknown> | undefined;
+  const decisionReadiness = content.decision_readiness_note as string | undefined;
+  const risksTop = (content.prioritized_risks_top3 as string[]) ?? [];
+  const assumptionsNote = content.assumptions_and_evidence_note as string | undefined;
 
   return (
     <div className="space-y-8">
@@ -313,6 +316,37 @@ export function IndustryResearchReportView({ content }: { content: Record<string
           </div>
         </section>
       )}
+
+      {decisionReadiness && (
+        <section>
+          <h3 className="mb-4 text-lg font-semibold text-[var(--foreground)]">Entscheidung & nächste Schritte</h3>
+          <p className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-4 text-sm leading-relaxed">
+            {decisionReadiness}
+          </p>
+        </section>
+      )}
+
+      {risksTop.length > 0 && (
+        <section>
+          <h3 className="mb-4 text-lg font-semibold text-[var(--foreground)]">Top-Risiken (priorisiert)</h3>
+          <ol className="list-inside list-decimal space-y-2 text-sm">
+            {risksTop.map((r, i) => (
+              <li key={i} className="rounded-lg border border-[var(--card-border)] bg-[var(--card)] px-4 py-2">
+                {r}
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
+
+      {assumptionsNote && (
+        <section>
+          <h3 className="mb-4 text-lg font-semibold text-[var(--foreground)]">Belege vs. Annahmen</h3>
+          <p className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-4 text-sm leading-relaxed text-[var(--muted)]">
+            {assumptionsNote}
+          </p>
+        </section>
+      )}
     </div>
   );
 }
@@ -344,9 +378,51 @@ export function MarketSnapshotView({ content }: { content: Record<string, unknow
   const segments = (content.segments as GapRecord[] | undefined) ?? [];
   const competitors = (content.competitors as GapRecord[] | undefined) ?? [];
   const drivers = (content.demand_drivers as string[] | undefined) ?? [];
+  const focusDecision = content.segment_focus_decision as string | undefined;
+  const rankOrder = (content.segment_rank_order_labels as string[] | undefined) ?? [];
+  const revenueMix =
+    (content.illustrative_revenue_impact_pct as Array<{ segment_label?: string; pct_illustrative?: number; rationale?: string }> | undefined) ?? [];
+  const segKpis =
+    (content.segment_operational_kpis as Array<{
+      segment_label?: string;
+      acquisition_or_conversion_proxy?: string;
+      visit_or_frequency_proxy?: string;
+      avg_order_value_proxy?: string;
+      retention_or_repeat_proxy?: string;
+      pain_points_measurable?: string;
+    }> | undefined) ?? [];
+  const journey = (content.primary_segment_customer_journey as string[] | undefined) ?? [];
+  const localGap = content.local_evidence_gap_note as string | undefined;
+  const assumptions = content.assumptions_vs_sources_note as string | undefined;
 
   return (
     <div className="space-y-8">
+      {focusDecision && (
+        <section>
+          <h3 className="mb-4 text-lg font-semibold text-[var(--foreground)]">Fokus & Priorität (unter vier Segmenten)</h3>
+          <p className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-4 text-sm leading-relaxed">
+            {focusDecision}
+          </p>
+        </section>
+      )}
+      {rankOrder.length > 0 && (
+        <section>
+          <h3 className="mb-4 text-lg font-semibold text-[var(--foreground)]">Prioritätsreihenfolge</h3>
+          <ol className="list-inside list-decimal space-y-1 text-sm">
+            {rankOrder.map((lbl, i) => (
+              <li key={i} className="rounded-lg border border-[var(--card-border)] bg-[var(--card)] px-4 py-2 flex flex-wrap items-baseline gap-2">
+                <span className="font-semibold text-[var(--foreground)]">{i + 1}.</span>
+                {i === 0 && (
+                  <span className="rounded bg-teal-100 px-2 py-0.5 text-xs font-medium text-teal-800 dark:bg-teal-900/60 dark:text-teal-200">
+                    Fokussierung
+                  </span>
+                )}
+                <span>{lbl}</span>
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
       <section>
         <h3 className="mb-4 text-lg font-semibold text-[var(--foreground)]">Segmente</h3>
         <div className="space-y-4">
@@ -405,6 +481,86 @@ export function MarketSnapshotView({ content }: { content: Record<string, unknow
               </li>
             ))}
           </ul>
+        </section>
+      )}
+
+      {revenueMix.length > 0 && (
+        <section>
+          <h3 className="mb-4 text-lg font-semibold text-[var(--foreground)]">
+            Illustratives Umsatz-/Impact-Gewicht (Planung)
+          </h3>
+          <p className="mb-2 text-xs text-[var(--muted)]">
+            Keine bilanzierte Wahrheit — nur argumentative Gewichte zur Fokusdiskussion (Summe typischerweise ~100%).
+          </p>
+          <ul className="space-y-2">
+            {revenueMix.map((r, i) => (
+              <li key={i} className="rounded-lg border border-[var(--card-border)] bg-[var(--card)] px-4 py-2 text-sm">
+                <span className="font-medium">{r.segment_label ?? "—"}</span>: {r.pct_illustrative ?? "—"}%
+                {r.rationale ? <span className="block text-xs text-[var(--muted)] mt-1">{r.rationale}</span> : null}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {segKpis.length > 0 && (
+        <section>
+          <h3 className="mb-4 text-lg font-semibold text-[var(--foreground)]">KPI-Proxys je Segment</h3>
+          <div className="space-y-4">
+            {segKpis.map((k, i) => (
+              <div key={i} className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-4 text-sm space-y-1">
+                <h4 className="font-semibold text-[var(--foreground)]">{k.segment_label ?? "—"}</h4>
+                {k.acquisition_or_conversion_proxy && (
+                  <p><span className="text-[var(--muted)]">Conversion / Acquisition:</span> {k.acquisition_or_conversion_proxy}</p>
+                )}
+                {k.visit_or_frequency_proxy && (
+                  <p><span className="text-[var(--muted)]">Frequenz / Besuche:</span> {k.visit_or_frequency_proxy}</p>
+                )}
+                {k.avg_order_value_proxy && (
+                  <p><span className="text-[var(--muted)]">Bon / AOV:</span> {k.avg_order_value_proxy}</p>
+                )}
+                {k.retention_or_repeat_proxy && (
+                  <p><span className="text-[var(--muted)]">Wiederkehr:</span> {k.retention_or_repeat_proxy}</p>
+                )}
+                {k.pain_points_measurable && (
+                  <p><span className="text-[var(--muted)]">Messbare Pain Points:</span> {k.pain_points_measurable}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {journey.length > 0 && (
+        <section>
+          <h3 className="mb-4 text-lg font-semibold text-[var(--foreground)]">
+            Customer Journey (Primärsegment)
+          </h3>
+          <ol className="list-inside list-decimal space-y-2 text-sm">
+            {journey.map((step, i) => (
+              <li key={i} className="rounded-lg border border-[var(--card-border)] bg-[var(--card)] px-4 py-2">
+                {step}
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
+
+      {localGap && (
+        <section>
+          <h3 className="mb-4 text-lg font-semibold text-[var(--foreground)]">Lokal noch zu validieren</h3>
+          <p className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-4 text-sm text-[var(--muted)] leading-relaxed">
+            {localGap}
+          </p>
+        </section>
+      )}
+
+      {assumptions && (
+        <section>
+          <h3 className="mb-4 text-lg font-semibold text-[var(--foreground)]">Schätzungen vs. Quellen</h3>
+          <p className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-4 text-sm leading-relaxed text-[var(--muted)]">
+            {assumptions}
+          </p>
         </section>
       )}
     </div>
@@ -952,7 +1108,7 @@ export function FailureAnalysisView({ content }: { content: Record<string, unkno
               )}
               {r.mitigation && (
                 <div className="mt-3 rounded-lg border border-teal-200 bg-teal-50/50 p-3 dark:border-teal-800 dark:bg-teal-950/20">
-                  <p className="text-xs font-medium uppercase tracking-wide text-teal-700 dark:text-teal-300">Gegenmaßnahme</p>
+                  <p className="text-xs font-medium uppercase tracking-wide text-teal-700 dark:text-teal-300">Gegenmassnahme</p>
                   <p className="mt-1 text-sm text-teal-800 dark:text-teal-200">{r.mitigation}</p>
                 </div>
               )}
@@ -1238,8 +1394,31 @@ export function RealEstateView({ content }: { content: Record<string, unknown> }
   const bestIdx = (content.best_option_index as number) ?? null;
   const bestDetails = content.best_option_details as { renovations?: string; usage_change_application?: string; other_applications?: string[] } | undefined;
   const recs = (content.recommendations as string[]) ?? [];
+  const locationDecision = content.location_decision_summary as string | undefined;
+  const localGaps = (content.local_data_gaps as string[]) ?? [];
+
   return (
     <div className="space-y-8">
+      {locationDecision && (
+        <section>
+          <h3 className="mb-4 text-lg font-semibold text-[var(--foreground)]">Standort – Kurzfazit</h3>
+          <p className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-4 text-sm leading-relaxed">
+            {locationDecision}
+          </p>
+        </section>
+      )}
+      {localGaps.length > 0 && (
+        <section>
+          <h3 className="mb-4 text-lg font-semibold text-[var(--foreground)]">Noch klärende lokale Daten</h3>
+          <ul className="space-y-2">
+            {localGaps.map((g, i) => (
+              <li key={i} className="rounded-lg border border-[var(--card-border)] bg-[var(--card)] px-4 py-2 text-sm">
+                {g}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
       {avgPrices.length > 0 && (
         <section>
           <h3 className="mb-4 text-lg font-semibold text-[var(--foreground)]">Durchschnittspreise vergleichbarer Objekte (Referenz)</h3>

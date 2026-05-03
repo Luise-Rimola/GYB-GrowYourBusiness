@@ -27,6 +27,10 @@ export default async function ChatEvaluatePage({
       evaluations={evaluations}
       emptyHistory={t.chat.evaluateEmpty}
       fv={fv}
+      openTextExcelHref={`/api/export/open-answers?section=advisor&lang=${locale}`}
+      openTextExcelLabel={
+        locale === "en" ? "Excel: open text answers only" : "Excel: nur offene Textantworten"
+      }
     />
   );
 }

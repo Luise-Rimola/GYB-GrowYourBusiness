@@ -124,17 +124,25 @@ Output schema:
     stepKey: "industry_research",
     version: 1,
     outputSchemaKey: "industry_research",
-    templateText: `You are a business data researcher.
+    templateText: `You are a business data researcher producing decision-grade, industry-agnostic market and context briefs (not single-sector playbooks only).
 ${ARTIFACT_INSTRUCTION}
-Use company_profile from CONTEXT_JSON (industry, offer, location, customers, market_reach) – use its actual data. Adapt all research to company_profile.industry – the business type determines market size, trends, competitors, regulations.
-Use your knowledge to produce structured facts: market size estimates, trends, competitors, regulations, typical metrics, and key facts. This data will feed into later market research and decision prompts.
+Use company_profile from CONTEXT_JSON (industry, offer, location, customers, market_reach, stage) – actual values only. Generalize methods and examples so they apply to ANY business model in the profile (B2B/B2C/services/retail/production/etc.); do NOT assume food service or a specific city unless company_profile states it.
+
+DOCUMENT QUALITY BAR (aims for top marks on human document review; still honest to evidence):
+(1) Coverage: address in order – market/addressable context for this location → demand/trend drivers relevant to THIS model → competitive landscape → regulatory/policy constraints typical for THIS industry in the geography → KPIs/benchmark bands that founders can operationalize at THIS stage/size.
+(2) Location transparency: explicitly tie geographic claims to company_profile.location. Prefer regional/state/city-tier sources when citing market size or demand; label national-only data as national reference framed for that location. Flag when local granular data does not exist and what secondary evidence justifies extrapolation – never invent named local SMEs, footfall figures, rents, or “verified” municipal stats without plausible public sources linked in sources_used.
+(3) Estimates vs. facts: in market_size_estimate and key_facts, separate verifiable statements from plausible ranges labelled as estimates (explain the bridge in one short clause). No fake precision.
+(4) Competition: blend category-level framing (structures, substitutes, channels) with named exemplars ONLY when you can cite a checkable URL or established market report in sources_used – otherwise explicitly say competitor detail remains category-level and needs field research.
+(5) Decision readiness: supply decision_readiness_note (2–5 sentences): conditional go / no-go / iterate framing for THIS profile ONLY, plus the next empirical checks – not legal/investment advice.
+(6) Risks: prioritized_risks_top3 with exactly THREE items, descending impact on the focal venture.
+(7) KPIs: typical_metrics must pair industry-typical ranges with orientation for THIS venture (scale/stage cues from profile): use keys like benchmark_range, implication_for_this_venture where helpful.
 Return ONLY valid JSON, no prose.
 ${JSON_STRICT}
 ${SOURCE_REFERENCE_INSTRUCTION}
 CONTEXT_JSON:
 {{CONTEXT_JSON}}
 Output schema:
-{ "industry": "...", "location": "...", "market_size_estimate": "...", "key_trends": ["..."], "competitors": ["..."], "regulations": ["..."], "typical_metrics": {...}, "key_facts": [ { "fact": "...", "source_ref": 1 } ], "sources_used": ["Title (URL)", "..."] }`,
+{ "industry": "...", "location": "...", "market_size_estimate": "...", "key_trends": ["..."], "competitors": ["..."], "regulations": ["..."], "typical_metrics": {...}, "key_facts": [ { "fact": "...", "source_ref": 1 } ], "sources_used": ["Title (URL)", "..."], "decision_readiness_note": "...", "prioritized_risks_top3": ["risk1","risk2","risk3"], "assumptions_and_evidence_note": "..." }`,
   },
   {
     key: "P5",
@@ -186,16 +194,39 @@ Output schema (use kpi_estimates as top-level array, NOT kpi_estimation as objec
     stepKey: "market_snapshot",
     version: 1,
     outputSchemaKey: "market_snapshot",
-    templateText: `You are a market researcher.
+    templateText: `You are a market researcher delivering a POSITIONING-FIRST but DECISION-GUIDING market snapshot usable for ANY sector in company_profile (B2C/B2B/services/physical/digital – do NOT default to one vertical unless the profile says so).
 ${ARTIFACT_INSTRUCTION}
-Use company_profile and industry_research from CONTEXT_JSON – use their actual data. Adapt segments, competitors, pricing to company_profile.industry – the business type is in the profile.
+Use company_profile and industry_research from CONTEXT_JSON – actual data only.
+
+SEGMENTS (mandatory shape):
+- Output EXACTLY 4 distinct customer/user segments – keep all four equally described in richness, BUT make strategic priority explicit elsewhere (you are NOT collapsing to fewer segments).
+- Each segment object should include human-readable identifiers such as name (or segment), size_or_share_note (explicitly labelled **estimate vs. sourced** – never imply false precision for locality), willingness_to_pay_or_value_sensitivity (industry-neutral wording), triggers, pains (make pain points observable / verifiable where possible), use_case_or_occasion – adapt field names freely inside the object as long as the four profiles stay comparable.
+
+Decision & economics layer (closes the „who to prioritise first?“ gap):
+- segment_focus_decision (short paragraph): which ONE segment leads for go-to-market under current assumptions **and why** – while still monetizing the other three later; name the sequencing logic.
+- segment_rank_order_labels: array of exactly **4** strings listing the SAME four segments in descending priority (**index 0 = highest-priority hero segment**).
+- illustrative_revenue_impact_pct: array of exactly 4 objects { segment_label, pct_illustrative, rationale? } summing ~100 (±5) — clearly **illustrative planning weights**, NOT audited facts.
+
+KPI visibility (explicit, not buried):
+- segment_operational_kpis: exactly 4 rows aligned to segments – each row at minimum suggests proxies for acquisition/conversion, visit or purchase frequency, average order/value, retention/repeat; label unknowns honestly.
+
+Journey & evidence hygiene:
+- primary_segment_customer_journey: ordered steps (Acquisition → conversion → loyalty driver) tuned to the prioritized segment (max ~8 bullets).
+- local_evidence_gap_note: WHAT local/mobile data are still missing (footfall counts, zoning, competitor storefront mapping, disposable income tiers, etc.) for company_profile.location – without inventing municipalities.
+- assumptions_vs_sources_note: separate verifiable citations from educated guesses – especially any regional share percentages MUST cite URLs in sources_used or be marked as extrapolation only.
+
+GENERAL QUALITY RULES:
+- Ground segment shares and behaviour in quoted sources OR label as extrapolation — **no bogus local percentages**.
+- Maintain clear tabular-like readability per segment block.
+- Competitors/pricing/risk arrays stay realistic and cite where possible via sources_used.
+
 Return ONLY valid JSON, no prose.
 ${JSON_STRICT}
 ${SOURCE_REFERENCE_INSTRUCTION}
 CONTEXT_JSON:
 {{CONTEXT_JSON}}
 Output schema:
-{ "segments": [...], "competitors": [...], "pricing_index": [...], "demand_drivers": ["..."], "risks": ["..."], "sources_used": ["Title (URL)", "..."] }`,
+{ "segments": [ {...}, {...}, {...}, {...} ], "competitors": [...], "pricing_index": [...], "demand_drivers": ["..."], "risks": ["..."], "sources_used": ["Title (URL)", "..."], "strategy_indicators": {}, "segment_focus_decision": "...", "segment_rank_order_labels": ["hero segment name","segment 2","segment 3","segment 4"], "illustrative_revenue_impact_pct": [ {"segment_label":"...","pct_illustrative":35,"rationale":"..."}, ...4 items ], "segment_operational_kpis": [ {...}, ...4 rows ], "primary_segment_customer_journey": ["..."], "local_evidence_gap_note": "...", "assumptions_vs_sources_note": "..." }`,
   },
   {
     key: "P8",
@@ -561,21 +592,29 @@ Output schema:
     stepKey: "real_estate",
     version: 1,
     outputSchemaKey: "real_estate",
-    templateText: `You are a real estate analyst.
+    templateText: `You are a real estate analyst generating location OPTIONS that remain valid for ANY sector in company_profile.industry – infer required space type from offer/stage (e.g. logistics vs. office vs. retail vs. light production vs. coworking-light) rather than naming one vertical by default.
 ${ARTIFACT_INSTRUCTION}
-Use company_profile (location, industry, offer, stage), market_snapshot, industry_research from CONTEXT_JSON – use their actual data. Adapt options to company_profile.industry – e.g. Gastronomie needs Küche/Gastraum, Retail needs Verkaufsfläche, IT needs Büro.
+Use company_profile (location, industry, offer, stage), market_snapshot, industry_research from CONTEXT_JSON – only actual inputs. Mention location_decision_summary: short verdict on suitability of the OPTION SET for launching/operating THIS business under stated assumptions – not guaranteed site approval.
+
+Quality bar aligned with downstream document scoring (coverage, grounding, realism, clarity, structure – industry-neutral):
+- Each option.description must explicitly say WHY the layout / Nutzung fits the described operating model AND what onsite checks remain (Behörden, Nachbarn, Erschließung).
+- Prefer real listing URLs where available; NEVER fabricate addresses or portals. If you cannot cite a genuine URL, omit url but state in suitability that the row is illustrative and append a truthful public benchmark source in sources.
+- pricing must separate Kaltmiete / NK where possible and compare to average_market_prices for THAT region and property archetype – label illustrative ranges clearly.
+- recommendations: actionable next steps owners can take BEFORE signing (technical due diligence, usage confirmation, capex sanity check) – wording must work regardless of niche.
+- local_data_gaps: list WHAT local micro-location data would still be required (traffic, zoning confirmation, achievable rent band, competitor proximity) stated generically yet concretely (no hypothetical city inventions).
+
 Requirements:
-- Output exactly 3 options. Include at least one freistehendes Gewerbe (freestanding commercial property) with url (link to listing) and usage_permit (Nutzungserlaubnis: Gewerbe, Büro, Handel, etc.).
-- Each option: type, location, description, price_range (Miete, Nebenkosten: Strom, Wasser), suitability, url (plain URL only, e.g. https://example.com – no markdown, no brackets), usage_permit.
-- IMPORTANT: Include average_market_prices – Durchschnittspreise vergleichbarer Objekte in der Region (z.B. Büro 10–14 €/m², Gewerbe 8–12 €/m²). This gives a reference to assess whether options are fair, too expensive, or worth launching.
-- If a good option is found: set best_option_index (0, 1 or 2) and best_option_details with: renovations (Sanierungen), usage_change_application (Nutzungsänderungsantrag), other_applications (weitere notwendige Anträge).
+- Output exactly 3 options. Include at least one freestanding or clearly separable Gewerbe/Logistik/handelsfähiges Objekt when the business model implies physical throughput; otherwise three office/studio/industrial archetypes aligned to profile.
+- Each option: type, location, description, price_range (Miete, Nebenkosten: z. B. Strom, Wasser), suitability, url (plain HTTPS only if verifiable listing), usage_permit.
+- Include average_market_prices comparable to objectives in company_profile.region/location granularity.
+- If one option strongest: best_option_index (0–2), best_option_details (renovations, usage_change_application, other_applications).
 Return ONLY valid JSON, no prose.
 ${JSON_STRICT}
 ${SOURCE_REFERENCE_INSTRUCTION}
 CONTEXT_JSON:
 {{CONTEXT_JSON}}
 Output schema:
-{ "options": [ { "type": "...", "location": "...", "description": "...", "price_range": "...", "suitability": "...", "url": "...", "usage_permit": "...", "sources": ["..."] } ], "average_market_prices": [ { "property_type": "Büro", "avg_price": "10–14 €/m² kalt", "region": "...", "notes": "..." } ], "best_option_index": 0, "best_option_details": { "renovations": "...", "usage_change_application": "...", "other_applications": ["..."] }, "recommendations": ["..."], "sources_used": ["Title (URL)", "..."] }`,
+{ "options": [ { "type": "...", "location": "...", "description": "...", "price_range": "...", "suitability": "...", "url": "...", "usage_permit": "...", "sources": ["..."] } ], "average_market_prices": [ { "property_type": "Büro", "avg_price": "10–14 €/m² kalt", "region": "...", "notes": "..." } ], "best_option_index": 0, "best_option_details": { "renovations": "...", "usage_change_application": "...", "other_applications": ["..."] }, "recommendations": ["..."], "sources_used": ["Title (URL)", "..."], "location_decision_summary": "...", "local_data_gaps": ["..."] }`,
   },
   {
     key: "P14",
@@ -1704,6 +1743,20 @@ MANDATORY coverage:
 (8) kpi_framework_for_client: 5–8 priority KPIs (AI citations, AI referral traffic, share-of-voice in AI Overviews, brand mentions, featured snippet wins, etc.) with simple explanations, target hints, check frequency.
 (9) implementation_guide: setup, QA, 30/60/90 rollout, common pitfalls.
 (10) implementation_code: copy-paste-ready llms.txt example, robots.txt AI-bot block, FAQ/HowTo/Article/Organization JSON-LD snippets. Plain strings.
+
+CRITICAL OUTPUT GUARANTEE (validation hard-stop):
+- You MUST include the top-level keys "kpi_framework_for_client", "implementation_guide", and "implementation_code" in every response.
+- You MUST include "kpi_framework_for_client.tracking_validation_checklist" as an array (can be empty, but key must exist).
+- Do NOT omit required objects even if context is weak. Use safe placeholders instead:
+  - arrays -> []
+  - strings -> ""
+  - booleans -> true/false
+- Before finalizing, run a self-check: all schema keys from the output schema exist exactly once with correct JSON types.
+- STRICT JSON SYNTAX RULES:
+  - Output one single JSON object only (first char "{", last char "}"), no markdown/code fences/comments.
+  - Inside string values, avoid unescaped double quotes. If you need quotes in text, use single quotes '...' or parentheses.
+  - Keep ai_search_landscape.relevant_ai_engines as string[] only (no nested objects).
+  - Keep commas/colons strictly valid JSON ("key": value).
 
 OUTPUT LANGUAGE: narrative values in clear German business language. JSON keys exactly as schema (English snake_case).
 Return ONLY valid JSON, no prose.

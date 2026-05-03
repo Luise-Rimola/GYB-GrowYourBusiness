@@ -24,6 +24,10 @@ function code(value: unknown): string {
   return t || "// No code snippet available.";
 }
 
+function formatAnalysisKey(key: string): string {
+  return key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 export function GrowthArtifactTabs({
   artifactType,
   content,
@@ -124,7 +128,7 @@ export function GrowthArtifactTabs({
           ) : (
             Object.entries(analysis).map(([key, value]) => (
               <div key={key} className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] p-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">{key}</p>
+                <p className="text-sm font-semibold tracking-normal text-teal-800 dark:text-teal-200">{formatAnalysisKey(key)}</p>
                 {Array.isArray(value) ? (
                   <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-[var(--foreground)]">
                     {value.map((entry, idx) => (

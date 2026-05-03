@@ -18,6 +18,33 @@ function toText(value: unknown): string {
   }
 }
 
+/** Helvetica (StandardFonts) uses WinAnsi; many Unicode symbols (→, bullets, emoji) fail at drawText. */
+function sanitizeForStandardPdfFont(text: string): string {
+  const s = text
+    .normalize("NFC")
+    .replace(/\r\n/g, "\n")
+    .replace(/\u00A0/g, " ")
+    .replace(/\u202F|\u2007/g, " ")
+    .replace(/[\u200B-\u200D\u2060\uFEFF]/g, "")
+    .replace(/\u2026/g, "...")
+    .replace(/\u2212|\u2010|\u2011|\u2012|\u2013|\u2014|\u2015/g, "-")
+    .replace(/\u2190/g, "<-")
+    .replace(/\u2192|\u2794|\u279C/g, "->")
+    .replace(/\u2194|\u27F7/g, "<->")
+    .replace(/\u21D2/g, "=>")
+    .replace(/\u2248/g, "~")
+    .replace(/\u2713|\u2714|\u2717|\u2718/g, "[x]")
+    .replace(/\u2022|\u2023|\u25AA|\u25CF|\u25E6|\u2043/g, "*")
+    .replace(/\u20AC/g, "EUR")
+    .replace(/\u0131/g, "i")
+    .replace(/[\u2018\u2019\u201A]/g, "'")
+    .replace(/[\u201C\u201D\u201E]/g, '"')
+    .replace(/[\u2032\u2033]/g, "'")
+    .replace(/[\u00AB\u00BB]/g, '"')
+    .replace(/\u00AD/g, "");
+  return s.replace(/[^\t\n\r\x20-\x7E\xa1-\xff]/gu, "?");
+}
+
 async function buildArtifactPdf(title: string, createdAt: Date, content: string): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
   const font = await doc.embedFont(StandardFonts.Helvetica);
@@ -28,6 +55,9 @@ async function buildArtifactPdf(title: string, createdAt: Date, content: string)
   const maxWidth = width - margin * 2;
   let page = doc.addPage([width, height]);
   let y = height - margin;
+
+  const safeTitle = sanitizeForStandardPdfFont(title);
+  const safeContent = sanitizeForStandardPdfFont(content);
 
   const wrapText = (text: string, size: number): string[] => {
     if (!text) return [""];
@@ -61,10 +91,10 @@ async function buildArtifactPdf(title: string, createdAt: Date, content: string)
     y -= size + 4;
   };
 
-  writeLine(title, 16, true);
+  writeLine(safeTitle, 16, true);
   writeLine(createdAt.toISOString(), 9, false);
   y -= 6;
-  for (const line of wrapText(content, 9)) writeLine(line, 9, false);
+  for (const line of wrapText(safeContent, 9)) writeLine(line, 9, false);
 
   return doc.save();
 }

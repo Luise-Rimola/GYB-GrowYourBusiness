@@ -47,7 +47,7 @@ async function saveFb2Category(category: string, formData: FormData) {
   if (assistantEmbed) {
     redirect(dashboardUrlAfterFb2Assistant(category));
   }
-  redirect(`/home?saved=fb2&category=${encodeURIComponent(category)}`);
+  redirect(`/home?fromFb2=1&category=${encodeURIComponent(category)}`);
 }
 
 export default async function Fragebogen2CategoryPage({

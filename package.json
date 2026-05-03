@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --webpack",
-    "dev:turbo": "next dev",
+    "dev": "next dev --webpack -p 3000",
+    "dev:turbo": "next dev -p 3000",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -13,7 +13,8 @@
     "db:seed": "prisma db seed",
     "db:vector:setup": "prisma db execute --schema prisma/schema.prisma --file prisma/sql/enable-pgvector.sql",
     "db:inventory-enum": "prisma db execute --schema prisma/schema.prisma --file prisma/sql/add-inventory-equipment-plan-artifact-type.sql",
-    "db:cleanup:llm-settings": "tsx prisma/cleanupLlmSettings.ts"
+    "db:cleanup:llm-settings": "tsx prisma/cleanupLlmSettings.ts",
+    "eval:backfill": "tsx scripts/backfill-realistic-evaluations.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -31,7 +32,8 @@
     "chartjs-adapter-moment": "^1.0.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
-    "html2pdf.js": "^0.14.0",
+    "html2canvas-pro": "^2.0.2",
+    "jspdf": "^4.2.1",
     "jose": "^6.2.2",
     "jsonrepair": "^3.13.2",
     "jszip": "^3.10.1",

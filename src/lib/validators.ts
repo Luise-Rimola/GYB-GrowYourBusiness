@@ -92,25 +92,17 @@ export type ValidationResult =
       errors: string[];
     };
 
-/** Extract JSON object/array from string – handles leading text like "Here is the JSON: {...}" */
-function extractJson(raw: string): string {
-  const trimmed = raw.replace(/^\uFEFF/, "").trim();
-  // 1) Full code block
-  const fullBlock = trimmed.match(/^```(?:json)?\s*([\s\S]*?)```$/);
-  if (fullBlock) return fullBlock[1].trim();
-  // 2) Code block anywhere in text
-  const innerBlock = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/);
-  if (innerBlock) return innerBlock[1].trim();
-  // 3) Find first { or [ and extract balanced bracket content
-  const start = trimmed.search(/\{|\[/);
-  if (start === -1) return trimmed;
-  const open = trimmed[start] as "{" | "[";
-  const close = open === "{" ? "}" : "]";
-  let depth = 0;
+/** True stack-based extract: nests both `{...}` and `[...]` correctly (fixes `[{...}]` and mixed nesting). */
+function sliceFirstBalancedJsonValue(s: string, fromIndex: number): string {
+  const closers: Record<string, string> = { "{": "}", "[": "]" };
+  const stack: string[] = [];
   let inStr = false;
   let escape = false;
-  for (let i = start; i < trimmed.length; i++) {
-    const c = trimmed[i];
+  const startChar = s[fromIndex];
+  if (startChar !== "{" && startChar !== "[") return s.slice(fromIndex);
+
+  for (let i = fromIndex; i < s.length; i++) {
+    const c = s[i];
     if (escape) {
       escape = false;
       continue;
@@ -119,22 +111,134 @@ function extractJson(raw: string): string {
       escape = true;
       continue;
     }
-    if (c === '"' && !inStr) {
-      inStr = true;
-      continue;
-    }
-    if (c === '"' && inStr) {
-      inStr = false;
+    if (c === '"') {
+      inStr = !inStr;
       continue;
     }
     if (inStr) continue;
-    if (c === open) depth++;
-    else if (c === close) {
-      depth--;
-      if (depth === 0) return trimmed.slice(start, i + 1);
+
+    if (c === "{" || c === "[") {
+      stack.push(c);
+      continue;
+    }
+    if (c === "}" || c === "]") {
+      const opener = stack.pop();
+      if (!opener || closers[opener] !== c) {
+        return s.slice(fromIndex);
+      }
+      if (stack.length === 0) return s.slice(fromIndex, i + 1);
     }
   }
-  return trimmed.slice(start);
+  return s.slice(fromIndex);
+}
+
+/**
+ * Wenn direkt zwei Root-JSON-Werte aneinanderhängen (`{...}{...}` / `{...}[...]`),
+ * den ersten Wert zurückgeben — nur wenn er gültig parst. String-sicher (kein blindes Regex).
+ * Behebt „Unexpected character '{' at position …“ nach dem ersten Objekt.
+ */
+function extractFirstJsonWhenMultipleRootsConcatenated(s: string): string | null {
+  const t = s.trimStart();
+  const start = t.search(/\{|\[/);
+  if (start === -1) return null;
+  const closers: Record<string, string> = { "{": "}", "[": "]" };
+  const stack: string[] = [];
+  let inStr = false;
+  let escape = false;
+  const startChar = t[start];
+  if (startChar !== "{" && startChar !== "[") return null;
+
+  for (let i = start; i < t.length; i++) {
+    const c = t[i];
+    if (escape) {
+      escape = false;
+      continue;
+    }
+    if (c === "\\" && inStr) {
+      escape = true;
+      continue;
+    }
+    if (c === '"') {
+      inStr = !inStr;
+      continue;
+    }
+    if (inStr) continue;
+
+    if (c === "{" || c === "[") {
+      stack.push(c);
+      continue;
+    }
+    if (c === "}" || c === "]") {
+      const opener = stack.pop();
+      if (!opener || closers[opener] !== c) {
+        return null;
+      }
+      if (stack.length === 0) {
+        const candidate = t.slice(start, i + 1);
+        const rest = t.slice(i + 1).trimStart();
+        if (!rest.startsWith("{") && !rest.startsWith("[")) return null;
+        try {
+          JSON.parse(candidate);
+          return candidate;
+        } catch {
+          try {
+            const repaired = jsonrepair(candidate);
+            JSON.parse(repaired);
+            return repaired;
+          } catch {
+            return null;
+          }
+        }
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * Models sometimes append a second JSON object without comma: `{...}{...}`.
+ * Parsing then fails with "Unexpected character '{' at position …".
+ */
+function takeFirstConcatenatedJsonRoot(s: string): string | null {
+  const scanned = extractFirstJsonWhenMultipleRootsConcatenated(s);
+  if (scanned) return scanned;
+
+  const t = s.trimStart();
+  if (!t.startsWith("{") && !t.startsWith("[")) return null;
+  const first = sliceFirstBalancedJsonValue(t, 0);
+  try {
+    JSON.parse(first);
+    const rest = t.slice(first.length).trimStart();
+    if (rest.startsWith("{") || rest.startsWith("[")) return first;
+  } catch {
+    /* ignore */
+  }
+  return null;
+}
+
+/** Extract JSON object/array from string – handles leading text like "Here is the JSON: {...}" */
+function extractJson(raw: string): string {
+  const trimmed = raw.replace(/^\uFEFF/, "").trim();
+  // 1) Full code block
+  const fullBlock = trimmed.match(/^```(?:json)?\s*([\s\S]*?)```$/);
+  if (fullBlock) {
+    const inner = fullBlock[1].trim();
+    const onlyFirst = takeFirstConcatenatedJsonRoot(inner);
+    return onlyFirst ?? inner;
+  }
+  // 2) Code block anywhere in text
+  const innerBlock = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (innerBlock) {
+    const inner = innerBlock[1].trim();
+    const onlyFirst = takeFirstConcatenatedJsonRoot(inner);
+    return onlyFirst ?? inner;
+  }
+  // 3) Find first { or [ and extract balanced content (handles nested arrays/objects)
+  const start = trimmed.search(/\{|\[/);
+  if (start === -1) return trimmed;
+  const sliced = sliceFirstBalancedJsonValue(trimmed, start);
+  const onlyFirst = takeFirstConcatenatedJsonRoot(sliced);
+  return onlyFirst ?? sliced;
 }
 
 /** Escape unescaped " inside JSON string values. In value strings, escape " when followed by letter/digit/: */
@@ -215,9 +319,173 @@ function tryCloseTruncatedBrackets(s: string): string {
   return s + stack.reverse().join("");
 }
 
+/**
+ * Fehlende Kommas zwischen Array-Elementen und zwischen Objekt-Properties (string-sicher).
+ * Typische Modellfehler: `[ {...} {...} ]`, `} "next_key"`, `"value" "next_key"`, `1 "key"`.
+ * Bei Klammer-Mismatch wird unverändert zurückgegeben.
+ */
+function repairMissingCommasInArrays(jsonish: string): string {
+  const closers: Record<string, string> = { "{": "}", "[": "]" };
+  const stack: string[] = [];
+  let out = "";
+  let inStr = false;
+  let escape = false;
+
+  const endsNumOrLiteral = (trimmed: string) =>
+    /\d$/.test(trimmed) || /(?:true|false|null)$/.test(trimmed);
+
+  for (let i = 0; i < jsonish.length; i++) {
+    const c = jsonish[i];
+    if (escape) {
+      out += c;
+      escape = false;
+      continue;
+    }
+    if (c === "\\" && inStr) {
+      out += c;
+      escape = true;
+      continue;
+    }
+    if (c === '"') {
+      if (!inStr) {
+        const trimmed = out.trimEnd();
+        const last = trimmed.length > 0 ? trimmed[trimmed.length - 1]! : "";
+        if (last !== "," && stack.length > 0) {
+          const top = stack[stack.length - 1]!;
+          const needsComma =
+            last === "}" ||
+            last === "]" ||
+            last === '"' ||
+            endsNumOrLiteral(trimmed);
+          if (top === "{") {
+            if (
+              needsComma &&
+              last !== ":" &&
+              last !== "[" &&
+              last !== "{"
+            ) {
+              out += ",";
+            }
+          } else if (top === "[") {
+            if (needsComma && last !== "[" && last !== "{") {
+              out += ",";
+            }
+          }
+        }
+        inStr = true;
+        out += c;
+        continue;
+      }
+      inStr = false;
+      out += c;
+      continue;
+    }
+    if (inStr) {
+      out += c;
+      continue;
+    }
+
+    if (c === "{" || c === "[") {
+      const trimmed = out.trimEnd();
+      const last = trimmed.length > 0 ? trimmed[trimmed.length - 1]! : "";
+      if (
+        stack.length > 0 &&
+        stack[stack.length - 1] === "[" &&
+        (last === "}" || last === "]" || last === '"' || endsNumOrLiteral(trimmed))
+      ) {
+        out += ",";
+      }
+      out += c;
+      stack.push(c);
+      continue;
+    }
+
+    if (c === "}" || c === "]") {
+      const opener = stack.pop();
+      if (!opener || closers[opener] !== c) {
+        return jsonish;
+      }
+      out += c;
+      continue;
+    }
+
+    out += c;
+  }
+
+  return out;
+}
+
+function tryParseJsonRepairVariants(chunk: string): unknown | null {
+  const head = chunk.trimEnd();
+  if (head.length < 2) return null;
+  const tryCandidates = [
+    head,
+    repairMissingCommasInArrays(head),
+    tryCloseTruncatedBrackets(head),
+    (() => {
+      try {
+        return jsonrepair(head);
+      } catch {
+        return head;
+      }
+    })(),
+  ];
+  const uniq = [...new Set(tryCandidates.filter(Boolean))];
+  for (const c of uniq) {
+    try {
+      return JSON.parse(c);
+    } catch {
+      /* next */
+    }
+    try {
+      return JSON.parse(jsonrepair(c));
+    } catch {
+      /* next */
+    }
+  }
+  return null;
+}
+
+/**
+ * Bei „Unexpected … at position N“ oft angehängter zweiter JSON-Block oder Müll nach gültigem Root.
+ * Zusätzlich: schrittweises Kürzen vor N (Walkback), weil die Meldung oft auf das erste ungültige
+ * Zeichen zeigt, während der letzte gültige Abschluss wenige Zeichen davor liegt.
+ */
+function recoverJsonByTruncatingAtSyntaxError(parseTarget: string): unknown {
+  let errMsg = "";
+  try {
+    JSON.parse(parseTarget);
+    return null;
+  } catch (e) {
+    errMsg = e instanceof Error ? e.message : String(e);
+  }
+  const m = /\bposition\s+(\d+)\b/i.exec(errMsg);
+  if (!m) return null;
+  const pos = Number(m[1]);
+  if (!Number.isFinite(pos) || pos < 0) return null;
+
+  const head = parseTarget.slice(0, pos).trimEnd();
+  const fromHead = tryParseJsonRepairVariants(head);
+  if (fromHead != null) return fromHead;
+
+  const minEnd = Math.max(10, pos - 24000);
+  let end = pos - 1;
+  while (end >= minEnd) {
+    const slice = parseTarget.slice(0, end).trimEnd();
+    const recovered = tryParseJsonRepairVariants(slice);
+    if (recovered != null) return recovered;
+    const step = end > pos - 400 ? 1 : end > pos - 4000 ? 8 : 64;
+    end -= step;
+  }
+  return null;
+}
+
 /** Sanitize LLM output: strip code blocks, fix common LLM mistakes, try jsonrepair */
 function parseJsonWithRepair(raw: string): { parsed: unknown; error?: string } {
   let s = extractJson(raw);
+  const splitPass = extractFirstJsonWhenMultipleRootsConcatenated(s);
+  if (splitPass) s = splitPass;
+  s = repairMissingCommasInArrays(s);
 
   const tryParse = (str: string): unknown => {
     try {
@@ -231,12 +499,22 @@ function parseJsonWithRepair(raw: string): { parsed: unknown; error?: string } {
   let parsed = tryParse(s);
   if (parsed) return { parsed };
 
+  parsed = recoverJsonByTruncatingAtSyntaxError(s);
+  if (parsed != null) return { parsed };
+
   // 2) Try jsonrepair early (handles truncation, unclosed brackets)
   try {
     parsed = JSON.parse(jsonrepair(s));
     if (parsed) return { parsed };
   } catch {
     /* continue to other repairs */
+  }
+
+  try {
+    parsed = recoverJsonByTruncatingAtSyntaxError(jsonrepair(s));
+    if (parsed != null) return { parsed };
+  } catch {
+    /* jsonrepair threw */
   }
 
   // 3) Fix truncated "key": (no value) or "key" (no colon) – append value and close
@@ -285,6 +563,14 @@ function parseJsonWithRepair(raw: string): { parsed: unknown; error?: string } {
     parsed = JSON.parse(jsonrepair(s));
     return { parsed };
   } catch (err) {
+    parsed = recoverJsonByTruncatingAtSyntaxError(s);
+    if (parsed != null) return { parsed };
+    try {
+      parsed = recoverJsonByTruncatingAtSyntaxError(jsonrepair(s));
+      if (parsed != null) return { parsed };
+    } catch {
+      /* ignore */
+    }
     return { parsed: null, error: err instanceof Error ? err.message : "JSON repair failed" };
   }
 }

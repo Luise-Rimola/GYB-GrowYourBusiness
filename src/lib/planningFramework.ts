@@ -465,7 +465,7 @@ export type PlanningArea = {
   workflowKeys: string[];
 };
 
-/** 6 Planungsphasen (zeitlich) */
+/** 7 zeitliche Planungsphasen (wie Dokumenten-Bibliothek / Dashboard-Reihenfolge) */
 export const PLANNING_PHASES: PlanningPhase[] = [
   {
     id: "ideation",
@@ -556,6 +556,81 @@ export const PLANNING_PHASES: PlanningPhase[] = [
     planningFocus: ["Innovationsstrategie", "Portfolioanpassung", "Unternehmenswert steigern"],
   },
 ];
+
+/** Wide-Export Spaltenpräfixe für Dokumentenbewertung (wie /artifacts gruppiert) */
+export const DOCUMENT_EVAL_PLANNING_PHASE_SLUGS: string[] = PLANNING_PHASES.map(
+  (p, i) => `phase${i + 1}_${p.id}`,
+);
+export const DOCUMENT_EVAL_PHASE_UNCATEGORIZED = "phase0_uncategorized";
+
+/**
+ * Planungsphase für ein Artefakt (Workflow-Key) — erste passende Phase in PLANNING_PHASES gewinnt.
+ * Nicht für Fragebogen-Export (Study nutzt eigene Kategorien); konsistent zur Dokumentenbibliothek.
+ */
+export function planningPhaseSlugForDocumentEvaluation(workflowKey: string | null | undefined): string {
+  if (!workflowKey) return DOCUMENT_EVAL_PHASE_UNCATEGORIZED;
+  for (let i = 0; i < PLANNING_PHASES.length; i++) {
+    const p = PLANNING_PHASES[i];
+    if (p.workflowKeys.includes(workflowKey)) {
+      return `phase${i + 1}_${p.id}`;
+    }
+  }
+  return DOCUMENT_EVAL_PHASE_UNCATEGORIZED;
+}
+
+/**
+ * Reihenfolge wie die Dokumenten-Evaluation (`/artifacts?tab=evaluations`): Phasen laut
+ * `PLANNING_PHASES`, darin Workflows in Phasen-Reihenfolge, darin Artefakt-Typen wie `WORKFLOW_TO_ARTIFACTS`.
+ * Niedrigerer Rang = weiter oben in der Tabelle. Nicht im Raster gematchte Kombinationen ans Ende.
+ */
+export function evaluationTableSortRank(artifact: {
+  type: string;
+  run?: { workflowKey: string | null } | null;
+}): number {
+  const wf = artifact.run?.workflowKey ?? "";
+  const typ = artifact.type;
+  let rank = 0;
+  for (const phase of PLANNING_PHASES) {
+    for (const wfKey of phase.workflowKeys) {
+      for (const artifactType of WORKFLOW_TO_ARTIFACTS[wfKey] ?? []) {
+        if (wfKey === wf && artifactType === typ) return rank;
+        rank++;
+      }
+    }
+  }
+  let h = 0;
+  const s = `${wf}\0${typ}`;
+  for (let i = 0; i < s.length; i++) h = (h * 33 + s.charCodeAt(i)) >>> 0;
+  return 2_000_000 + (h % 500_000);
+}
+
+/** Englische Kurzbezeichnungen für CSV/Export (Name in PLANNING_PHASES ist deutsch). */
+export const PLANNING_PHASE_LABELS_EN: Record<string, string> = {
+  ideation: "Ideation / concept phase",
+  validation: "Validation phase",
+  launch: "Founding / launch phase",
+  scaling: "Growth phase",
+  tech_digital: "Technology & digitalization",
+  maturity: "Strategy phase",
+  renewal: "Strategic options / exit / transformation",
+};
+
+/** phase5_tech_digital → tech_digital; phase0_uncategorized → uncategorized */
+export function planningPhaseKeyFromExportSlug(slug: string): string {
+  if (!slug || slug === DOCUMENT_EVAL_PHASE_UNCATEGORIZED) return "uncategorized";
+  const m = /^phase\d+_(.+)$/.exec(slug);
+  return m?.[1] ?? "uncategorized";
+}
+
+export function planningPhaseDisplayNameForExport(phaseKey: string, locale: Locale): string {
+  if (phaseKey === "uncategorized") {
+    return locale === "en" ? "Uncategorized" : "Nicht zugeordnet";
+  }
+  const p = PLANNING_PHASES.find((x) => x.id === phaseKey);
+  if (!p) return phaseKey;
+  if (locale === "en") return PLANNING_PHASE_LABELS_EN[p.id] ?? p.name;
+  return p.name;
+}
 
 /** Reihenfolge wie auf der Pläne-Seite (Dashboard): PLANNING_PHASES nacheinander, dann Querschnittsbereiche */
 const PHASES_ORDER = PLANNING_PHASES.flatMap((p) => p.workflowKeys);

@@ -731,16 +731,8 @@ export function WorkflowAssistantFrame({
 
   const currentHref = current?.href ?? "/home";
   const isDashboardPhaseStep = isPhaseDashboardAssistantHref(currentHref);
-  const dashboardRefreshToken =
-    isDashboardPhaseStep && phaseRunStatus
-      ? `${phaseRunStatus.status}-${phaseRunStatus.completedSteps}-${phaseRunStatus.totalSteps}`
-      : "static";
-  const iframeSrc = (() => {
-    const base = toEmbedHref(currentHref);
-    if (!isDashboardPhaseStep) return base;
-    const joiner = base.includes("?") ? "&" : "?";
-    return `${base}${joiner}assistant_refresh=${encodeURIComponent(dashboardRefreshToken)}`;
-  })();
+  /** Stable URL — do not tie to phase polling (would remount iframe every ~2s and “jump”). */
+  const iframeSrc = toEmbedHref(currentHref);
   const stepInfo = stepInfoFromHref(resolvedIframeHref ?? currentHref);
 
   const topProgressPercent = (() => {
@@ -827,8 +819,8 @@ export function WorkflowAssistantFrame({
   const erledigtDisabled = pendingSubmit;
 
   return (
-    <div className="mx-auto flex h-[calc(100dvh-9.5rem)] w-full max-w-[1240px] flex-col gap-3 overflow-hidden rounded-2xl border border-slate-200/80 bg-slate-100/75 p-3 sm:h-[calc(100vh-10rem)] sm:gap-4 sm:p-4 dark:border-slate-700/60 dark:bg-slate-900/35">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+    <div className="mx-auto flex min-h-0 w-full max-w-[1240px] flex-1 flex-col gap-3 overflow-hidden rounded-2xl border border-slate-200/80 bg-slate-100/75 p-3 sm:gap-4 sm:p-4 dark:border-slate-700/60 dark:bg-slate-900/35">
+      <div className="flex shrink-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <div className="inline-flex items-center rounded-full border border-teal-300 bg-teal-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.08em] text-teal-700 dark:border-teal-700/70 dark:bg-teal-950/40 dark:text-teal-200">
             {assistantTitle}
@@ -910,7 +902,7 @@ export function WorkflowAssistantFrame({
 
       <div className="min-h-0 flex-1 overflow-hidden">
         <iframe
-          key={`${index}-${iframeSrc}-${dashboardRefreshToken}`}
+          key={`assistant-frame-${index}`}
           ref={iframeRef}
           title={current.label}
           src={iframeSrc}
@@ -919,7 +911,7 @@ export function WorkflowAssistantFrame({
         />
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 pb-[env(safe-area-inset-bottom)]">
         {showCompletedPhaseHint ? (
           <div className="w-full rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950/35 dark:text-amber-100">
             Dieser Schritt ist bereits abgeschlossen. Sie können die einzelnen Analyseschritte ansehen,

@@ -98,3 +98,18 @@ export async function getFeatureEvaluations(
     `
   );
 }
+
+/** Alle Berater-/Feature-Evaluationen (Chat + Entscheidungen), chronologisch aufsteigend — für SPSS/Export. */
+export async function getAllFeatureEvaluationsForCompany(companyId: string): Promise<FeatureEvaluationRecord[]> {
+  await ensureFeatureEvaluationTable();
+  return prisma.$queryRaw<FeatureEvaluationRecord[]>(
+    Prisma.sql`
+      SELECT
+        "id", "companyId", "kind", "answerQuality", "sourceQuality", "realism", "clarity", "structure",
+        "hallucinationPresent", "hallucinationNotes", "strengths", "weaknesses", "improvementSuggestions", "createdAt"
+      FROM "FeatureEvaluation"
+      WHERE "companyId" = ${companyId}
+      ORDER BY "createdAt" ASC
+    `
+  );
+}

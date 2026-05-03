@@ -21,9 +21,18 @@
   --rp-muted: #64748b;
   --rp-border: #cbd5e1;
   color: var(--rp-fg);
-  font-family: Georgia, "Times New Roman", Times, serif;
-  font-size: 11pt;
-  line-height: 1.5;
+  /* Konsistent mit App-UI (keine Serif für Berichtskörper — siehe dynamische Export-HTML unten). */
+  font-family:
+    var(--font-geist-sans, ui-sans-serif),
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    "Helvetica Neue",
+    Arial,
+    sans-serif;
+  font-size: 0.9375rem;
+  line-height: 1.55;
   background: #fff;
   border: 1px solid var(--rp-border);
   border-radius: 0.5rem;
@@ -31,7 +40,7 @@
 }
 
 .report-paper-shell .report-paper-body {
-  font-family: Georgia, "Times New Roman", Times, serif;
+  font-family: inherit;
 }
 
 .report-paper-shell h1,
@@ -60,19 +69,89 @@
 
 .report-paper-shell .report-paper-body p,
 .report-paper-shell .report-paper-body li {
-  color: #1e293b;
+  color: #334155;
 }
 
 .report-paper-shell .report-paper-body p {
-  text-align: justify;
-  text-justify: inter-word;
-  hyphens: auto;
+  text-align: start;
+  hyphens: manual;
+}
+
+/*
+ * Servergeneriertes HTML (WorkflowService): Tailwind-Klassen in Template-Strings
+ * landen oft nicht im CSS-Bundle — daher feste Regeln für Lesbarkeit & Hierarchie.
+ */
+.report-paper-shell .rp-dynamic-html-export h1,
+.report-paper-shell .rp-dynamic-html-export h2,
+.report-paper-shell .rp-dynamic-html-export h3 {
+  font-family: inherit;
+  font-weight: 600;
+  color: #0f172a;
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+  line-height: 1.3;
+  text-decoration: none;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.report-paper-shell .rp-dynamic-html-export h1:first-child,
+.report-paper-shell .rp-dynamic-html-export h2:first-child,
+.report-paper-shell .rp-dynamic-html-export h3:first-child {
+  margin-top: 0;
+}
+
+.report-paper-shell .rp-dynamic-html-export h3 {
+  font-size: 1.05rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.report-paper-shell .rp-dynamic-html-export h4 {
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #0f766e;
+  margin-top: 1rem;
+  margin-bottom: 0.35rem;
+  text-decoration: none;
+  text-transform: none;
+  letter-spacing: 0.01em;
+}
+
+.report-paper-shell .rp-dynamic-html-export section {
+  margin-bottom: 1.75rem;
+}
+
+.report-paper-shell .rp-dynamic-html-export ul,
+.report-paper-shell .rp-dynamic-html-export ol {
+  margin: 0.25rem 0 0.75rem;
+  padding-left: 1.35rem;
+}
+
+.report-paper-shell .rp-dynamic-html-export li {
+  margin-bottom: 0.35rem;
+}
+
+.report-paper-shell .rp-dynamic-html-export li::marker {
+  color: #94a3b8;
+}
+
+.report-paper-shell .rp-dynamic-html-export strong {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.report-paper-shell .rp-dynamic-html-export u {
+  text-decoration: none;
+  font-weight: 600;
+  color: #0f172a;
 }
 
 .report-paper-shell table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 10pt;
+  font-size: 0.875rem;
   margin: 0.75em 0 1em;
   break-inside: avoid;
 }

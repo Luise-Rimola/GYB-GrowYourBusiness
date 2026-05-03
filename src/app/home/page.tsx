@@ -9,7 +9,6 @@ import { getTranslations } from "@/lib/i18n";
 import { getOrCreateStudyParticipant } from "@/lib/study";
 import { loadAssistantSteps } from "@/lib/assistantSteps";
 import { AssistantStepsList } from "@/components/AssistantStepsList";
-import { getStudyCategoryLabels, type StudyCategoryKey } from "@/lib/studyCategoryContext";
 import { HomeExportPackageButton } from "@/components/HomeExportPackageButton";
 
 async function safeDb<T>(query: () => Promise<T>, fallback: T): Promise<T> {
@@ -28,7 +27,6 @@ async function HomePageContent({
   const params = await searchParams;
   const locale = await getServerLocale();
   const t = getTranslations(locale);
-  const categoryLabels = getStudyCategoryLabels(locale);
   const company = await getOrCreateDemoCompany();
   const latestProfile = await safeDb(
     () =>
@@ -137,32 +135,6 @@ async function HomePageContent({
           <HomeExportPackageButton locale={locale} autoOpen={params.openExport === "1"} showButton={false} />
         </div>
       </header>
-
-      {params.saved === "fb1" && (
-        <div className="rounded-xl border border-emerald-300 bg-emerald-50 p-4 text-sm text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-200">
-          {t.study.fb1Saved}
-        </div>
-      )}
-      {params.saved === "fb2" && (
-        <div className="rounded-xl border border-emerald-300 bg-emerald-50 p-4 text-sm text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-200">
-          {t.study.fb2Saved}
-          {params.category && (
-            <span className="ml-1 text-[var(--muted)]">
-              ({categoryLabels[params.category as StudyCategoryKey] ?? params.category})
-            </span>
-          )}
-        </div>
-      )}
-      {params.saved === "fb3" && (
-        <div className="rounded-xl border border-emerald-300 bg-emerald-50 p-4 text-sm text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-200">
-          {t.study.fb3Saved}
-          {params.category && (
-            <span className="ml-1 text-[var(--muted)]">
-              ({categoryLabels[params.category as StudyCategoryKey] ?? params.category})
-            </span>
-          )}
-        </div>
-      )}
 
       <div className="hidden overflow-x-auto pb-1">
         <div className="grid min-w-[980px] grid-cols-4 gap-5">

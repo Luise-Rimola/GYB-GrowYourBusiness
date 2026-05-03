@@ -34,6 +34,9 @@ type Props = {
   evaluations: FeatureEvaluationRecord[];
   emptyHistory: string;
   fv: Fv;
+  /** Optional: Excel nur mit offenen Textfeldern (Berater-Evaluation). */
+  openTextExcelHref?: string;
+  openTextExcelLabel?: string;
 };
 
 function scoreLineFromTemplate(tpl: string, ev: FeatureEvaluationRecord) {
@@ -55,6 +58,8 @@ export function FeatureEvaluationEvaluateContent({
   evaluations,
   emptyHistory,
   fv,
+  openTextExcelHref,
+  openTextExcelLabel,
 }: Props) {
   return (
     <div className="space-y-8">
@@ -205,6 +210,17 @@ export function FeatureEvaluationEvaluateContent({
             })}
           </div>
         )}
+        {openTextExcelHref && openTextExcelLabel ? (
+          <div className="mt-4">
+            <a
+              href={openTextExcelHref}
+              download
+              className="inline-flex items-center justify-center rounded-xl border border-[var(--card-border)] px-4 py-2 text-sm font-medium transition hover:bg-[var(--background)]"
+            >
+              {openTextExcelLabel}
+            </a>
+          </div>
+        ) : null}
       </Section>
     </div>
   );

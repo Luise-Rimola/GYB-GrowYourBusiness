@@ -100,9 +100,5 @@ export default async function WorkflowOnlyAssistantPage({
     };
   });
 
-  return (
-    <div className="-my-10 max-md:-mx-6 max-md:w-[calc(100%+3rem)] max-md:max-w-[100vw] overflow-hidden py-2 md:mx-0 md:w-full md:py-4">
-      <WorkflowAssistantFrame steps={steps} assistantTitle="KI-Analyse Assistent" />
-    </div>
-  );
+  return <WorkflowAssistantFrame steps={steps} assistantTitle="KI-Analyse Assistent" />;
 }

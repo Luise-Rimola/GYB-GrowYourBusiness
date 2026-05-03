@@ -128,6 +128,38 @@ export function Fragebogen3Form({
             ))}
           </div>
         </section>
+        <section className="rounded-xl border border-[var(--card-border)] p-6">
+          <h3 className="mb-4 text-sm font-semibold text-[var(--foreground)]">{t.fb3OpenSection}</h3>
+          <div className="space-y-4">
+            <div>
+              <label className="mb-1 block text-xs text-[var(--muted)]">{t.fb3OpenWithTool1}</label>
+              <textarea
+                name="O1"
+                rows={2}
+                defaultValue={initialValues?.O1 != null ? String(initialValues.O1) : ""}
+                className="w-full rounded-lg border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs text-[var(--muted)]">{t.fb3OpenWithTool2}</label>
+              <textarea
+                name="O2"
+                rows={2}
+                defaultValue={initialValues?.O2 != null ? String(initialValues.O2) : ""}
+                className="w-full rounded-lg border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs text-[var(--muted)]">{t.fb3OpenWithTool3}</label>
+              <textarea
+                name="O3"
+                rows={2}
+                defaultValue={initialValues?.O3 != null ? String(initialValues.O3) : ""}
+                className="w-full rounded-lg border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm"
+              />
+            </div>
+          </div>
+        </section>
         <p className="text-sm text-[var(--muted)]">{t.fb3Fb4Hint}</p>
       </div>
       {!shouldHideSubmitButton && (

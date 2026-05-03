@@ -1,9 +1,41 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCompanyForApi } from "@/lib/companyContext";
-
-/** Reverse-Coding: C5, CF3, CL1, CL3, US3, GOV1 (Skala 1–7 → 8 - value, DSR-Dokument) */
-const REVERSE_ITEMS = new Set(["C5", "CF3", "CL1", "CL3", "US3", "GOV1"]);
+import type { Locale } from "@/lib/i18n";
+import { getServerLocale } from "@/lib/locale";
+import {
+  CF_ITEMS,
+  CL_ITEMS,
+  COMP_ITEMS,
+  DQ_ITEMS,
+  EV_ITEMS,
+  FIT_ITEMS,
+  GOV_ITEMS,
+  TAM_UTAUT_ITEMS,
+  TR_ITEMS,
+  US_ITEMS,
+} from "@/lib/fragebogenScales";
+import {
+  DOCUMENT_EVAL_PLANNING_PHASE_SLUGS,
+  DOCUMENT_EVAL_PHASE_UNCATEGORIZED,
+  evaluationTableSortRank,
+} from "@/lib/planningFramework";
+import {
+  getArtifactEvaluationsByCompany,
+  pickNewestArtifactPerWorkflowAndType,
+  workflowTypeKeyForArtifact,
+} from "@/lib/artifactEvaluations";
+import { applyStudyReverse } from "@/lib/studyReverseCoding";
+import {
+  buildFb2Fb3PhaseLikertWideTable,
+  buildFb4PhaseDirectCompareWideTable,
+  buildFb5ClosingLikertWideTable,
+  buildStudyTables,
+} from "@/lib/studyTablesForExport";
+import {
+  encodeNumericAnswerForStudySpss,
+  isStudyQuestionItemIncludedInSpss,
+} from "@/lib/spssQuestionnaireCoding";
 
 type ResponseItemValue = { valueNum: number | null; valueStr: string | null };
 
@@ -38,20 +70,514 @@ type RawStudyExportRow = {
 function escapeCsv(val: string | number | null | undefined): string {
   if (val === null || val === undefined) return "";
   const s = String(val);
-  if (s.includes(",") || s.includes('"') || s.includes("\n")) {
+  if (s.includes(",") || s.includes(";") || s.includes('"') || s.includes("\n")) {
     return `"${s.replace(/"/g, '""')}"`;
   }
   return s;
 }
 
 function applyReverse(key: string, value: number): number {
-  if (REVERSE_ITEMS.has(key) && value >= 1 && value <= 7) {
-    return 8 - value;
-  }
-  return value;
+  return applyStudyReverse(key, value);
 }
 
-export async function GET() {
+type LoadedParticipant = {
+  id: string;
+  externalId: string | null;
+  createdAt: Date;
+  responses: Array<{
+    id: string;
+    questionnaireType: string;
+    category: string | null;
+    createdAt: Date;
+    itemMap: Map<string, ResponseItemValue>;
+  }>;
+};
+
+type LoadedResponse = LoadedParticipant["responses"][0];
+
+function sortResponsesForStudyExport(responses: LoadedResponse[]): LoadedResponse[] {
+  return [...responses].sort((a, b) => {
+    const ka = responseFormKey(a.questionnaireType, a.category);
+    const kb = responseFormKey(b.questionnaireType, b.category);
+    const byForm = compareFormKeys(ka, kb);
+    if (byForm !== 0) return byForm;
+    return a.createdAt.getTime() - b.createdAt.getTime();
+  });
+}
+
+type SpssNumericColumn = { formKey: string; itemKey: string; header: string };
+
+type CorePhaseDef = { slug: string; category: string };
+
+/** Wide-Export-Phasen 1–7, passend zu VALID_STUDY_CATEGORIES / Studien-FB2–FB4-Bereichen */
+const CORE_PHASES: CorePhaseDef[] = [
+  { slug: "phase1_market_business_model", category: "markt_geschaeftsmodell" },
+  { slug: "phase2_product_strategy", category: "produktstrategie" },
+  { slug: "phase3_marketing_investment", category: "launch_marketing_investition" },
+  { slug: "phase4_launch_operations", category: "reifephase" },
+  { slug: "phase5_growth_scaling", category: "wachstum_expansion" },
+  { slug: "phase6_technology_digitalization", category: "technologie_digitalisierung" },
+  { slug: "phase7_renewal_exit", category: "erneuerung_exit" },
+];
+
+const CORE_CONDITIONS = [
+  { key: "ohne_tool", questionnaireType: "fb2" },
+  { key: "mit_tool", questionnaireType: "fb3" },
+] as const;
+
+const CORE_VARIABLES = [...DQ_ITEMS, ...EV_ITEMS, ...TR_ITEMS, ...CF_ITEMS, ...CL_ITEMS].map((i) => i.key);
+const COMPARISON_VARIABLES = [...US_ITEMS, ...TAM_UTAUT_ITEMS, ...COMP_ITEMS, ...FIT_ITEMS, ...GOV_ITEMS].map(
+  (i) => i.key,
+);
+
+function spssNumericVarName(formKey: string, itemKey: string): string {
+  return `${formKey}_${normalizeItemKey(itemKey)}`;
+}
+
+/** Eine Zeile pro Fragebogen-Durchgang; Spalten nur Likert/Skalenwerte fuer SPSS (keine Freitexte). Freitext-Items ohne Zahl sind keine Spalten. */
+function buildWideNumericSpssLines(participants: LoadedParticipant[], questionnaireTypeLower: string): string[] {
+  const responses = sortResponsesForStudyExport(
+    participants.flatMap((p) => p.responses).filter((r) => r.questionnaireType.trim().toLowerCase() === questionnaireTypeLower),
+  );
+  if (responses.length === 0) return [];
+
+  const colsByHdr = new Map<string, SpssNumericColumn>();
+  for (const r of responses) {
+    const fk = responseFormKey(r.questionnaireType, r.category);
+    for (const [itemKey, item] of r.itemMap) {
+      if (!isStudyQuestionItemIncludedInSpss(r.questionnaireType, itemKey)) continue;
+      const enc = encodeNumericAnswerForStudySpss(itemKey, item.valueNum, item.valueStr, applyReverse);
+      if (!enc) continue;
+      const header = spssNumericVarName(fk, itemKey);
+      if (!colsByHdr.has(header)) colsByHdr.set(header, { formKey: fk, itemKey, header });
+    }
+  }
+
+  const cols = Array.from(colsByHdr.values()).sort(
+    (a, b) => compareFormKeys(a.formKey, b.formKey) || a.itemKey.localeCompare(b.itemKey),
+  );
+
+  if (cols.length === 0) return [];
+
+  const baseHdr = ["response_id", "questionnaire_type", "category", "response_created_at"];
+  const lines: string[] = [];
+  lines.push([...baseHdr, ...cols.map((c) => c.header)].map(escapeCsv).join(";"));
+
+  for (const r of responses) {
+    const rfk = responseFormKey(r.questionnaireType, r.category);
+    const rowCells = cols.map((c) => {
+      if (c.formKey !== rfk) return "";
+      const item = r.itemMap.get(c.itemKey);
+      if (!item) return "";
+      return encodeNumericAnswerForStudySpss(c.itemKey, item.valueNum, item.valueStr, applyReverse);
+    });
+    lines.push(
+      [
+        r.id,
+        r.questionnaireType,
+        r.category ?? "",
+        r.createdAt.toISOString(),
+        ...rowCells,
+      ]
+        .map(escapeCsv)
+        .join(";"),
+    );
+  }
+
+  return lines;
+}
+
+function tableRowsToSemicolonCsv(table: { headers: string[]; rows: string[][] }): string {
+  const lines: string[] = [];
+  lines.push(table.headers.map(escapeCsv).join(";"));
+  for (const row of table.rows) lines.push(row.map((c) => escapeCsv(String(c))).join(";"));
+  return lines.join("\n");
+}
+
+function tableRowsToCommaCsv(table: { headers: string[]; rows: string[][] }): string {
+  const lines: string[] = [];
+  lines.push(table.headers.map(escapeCsv).join(","));
+  for (const row of table.rows) lines.push(row.map((c) => escapeCsv(String(c))).join(","));
+  return lines.join("\n");
+}
+
+/** RFC4180-safe: jedes Feld in Anführungszeichen — verhindert zerschossene Zeilen wenn Freitext Kommas enthält (Excel/import). */
+function quoteCsvFieldAlways(val: string | number): string {
+  const s = String(val);
+  return `"${s.replace(/"/g, '""')}"`;
+}
+
+function tableRowsToCommaCsvQuotedAll(table: { headers: string[]; rows: string[][] }): string {
+  const lines: string[] = [];
+  lines.push(table.headers.map((h) => quoteCsvFieldAlways(h)).join(","));
+  for (const row of table.rows) {
+    lines.push(row.map((c) => quoteCsvFieldAlways(String(c))).join(","));
+  }
+  return lines.join("\r\n");
+}
+
+/** Bewertungen nur als ganze Zahl 1–5; akzeptiert auch gespeichertes „4/5“ o.Ä. → „4“. */
+function documentEvalLikertIntString(raw: unknown): string {
+  if (typeof raw === "number" && Number.isFinite(raw)) {
+    return String(Math.min(5, Math.max(1, Math.round(raw))));
+  }
+  const s = String(raw ?? "").trim();
+  const slash = /^(\d+)\s*\/\s*(\d+)\s*$/.exec(s);
+  if (slash) return String(Math.min(5, Math.max(1, parseInt(slash[1], 10))));
+  const n = Number(s);
+  return Number.isFinite(n) ? String(Math.min(5, Math.max(1, Math.round(n)))) : "";
+}
+
+/** Optionale EW-/Indikatoren 1–5 oder leer. */
+function documentEvalLikertOptionalString(raw: unknown): string {
+  if (raw == null) return "";
+  if (typeof raw === "number" && !Number.isFinite(raw)) return "";
+  const s = String(raw).trim();
+  if (!s) return "";
+  return documentEvalLikertIntString(s);
+}
+
+function normalizeExportKey(key: string): string {
+  return key.replace(/[^a-zA-Z0-9_]+/g, "_").replace(/_+/g, "_").replace(/^_|_$/g, "").toLowerCase();
+}
+
+function toResponseMap(responses: LoadedParticipant["responses"]): Map<string, LoadedParticipant["responses"][0]> {
+  const idx = new Map<string, LoadedParticipant["responses"][0]>();
+  for (const r of responses) {
+    const mapKey = `${r.questionnaireType}|${r.category ?? ""}`;
+    const prev = idx.get(mapKey);
+    if (!prev || r.createdAt > prev.createdAt) idx.set(mapKey, r);
+  }
+  return idx;
+}
+
+function encodeNumeric(itemKey: string, item: ResponseItemValue | undefined): string {
+  if (!item) return "";
+  return encodeNumericAnswerForStudySpss(itemKey, item.valueNum, item.valueStr, applyReverse);
+}
+
+function buildSurveyCoreWideTable(participants: LoadedParticipant[]): { headers: string[]; rows: string[][] } {
+  const headers = [
+    "participant_id",
+    ...CORE_PHASES.flatMap((phase) =>
+      CORE_CONDITIONS.flatMap((cond) =>
+        CORE_VARIABLES.map((itemKey) => `${phase.slug}_${cond.key}_${itemKey}`),
+      ),
+    ),
+  ];
+  const rows = participants.map((p) => {
+    const byForm = toResponseMap(p.responses);
+    const values = CORE_PHASES.flatMap((phase) =>
+      CORE_CONDITIONS.flatMap((cond) => {
+        const r = byForm.get(`${cond.questionnaireType}|${phase.category}`);
+        return CORE_VARIABLES.map((itemKey) => encodeNumeric(itemKey, r?.itemMap.get(itemKey)));
+      }),
+    );
+    return [p.id, ...values];
+  });
+  return { headers, rows };
+}
+
+function buildComparisonWideTable(participants: LoadedParticipant[]): { headers: string[]; rows: string[][] } {
+  const headers = [
+    "participant_id",
+    ...CORE_PHASES.flatMap((phase) =>
+      COMPARISON_VARIABLES.map((itemKey) => `${phase.slug}_${itemKey}`),
+    ),
+  ];
+  const rows = participants.map((p) => {
+    const byForm = toResponseMap(p.responses);
+    const values = CORE_PHASES.flatMap((phase) => {
+      const r = byForm.get(`fb4|${phase.category}`);
+      return COMPARISON_VARIABLES.map((itemKey) => encodeNumeric(itemKey, r?.itemMap.get(itemKey)));
+    });
+    return [p.id, ...values];
+  });
+  return { headers, rows };
+}
+
+/**
+ * Eine Zeile pro Dokument wie in `/artifacts?tab=evaluations`: neuestes Artefakt je Workflow+Typ,
+ * Bewertung = neueste Evaluation innerhalb aller Artefakt-IDs derselben Gruppe.
+ */
+async function buildDocumentEvaluationRowsTable(
+  companyId: string,
+  _locale: Locale,
+  _participants: LoadedParticipant[],
+): Promise<{ headers: string[]; rows: string[][] }> {
+  /** Dokumentname + ausschließlich Likert 1–5 (optional leer); Halluzination: ja=1, nein=5. */
+  const headers = [
+    "DOKUMENTENNAME",
+    "ANSWERQUALITY",
+    "SOURCEQUALITY",
+    "REALISM",
+    "CLARITY",
+    "STRUCTURE",
+    "HALLUCINATION",
+    "EW_SENSIBLE",
+    "EW_CLEAR",
+    "EW_HELPFUL",
+    "IND_RELEVANT",
+  ];
+
+  const evals = await getArtifactEvaluationsByCompany(companyId);
+  if (evals.length === 0) return { headers, rows: [] };
+
+  const latestByArtifact = new Map<string, (typeof evals)[0]>();
+  for (const ev of [...evals].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())) {
+    latestByArtifact.set(ev.artifactId, ev);
+  }
+
+  const allArtifacts = await prisma.artifact.findMany({
+    where: { companyId },
+    orderBy: { createdAt: "desc" },
+    select: { id: true, type: true, title: true, run: { select: { workflowKey: true } } },
+  });
+  const idsByWorkflowType = new Map<string, string[]>();
+  for (const a of allArtifacts) {
+    const k = workflowTypeKeyForArtifact(a);
+    if (!idsByWorkflowType.has(k)) idsByWorkflowType.set(k, []);
+    idsByWorkflowType.get(k)!.push(a.id);
+  }
+  const canonicalArtifacts = pickNewestArtifactPerWorkflowAndType(allArtifacts);
+
+  const pickNewestEvalForGroup = (workflowTypeKey: string): (typeof evals)[0] | undefined => {
+    const ids = idsByWorkflowType.get(workflowTypeKey) ?? [];
+    let best: (typeof evals)[0] | undefined;
+    let bestT = -Infinity;
+    for (const id of ids) {
+      const ev = latestByArtifact.get(id);
+      if (!ev) continue;
+      const t = new Date(ev.createdAt).getTime();
+      if (t > bestT) {
+        bestT = t;
+        best = ev;
+      }
+    }
+    return best;
+  };
+
+  const rowObjs: Array<{ sortRank: number; titleSort: string; row: string[] }> = [];
+  for (const art of canonicalArtifacts) {
+    const ev = pickNewestEvalForGroup(workflowTypeKeyForArtifact(art));
+    if (!ev) continue;
+    const aq = documentEvalLikertIntString(ev.answerQuality);
+    const sq = documentEvalLikertIntString(ev.sourceQuality);
+    const rl = documentEvalLikertIntString(ev.realism);
+    const cl = documentEvalLikertIntString(ev.clarity);
+    const st = documentEvalLikertIntString(ev.structure);
+    const title = String(art.title ?? "").trim() || art.type;
+    /** Wie übrige Likert-Items 1–5; „keine Halluzination“ = hoher positiver Wert. */
+    const hallucinationLikert = ev.hallucinationPresent ? "1" : "5";
+
+    rowObjs.push({
+      sortRank: evaluationTableSortRank(art),
+      titleSort: title.toLowerCase(),
+      row: [
+        title,
+        aq,
+        sq,
+        rl,
+        cl,
+        st,
+        hallucinationLikert,
+        documentEvalLikertOptionalString(ev.ew_sensible),
+        documentEvalLikertOptionalString(ev.ew_clear),
+        documentEvalLikertOptionalString(ev.ew_helpful),
+        documentEvalLikertOptionalString(ev.ind_relevant),
+      ],
+    });
+  }
+
+  rowObjs.sort((a, b) => a.sortRank - b.sortRank || a.titleSort.localeCompare(b.titleSort));
+  return { headers, rows: rowObjs.map((o) => o.row) };
+}
+
+function buildQualitativeAnswersTable(participants: LoadedParticipant[]): { headers: string[]; rows: string[][] } {
+  const categoryToPhase = new Map(CORE_PHASES.map((p) => [p.category, p.slug]));
+  const rows: string[][] = [];
+  for (const p of participants) {
+    for (const r of p.responses) {
+      for (const [itemKey, item] of r.itemMap.entries()) {
+        const answer = (item.valueStr ?? "").trim();
+        if (!answer) continue;
+        rows.push([
+          p.id,
+          categoryToPhase.get(r.category ?? "") ?? "global",
+          r.questionnaireType,
+          itemKey,
+          answer,
+          r.createdAt.toISOString(),
+        ]);
+      }
+    }
+  }
+  rows.sort((a, b) => (a[0] + a[1] + a[2] + a[3] + a[5]).localeCompare(b[0] + b[1] + b[2] + b[3] + b[5]));
+  return {
+    headers: ["participant_id", "phase", "questionnaire", "question_key", "answer_text", "timestamp"],
+    rows,
+  };
+}
+
+function buildExportSchema(headersByFile: Record<string, string[]>): Record<string, unknown> {
+  return {
+    version: 1,
+    encoding: "utf-8",
+    delimiter: ",",
+    column_naming: "<phase>_<condition>_<variable>",
+    phases: CORE_PHASES.map((p) => p.slug),
+    document_evaluation_planning_phases: [...DOCUMENT_EVAL_PLANNING_PHASE_SLUGS, DOCUMENT_EVAL_PHASE_UNCATEGORIZED],
+    document_evaluation_format:
+      "one_row_per_visible_document (newest artifact per workflow+type, same grouping as /artifacts evaluations tab); DOKUMENTENNAME + Likert 1–5; HALLUCINATION ja=1 nein=5; EW_/IND_ optional",
+    conditions: CORE_CONDITIONS.map((c) => c.key),
+    core_variables: CORE_VARIABLES,
+    comparison_variables: COMPARISON_VARIABLES,
+    files: Object.fromEntries(
+      Object.entries(headersByFile).map(([name, headers]) => [
+        name,
+        {
+          row_unit:
+            name === "qualitative_answers.csv"
+              ? "answer"
+              : name === "document_evaluation.csv"
+                ? "evaluated_document"
+                : "participant",
+          headers,
+        },
+      ]),
+    ),
+  };
+}
+
+const QUESTIONNAIRE_GROUPS_SPSS = ["fb1", "fb2", "fb3", "fb4", "fb5"] as const;
+/** Nur FB1 Roh-Durchläufe als breite Zahlenliste; FB4/FB5 wie UI (Phasenmatrix / Abschluss-Likert). */
+const QUESTIONNAIRE_WIDE_NUMERIC_BLOCKS = ["fb1"] as const;
+
+/** Pro Abschnitt: FB1 Roh numerisch → FB2+3 Phasenmatrix → FB4 Direktvergleich → FB5 Likert-Zeilen → Excel-parallele Aggregate. */
+async function buildFullStudySpssPackageLines(
+  companyId: string,
+  locale: Locale,
+  participants: LoadedParticipant[],
+  excelLikeTables: Awaited<ReturnType<typeof buildStudyTables>>,
+): Promise<string[]> {
+  const [, analysisTable, directTable, participantTable] = excelLikeTables;
+  const lines: string[] = [];
+
+  const allResponses = participants.flatMap((p) => p.responses);
+  const knownQt = new Set<string>(QUESTIONNAIRE_GROUPS_SPSS);
+
+  lines.push("# ==========================================================");
+  lines.push("# FB1: Roh-Durchläufe (nur Zahlen) | FB2+3/4: Phasenlayout wie UI | FB5: jede Erhebung X1–X5");
+  lines.push("# ==========================================================");
+  lines.push("");
+  for (const qt of QUESTIONNAIRE_WIDE_NUMERIC_BLOCKS) {
+    const block = buildWideNumericSpssLines(participants, qt);
+    if (block.length === 0) continue;
+    lines.push(`# --- ${qt.toUpperCase()} (nur Zahlantworten) ---`);
+    lines.push(...block);
+    lines.push("");
+  }
+
+  const phaseMx = await buildFb2Fb3PhaseLikertWideTable(companyId, locale);
+  lines.push("# --- FB2 + FB3 Phasenmatrix (Phase ; DQ1 ; DQ2 ; … wie App) ---");
+  lines.push(tableRowsToSemicolonCsv(phaseMx));
+  lines.push("");
+
+  const fb4Table = await buildFb4PhaseDirectCompareWideTable(companyId);
+  lines.push(`# --- ${fb4Table.title} (Phase ; Direktvergleich-Items wie App) ---`);
+  lines.push(tableRowsToSemicolonCsv(fb4Table));
+  lines.push("");
+
+  const fb5Table = await buildFb5ClosingLikertWideTable(companyId);
+  lines.push(`# --- ${fb5Table.title} ---`);
+  lines.push(tableRowsToSemicolonCsv(fb5Table));
+  lines.push("");
+
+  const unknownTypes = new Set(
+    allResponses.map((r) => r.questionnaireType.trim().toLowerCase()).filter((t) => !knownQt.has(t)),
+  );
+  for (const qt of [...unknownTypes].sort()) {
+    const block = buildWideNumericSpssLines(participants, qt);
+    if (block.length === 0) continue;
+    lines.push(`# --- ${qt.toUpperCase()} (nur Zahlantworten) ---`);
+    lines.push(...block);
+    lines.push("");
+  }
+
+  lines.push("# ==========================================================");
+  lines.push("# Auswertung + Direktvergleich + Teilnehmer (wie Excel-Export / App-Aggregate)");
+  lines.push("# ==========================================================");
+  lines.push("");
+  lines.push(`# --- ${analysisTable.title} ---`);
+  lines.push(tableRowsToSemicolonCsv(analysisTable));
+  lines.push("");
+  lines.push(`# --- ${directTable.title} ---`);
+  lines.push(tableRowsToSemicolonCsv(directTable));
+  lines.push("");
+  lines.push(`# --- ${participantTable.title} ---`);
+  lines.push(tableRowsToSemicolonCsv(participantTable));
+  lines.push("");
+  return lines;
+}
+
+/** Legacy: eine Zeile pro Teilnehmer, nur jeweils letzte Antwort pro Formular+Kategorie. */
+function buildWideLayoutRows(participants: LoadedParticipant[]): string[][] {
+  const rows: string[][] = [];
+  const latestByParticipantAndForm = new Map<
+    string,
+    Map<string, { createdAt: Date; itemMap: Map<string, ResponseItemValue> }>
+  >();
+  const formToItems = new Map<string, Set<string>>();
+
+  for (const p of participants) {
+    const formMap = new Map<string, { createdAt: Date; itemMap: Map<string, ResponseItemValue> }>();
+    for (const r of p.responses) {
+      const formKey = responseFormKey(r.questionnaireType, r.category);
+      const prev = formMap.get(formKey);
+      if (!prev || r.createdAt > prev.createdAt) {
+        formMap.set(formKey, { createdAt: r.createdAt, itemMap: r.itemMap });
+      }
+      if (!formToItems.has(formKey)) formToItems.set(formKey, new Set<string>());
+      for (const itemKey of r.itemMap.keys()) formToItems.get(formKey)!.add(itemKey);
+    }
+    latestByParticipantAndForm.set(p.id, formMap);
+  }
+
+  const formKeys = Array.from(formToItems.keys()).sort(compareFormKeys);
+  const variableColumns: Array<{ col: string; formKey: string; itemKey?: string; meta?: "created_at" }> = [];
+  for (const formKey of formKeys) {
+    variableColumns.push({ col: `${formKey}_created_at`, formKey, meta: "created_at" });
+    const itemKeys = Array.from(formToItems.get(formKey) ?? []).sort();
+    for (const itemKey of itemKeys) {
+      variableColumns.push({ col: `${formKey}_${normalizeItemKey(itemKey)}`, formKey, itemKey });
+    }
+  }
+
+  const header = [
+    "participant_id",
+    "external_id",
+    "participant_created_at",
+    ...variableColumns.map((c) => c.col),
+  ];
+  rows.push(header);
+
+  for (const p of participants) {
+    const formMap = latestByParticipantAndForm.get(p.id) ?? new Map();
+    const valueCols = variableColumns.map((c) => {
+      const form = formMap.get(c.formKey);
+      if (!form) return "";
+      if (c.meta === "created_at") return form.createdAt.toISOString();
+      const item = form.itemMap.get(c.itemKey!);
+      if (!item) return "";
+      return encodeNumericAnswerForStudySpss(c.itemKey!, item.valueNum, item.valueStr, applyReverse);
+    });
+
+    rows.push([p.id, p.externalId ?? "", p.createdAt.toISOString(), ...valueCols]);
+  }
+  return rows;
+}
+
+export async function GET(req: NextRequest) {
   const auth = await getCompanyForApi();
   if (!auth) {
     return new NextResponse("Unauthorized", { status: 401 });
@@ -210,77 +736,122 @@ export async function GET() {
     }
   }
 
-  const rows: string[][] = [];
+  const locale: Locale =
+    req.nextUrl.searchParams.get("lang") === "en"
+      ? "en"
+      : req.nextUrl.searchParams.get("lang") === "de"
+        ? "de"
+        : await getServerLocale();
 
-  // SPSS-friendly "wide" format:
-  // - one row per participant
-  // - deterministic variable names (e.g. fb2_mgb_dq1)
-  // - latest response wins for each questionnaire+category
-  const latestByParticipantAndForm = new Map<
-    string,
-    Map<string, { createdAt: Date; itemMap: Map<string, { valueNum: number | null; valueStr: string | null }> }>
-  >();
-  const formToItems = new Map<string, Set<string>>();
+  const layout = req.nextUrl.searchParams.get("layout");
+  const useWide = layout === "wide";
+  const partParam = req.nextUrl.searchParams.get("part")?.trim().toLowerCase();
+  const requestedPart = partParam ?? "full";
+  const wantsSurveyCoreWide = requestedPart === "survey_core_wide" || requestedPart === "f23" || requestedPart === "fb2" || requestedPart === "fb3";
+  const wantsComparisonWide = requestedPart === "comparison_wide" || requestedPart === "fb4";
+  const wantsDocumentEval =
+    requestedPart === "document_evaluation_wide" || requestedPart === "document_evaluation";
+  const wantsQualitative = requestedPart === "qualitative_answers";
+  const wantsExportSchema = requestedPart === "export_schema";
+  const wantsFb1Wide = partParam === "fb1";
+  const wantsFb5Closing = partParam === "fb5";
+  const wantsFullPackage =
+    !partParam || partParam === "full" || partParam === "all" || partParam === "complete";
 
-  for (const p of participants) {
-    const formMap = new Map<string, { createdAt: Date; itemMap: Map<string, { valueNum: number | null; valueStr: string | null }> }>();
-    for (const r of p.responses) {
-      const formKey = responseFormKey(r.questionnaireType, r.category);
-      const prev = formMap.get(formKey);
-      if (!prev || r.createdAt > prev.createdAt) {
-        formMap.set(formKey, { createdAt: r.createdAt, itemMap: r.itemMap });
-      }
-      if (!formToItems.has(formKey)) formToItems.set(formKey, new Set<string>());
-      for (const itemKey of r.itemMap.keys()) formToItems.get(formKey)!.add(itemKey);
-    }
-    latestByParticipantAndForm.set(p.id, formMap);
+  let csv: string;
+  let filename = "study-export.csv";
+
+  if (
+    useWide &&
+    (wantsFb1Wide ||
+      wantsSurveyCoreWide ||
+      wantsComparisonWide ||
+      wantsDocumentEval ||
+      wantsQualitative ||
+      wantsExportSchema ||
+      wantsFb5Closing)
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          "part=fb1|f23|fb4|fb5|survey_core_wide|comparison_wide|document_evaluation(_wide)|qualitative_answers|export_schema ist mit layout=wide nicht kombinierbar.",
+      },
+      { status: 400 },
+    );
   }
 
-  const formKeys = Array.from(formToItems.keys()).sort(compareFormKeys);
-  const variableColumns: Array<{ col: string; formKey: string; itemKey?: string; meta?: "created_at" }> = [];
-  for (const formKey of formKeys) {
-    variableColumns.push({ col: `${formKey}_created_at`, formKey, meta: "created_at" });
-    const itemKeys = Array.from(formToItems.get(formKey) ?? []).sort();
-    for (const itemKey of itemKeys) {
-      variableColumns.push({ col: `${formKey}_${normalizeItemKey(itemKey)}`, formKey, itemKey });
-    }
-  }
-
-  const header = [
-    "participant_id",
-    "external_id",
-    "participant_created_at",
-    ...variableColumns.map((c) => c.col),
-  ];
-  rows.push(header);
-
-  for (const p of participants) {
-    const formMap = latestByParticipantAndForm.get(p.id) ?? new Map();
-    const valueCols = variableColumns.map((c) => {
-      const form = formMap.get(c.formKey);
-      if (!form) return "";
-      if (c.meta === "created_at") return form.createdAt.toISOString();
-      const item = form.itemMap.get(c.itemKey!);
-      if (!item) return "";
-      if (item.valueNum !== null) return String(applyReverse(c.itemKey!, item.valueNum));
-      return item.valueStr ?? "";
+  if (wantsSurveyCoreWide) {
+    const table = buildSurveyCoreWideTable(participants);
+    csv = tableRowsToCommaCsv(table);
+    filename = "survey_core_wide.csv";
+  } else if (wantsComparisonWide) {
+    const table = buildComparisonWideTable(participants);
+    csv = tableRowsToCommaCsv(table);
+    filename = "comparison_wide.csv";
+  } else if (wantsDocumentEval) {
+    const table = await buildDocumentEvaluationRowsTable(company.id, locale, participants);
+    csv = tableRowsToCommaCsvQuotedAll(table);
+    filename = "document_evaluation.csv";
+  } else if (wantsQualitative) {
+    const table = buildQualitativeAnswersTable(participants);
+    csv = tableRowsToCommaCsv(table);
+    filename = "qualitative_answers.csv";
+  } else if (wantsExportSchema) {
+    const surveyCore = buildSurveyCoreWideTable(participants);
+    const comparison = buildComparisonWideTable(participants);
+    const docEval = await buildDocumentEvaluationRowsTable(company.id, locale, participants);
+    const qualitative = buildQualitativeAnswersTable(participants);
+    const schema = buildExportSchema({
+      "survey_core_wide.csv": surveyCore.headers,
+      "comparison_wide.csv": comparison.headers,
+      "document_evaluation.csv": docEval.headers,
+      "qualitative_answers.csv": qualitative.headers,
     });
-
-    rows.push([
-      p.id,
-      p.externalId ?? "",
-      p.createdAt.toISOString(),
-      ...valueCols,
-    ]);
+    return new NextResponse(JSON.stringify(schema, null, 2), {
+      headers: {
+        "Content-Type": "application/json; charset=utf-8",
+        "Content-Disposition": `attachment; filename="export_schema.json"`,
+      },
+    });
+  } else if (useWide) {
+    const rows = buildWideLayoutRows(participants);
+    csv = rows.map((row) => row.map(escapeCsv).join(";")).join("\n");
+    filename = "study-export-wide.csv";
+  } else if (wantsFb1Wide) {
+    const lines = buildWideNumericSpssLines(participants, "fb1");
+    csv =
+      lines.length > 0
+        ? lines.join("\n")
+        : ["response_id", "questionnaire_type", "category", "response_created_at"].map(escapeCsv).join(";") + "\n";
+    filename = "study-fb1.csv";
+  } else if (requestedPart === "f23_legacy_matrix") {
+    const table = await buildFb2Fb3PhaseLikertWideTable(company.id, locale);
+    csv = tableRowsToSemicolonCsv(table);
+    filename = "study-fb2-fb3-phasen-legacy.csv";
+  } else if (wantsFb5Closing) {
+    const table = await buildFb5ClosingLikertWideTable(company.id);
+    csv = tableRowsToSemicolonCsv(table);
+    filename = "study-fb5-abschluss.csv";
+  } else if (wantsFullPackage) {
+    const excelParallel = await buildStudyTables(company.id, locale);
+    csv = (await buildFullStudySpssPackageLines(company.id, locale, participants, excelParallel)).join("\n");
+    filename = "study-export-full.csv";
+  } else {
+    return NextResponse.json(
+      {
+        error:
+          "Ungueltiger part. Erlaubt: survey_core_wide (oder f23/fb2/fb3), comparison_wide (oder fb4), document_evaluation oder document_evaluation_wide, qualitative_answers, export_schema, fb1, fb5, full.",
+      },
+      { status: 400 },
+    );
   }
 
-  const csv = rows.map((row) => row.map(escapeCsv).join(";")).join("\n");
   const bom = "\uFEFF";
 
   return new NextResponse(bom + csv, {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": 'attachment; filename="study-export.csv"',
+      "Content-Disposition": `attachment; filename="${filename}"`,
     },
   });
 }

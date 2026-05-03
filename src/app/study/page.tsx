@@ -20,6 +20,7 @@ import {
   TR_ITEMS,
   US_ITEMS,
 } from "@/lib/fragebogenScales";
+import { applyStudyReverse, isStudyReverseItem } from "@/lib/studyReverseCoding";
 
 const STUDY_FLOW_CATEGORIES: StudyCategoryKey[] = VALID_STUDY_CATEGORIES;
 
@@ -105,11 +106,24 @@ function flattenQuestionnaireValues(input: unknown): Record<string, string> {
 
 function averageOf(flat: Record<string, string>, keys: string[]) {
   const nums = keys
-    .map((k) => Number(flat[k]))
+    .map((k) => {
+      const n = Number(flat[k]);
+      if (!Number.isFinite(n)) return Number.NaN;
+      return applyStudyReverse(k, n);
+    })
     .filter((n) => Number.isFinite(n));
   if (nums.length === 0) return "—";
   const avg = nums.reduce((a, b) => a + b, 0) / nums.length;
   return avg.toFixed(2);
+}
+
+function displayStudyValue(flat: Record<string, string>, key: string): string {
+  const raw = flat[key];
+  if (!raw) return "—";
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return raw;
+  const shown = isStudyReverseItem(key) ? applyStudyReverse(key, n) : n;
+  return String(shown);
 }
 
 function truncateOpenText(s: string, max = 96) {
@@ -309,7 +323,7 @@ export default async function StudyPage({
                     </td>
                     {FB2_FB3_TABLE_COLUMNS.map((col) => (
                       <td key={col} className="px-3 py-3 text-[var(--muted)]">
-                        {flat[col] ?? "—"}
+                        {displayStudyValue(flat, col)}
                       </td>
                     ))}
                   </tr>
@@ -409,7 +423,7 @@ export default async function StudyPage({
                   </td>
                   {FB4_LIKERT_COMPARE_COLUMNS.map((col) => (
                     <td key={col} className="px-2 py-2 align-top text-xs text-[var(--muted)]">
-                      {flat[col] ?? "—"}
+                      {displayStudyValue(flat, col)}
                     </td>
                   ))}
                 </tr>
@@ -541,21 +555,6 @@ export default async function StudyPage({
         </details>
       </header>
 
-      {params.saved === "1" && (
-        <div className="rounded-xl border border-emerald-300 bg-emerald-50 p-4 text-sm text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-200">
-          {t.study.fb1Saved}
-        </div>
-      )}
-      {params.saved === "fb2" && (
-        <div className="rounded-xl border border-emerald-300 bg-emerald-50 p-4 text-sm text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-200">
-          {t.study.fb2Saved}
-        </div>
-      )}
-      {params.saved === "fb3" && (
-        <div className="rounded-xl border border-emerald-300 bg-emerald-50 p-4 text-sm text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-200">
-          {t.study.fb3Saved}
-        </div>
-      )}
       {params.saved === "fb4" && (
         <div className="rounded-xl border border-emerald-300 bg-emerald-50 p-4 text-sm text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-200">
           {t.study.studyFb4Saved}
@@ -599,11 +598,67 @@ export default async function StudyPage({
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="flex flex-wrap gap-3">
               <a
-                href="/api/study/export"
-                download="study-export.csv"
-                className="inline-flex items-center justify-center rounded-xl border border-[var(--card-border)] px-6 py-3 text-sm font-medium transition hover:bg-[var(--background)]"
+                href={`/api/study/export?part=fb1&lang=${locale}`}
+                download="study-fb1.csv"
+                className="inline-flex items-center justify-center rounded-xl border border-[var(--card-border)] px-4 py-3 text-sm font-medium transition hover:bg-[var(--background)]"
               >
-                {t.study.studyExportCsv} (SPSS)
+                {t.study.studyExportSpssFb1}
+              </a>
+              <a
+                href={`/api/study/export?part=survey_core_wide&lang=${locale}`}
+                download="survey_core_wide.csv"
+                className="inline-flex items-center justify-center rounded-xl border border-[var(--card-border)] px-4 py-3 text-sm font-medium transition hover:bg-[var(--background)]"
+              >
+                {t.study.studyExportSpssF23}
+              </a>
+              <a
+                href={`/api/study/export?part=comparison_wide&lang=${locale}`}
+                download="comparison_wide.csv"
+                className="inline-flex items-center justify-center rounded-xl border border-[var(--card-border)] px-4 py-3 text-sm font-medium transition hover:bg-[var(--background)]"
+              >
+                {t.study.studyExportSpssFb4}
+              </a>
+              <a
+                href={`/api/study/export?part=qualitative_answers&lang=${locale}`}
+                download="qualitative_answers.csv"
+                className="inline-flex items-center justify-center rounded-xl border border-[var(--card-border)] px-4 py-3 text-sm font-medium transition hover:bg-[var(--background)]"
+              >
+                {isEn ? "Qualitative answers (CSV)" : "Qualitative Antworten (CSV)"}
+              </a>
+              <a
+                href={`/api/export/open-answers?section=fb23&lang=${locale}`}
+                download="study-fb2-fb3-open-text.xls"
+                className="inline-flex items-center justify-center rounded-xl border border-[var(--card-border)] px-4 py-3 text-sm font-medium transition hover:bg-[var(--background)]"
+              >
+                {isEn ? "Excel: FB2 & FB3 open answers only" : "Excel: FB2 & FB3 nur offene Antworten"}
+              </a>
+              <a
+                href={`/api/export/open-answers?section=fb4&lang=${locale}`}
+                download="study-fb4-open-text.xls"
+                className="inline-flex items-center justify-center rounded-xl border border-[var(--card-border)] px-4 py-3 text-sm font-medium transition hover:bg-[var(--background)]"
+              >
+                {isEn ? "Excel: FB4 open & interview text only" : "Excel: FB4 nur offene & Interview-Texte"}
+              </a>
+              <a
+                href={`/api/study/export?part=export_schema&lang=${locale}`}
+                download="export_schema.json"
+                className="inline-flex items-center justify-center rounded-xl border border-[var(--card-border)] px-4 py-3 text-sm font-medium transition hover:bg-[var(--background)]"
+              >
+                {isEn ? "Export schema (JSON)" : "Export-Schema (JSON)"}
+              </a>
+              <a
+                href={`/api/study/export?part=fb5&lang=${locale}`}
+                download="study-fb5-abschluss.csv"
+                className="inline-flex items-center justify-center rounded-xl border border-[var(--card-border)] px-4 py-3 text-sm font-medium transition hover:bg-[var(--background)]"
+              >
+                {t.study.studyExportSpssFb5}
+              </a>
+              <a
+                href={`/api/study/export?part=full&lang=${locale}`}
+                download="study-export-full.csv"
+                className="inline-flex items-center justify-center rounded-xl border border-dashed border-[var(--card-border)] px-4 py-3 text-xs font-medium text-[var(--muted)] transition hover:bg-[var(--background)]"
+              >
+                {t.study.studyExportSpssFull}
               </a>
               {isEn ? (
                 <a

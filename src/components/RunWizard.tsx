@@ -245,9 +245,12 @@ export function RunWizard({
     (index: number) => {
       const params = new URLSearchParams(searchParams.toString());
       params.set("step", String(index));
-      router.push(`${pathname}?${params.toString()}`);
+      const url = `${pathname}?${params.toString()}`;
+      const inIframeFlow = embed || searchParams.get("embed") === "1";
+      if (inIframeFlow) router.push(url, { scroll: false });
+      else router.push(url);
     },
-    [pathname, router, searchParams]
+    [embed, pathname, router, searchParams]
   );
 
   const stepConfig = stepsConfig[stepIndex];
@@ -265,8 +268,13 @@ export function RunWizard({
     setSubmitFromLlm(false);
   }, [stepConfig?.stepKey]);
   useEffect(() => {
+    // Im eingebetteten Assistenten: Bereich nicht einklappen, wenn gespeichert — verhindert hohes Layout-Springen.
+    if (embed) {
+      setProcessOpen(true);
+      return;
+    }
     setProcessOpen(!savedStep);
-  }, [stepConfig?.stepKey, savedStep?.id]);
+  }, [embed, stepConfig?.stepKey, savedStep?.id]);
   useEffect(() => {
     if (runLoading) setProcessOpen(true);
   }, [runLoading]);
