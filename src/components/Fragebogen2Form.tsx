@@ -44,7 +44,7 @@ function LikertSelect({
       name={name}
       required
       defaultValue={defaultValue}
-      className="w-full rounded-lg border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm"
+      className="w-full rounded-lg border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm dark:bg-[var(--card)]"
     >
       {[1, 2, 3, 4, 5, 6, 7].map((n) => (
         <option key={n} value={n}>
@@ -67,7 +67,11 @@ export function Fragebogen2Form({
   const shouldHideSubmitButton = Boolean(hideSubmitButton);
 
   return (
-    <form action={action} data-assistant-form="1" className="space-y-8">
+    <form
+      action={action}
+      data-assistant-form="1"
+      className="space-y-8 [&_section]:border-zinc-300 [&_section]:bg-white [&_input]:border-zinc-300 [&_input]:bg-white [&_select]:border-zinc-300 [&_select]:bg-[var(--background)] [&_textarea]:border-zinc-300 [&_textarea]:bg-white dark:[&_section]:border-[var(--card-border)] dark:[&_section]:bg-[var(--card)] dark:[&_input]:border-[var(--card-border)] dark:[&_input]:bg-[var(--card)] dark:[&_select]:border-[var(--card-border)] dark:[&_select]:bg-[var(--card)] dark:[&_textarea]:border-[var(--card-border)] dark:[&_textarea]:bg-[var(--card)]"
+    >
       {assistantEmbed ? <input type="hidden" name="assistant_embed" value="1" /> : null}
       {category && <input type="hidden" name="category" value={category} />}
       <div className="space-y-6">
@@ -136,7 +140,7 @@ export function Fragebogen2Form({
                 rows={2}
                 defaultValue={initialValues?.O1 != null ? String(initialValues.O1) : ""}
                 spellCheck={false}
-                className="w-full rounded-lg border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm"
+                className="w-full rounded-lg border border-[var(--card-border)] bg-white px-3 py-2 text-sm dark:bg-[var(--card)]"
               />
             </div>
             <div>
@@ -146,7 +150,7 @@ export function Fragebogen2Form({
                 rows={2}
                 defaultValue={initialValues?.O2 != null ? String(initialValues.O2) : ""}
                 spellCheck={false}
-                className="w-full rounded-lg border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm"
+                className="w-full rounded-lg border border-[var(--card-border)] bg-white px-3 py-2 text-sm dark:bg-[var(--card)]"
               />
             </div>
             <div>
@@ -156,7 +160,7 @@ export function Fragebogen2Form({
                 rows={2}
                 defaultValue={initialValues?.O3 != null ? String(initialValues.O3) : ""}
                 spellCheck={false}
-                className="w-full rounded-lg border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm"
+                className="w-full rounded-lg border border-[var(--card-border)] bg-white px-3 py-2 text-sm dark:bg-[var(--card)]"
               />
             </div>
           </div>

@@ -197,40 +197,40 @@ const COPY = {
       intro:
         "Der Reiter „Evaluation“ fasst die empirische Methodik und die Zuordnung von Messvariablen zu den vier Forschungsfragen zusammen. Damit ist nachvollziehbar, welche Fragebogen- und Evaluationsformulare welche FF operationalisieren.",
       methodologyTitle: "Methodik (Kurzfassung)",
-      methodologyIntro:
-        "Die vorliegende Arbeit folgt dem Design Science Research Ansatz, bei dem ein KI-gestütztes Business-Intelligence- bzw. Decision-Workflow-System konzipiert, entwickelt und anschließend empirisch evaluiert wird. Ziel ist es, sowohl die technischen und konzeptionellen Anforderungen als auch den praktischen Nutzen und die Akzeptanz eines solchen Systems in Unternehmen zu untersuchen.",
-      methodologyQas: [
-        {
-          question:
+    methodologyIntro:
+      "Die vorliegende Arbeit folgt dem Design Science Research Ansatz, bei dem ein KI-gestütztes Business-Intelligence- bzw. Decision-Workflow-System konzipiert, entwickelt und anschließend empirisch evaluiert wird. Ziel ist es, sowohl die technischen und konzeptionellen Anforderungen als auch den praktischen Nutzen und die Akzeptanz eines solchen Systems in Unternehmen zu untersuchen.",
+    methodologyQas: [
+      {
+        question:
             "FF1 — Welche technischen und konzeptionellen Anforderungen müssen erfüllt sein, um ein KI-gestütztes Business-Intelligence-System für Unternehmen zu entwickeln?",
-          paragraphs: [
+        paragraphs: [
             "Zur Beantwortung erfolgt eine systematische Anforderungsanalyse: Architektur, Datenquellen, Analyseprozesse, Workflow-Logik (inkl. LLM/n8n), sowie die Abbildung in den App-Bereichen Profil, Prozesse, Dokumente, KPIs und Evaluation.",
-          ],
-        },
-        {
-          question:
+        ],
+      },
+      {
+        question:
             "FF2 — Welche Faktoren und Indikatoren lassen sich systematisch identifizieren, um Frühwarnsignale für strategische Fehlentscheidungen zu erkennen?",
-          paragraphs: [
+        paragraphs: [
             "Konzeptionell werden relevante Kennzahlen, Risikoindikatoren und Beobachtungsgrößen modelliert und in FB1 (Abschnitt D), in der Dokumenten-Evaluation (optional Frühwarn- und KPI-Blöcke) sowie qualitativ in FB4 (Interview) abgebildet.",
-          ],
-        },
-        {
-          question:
+        ],
+      },
+      {
+        question:
             "FF3 — Inwiefern verbessert ein KI-gestützter Workflow die wahrgenommene Qualität strategischer Entscheidungen im Vergleich zu einem Vorgehen ohne KI-Unterstützung?",
-          paragraphs: [
+        paragraphs: [
             "Within-Subject Design: identische Entscheidungsszenarien ohne vs. mit Tool. Likert-Konstrukte in FB2/FB3/FB4 (u. a. DQ, EV, TR, CF, CL, Vergleich COMP), Szenario-Evaluation (Nutzer vs. KI, Konfidenz, Bewertungsdimensionen) sowie Dokumenten- und Berater-Evaluation messen wahrgenommene Qualität, Belegbarkeit und Nutzen.",
             "Auswertung u. a. mit SPSS (deskriptiv, t-Tests für abhängige Stichproben, Regressionen).",
-          ],
-        },
-        {
-          question:
+        ],
+      },
+      {
+        question:
             "FF4 — Inwiefern sind Unternehmen bereit, KI-gestützte Systeme einzusetzen, und welche Risiken und Hemmnisse beeinflussen die Nutzung?",
-          paragraphs: [
+        paragraphs: [
             "Technologieakzeptanz (TAM/UTAUT: PE, EE, SI, FC), Integration/Fit/Governance (FIT, GOV), Abschlussfragebogen FB5 sowie offene Texte und Berater-/Dokumenten-Feedback erfassen Akzeptanz, Hemmnisse und Vertrauen. Ergänzend qualitative Inhaltsanalyse offener Antworten.",
-          ],
-        },
-      ],
-      methodologyClosing:
+        ],
+      },
+    ],
+    methodologyClosing:
         "Die Kombination aus Artefaktentwicklung, experimenteller Evaluation und Akzeptanzanalyse bildet den methodischen Rahmen; die folgende Tabelle operationalisiert ihn auf Variablebene.",
       mappingIntro:
         "Jede Zeile nennt ein Instrument (Kürzel), den technischen Variablennamen bzw. Schlüssel und die zugeordnete(n) Forschungsfrage(n). ✓ bedeutet: die Variable trägt zur Beantwortung dieser FF bei. Mehrfachmarkierungen sind erwünscht, wenn eine Variable mehrere Aspekte abdeckt.",

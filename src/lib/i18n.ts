@@ -981,7 +981,7 @@ export const translations = {
       subtitle: "Nutzen Sie das System wie einen KI-Unternehmensberater und als Entscheidungsunterstützungssystem (Decision Support System) für strategische Entscheidungen in Markteintritts- und Wachstumsphasen.",
       subtitleDetails:
         "Diese Studie untersucht, wie KI strategische Entscheidungen in Markteintritts- und Wachstumsphasen unterstützen kann. Das Tool arbeitet als Decision Support System: Es strukturiert Informationen, verknüpft KPIs und Quellen und liefert nachvollziehbare, evidenzbasierte Empfehlungen als Entscheidungsgrundlage.",
-      companyProfile: "Geschäftsprofil",
+      companyProfile: "Unternehmensprofil anlegen",
       startAssistant: "Assistent starten",
       handbookStep: "Handbuch (Überblick zu App und Studie)",
       studyInfoTitle: "Überblick über App und Studie",
@@ -1002,10 +1002,10 @@ export const translations = {
       missingKpis: "Fehlende KPI-Werte",
       lowConfidence: "KPI(s) mit niedriger Konfidenz (<50%)",
       staleValues: "KPI-Wert(e) älter als 30 Tage",
-      completeProfile: "Geschäftsprofil vervollständigen",
+      completeProfile: "Unternehmensprofil anlegen",
       guidedPath:
         "Wenn Sie oben den Assistenten starten, werden die folgenden Schritte dort als geführten Pfad angezeigt. Sie können dieselbe Reihenfolge hier zusätzlich manuell einsehen: Überschrift aufklappen und einen Eintrag anklicken, um zum jeweiligen Bereich zu springen.",
-      step1: "Geschäftsprofil-Assistent abschließen",
+      step1: "Unternehmensprofil anlegen",
       step2: "Wichtige Dokumente hochladen oder Marktquellen hinzufügen in Einstellungen",
       step3: "Alle Prozesse der Reihe nach unter „Prozesse“ (Dashboard) durchgehen",
       step4: "Dokumente sehen und bestätigen",

@@ -69,7 +69,11 @@ export function Fragebogen1Form({
   const d = (initialData?.d ?? {}) as Record<string, string>;
 
   return (
-    <form action={action} data-assistant-form="1" className="space-y-8">
+    <form
+      action={action}
+      data-assistant-form="1"
+      className="space-y-8 [&_input]:border-zinc-300 [&_input]:bg-white [&_select]:border-zinc-300 [&_select]:bg-[var(--background)] [&_textarea]:border-zinc-300 [&_textarea]:bg-white dark:[&_input]:border-[var(--card-border)] dark:[&_input]:bg-[var(--card)] dark:[&_select]:border-[var(--card-border)] dark:[&_select]:bg-[var(--card)] dark:[&_textarea]:border-[var(--card-border)] dark:[&_textarea]:bg-[var(--card)]"
+    >
       {assistantEmbed ? <input type="hidden" name="assistant_embed" value="1" /> : null}
       <Section title={t.fb1CategoryA} description="">
         <div className="grid gap-4 sm:grid-cols-2">
@@ -79,7 +83,7 @@ export function Fragebogen1Form({
               name="A1"
               required
               defaultValue={a.A1}
-              className="w-full rounded-xl border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm"
+              className="w-full rounded-xl border border-[var(--card-border)] bg-white px-3 py-2 text-sm dark:bg-[var(--card)]"
             >
               <option value="">—</option>
               {A1_OPTIONS.map((o) => (
@@ -95,7 +99,7 @@ export function Fragebogen1Form({
               name="A2"
               required
               defaultValue={a.A2}
-              className="w-full rounded-xl border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm"
+              className="w-full rounded-xl border border-[var(--card-border)] bg-white px-3 py-2 text-sm dark:bg-[var(--card)]"
             >
               <option value="">—</option>
               {A2_OPTIONS.map((o) => (
@@ -111,7 +115,7 @@ export function Fragebogen1Form({
               name="A3"
               required
               defaultValue={a.A3}
-              className="w-full rounded-xl border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm"
+              className="w-full rounded-xl border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm dark:bg-[var(--card)]"
             >
               <option value="">—</option>
               {A3_OPTIONS.map((o) => (
@@ -129,7 +133,7 @@ export function Fragebogen1Form({
               required
               defaultValue={a.A4}
               placeholder="z.B. Gastronomie, SaaS"
-              className="w-full rounded-xl border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm"
+              className="w-full rounded-xl border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm dark:bg-[var(--card)]"
             />
           </div>
           <div>
@@ -141,7 +145,7 @@ export function Fragebogen1Form({
               min={0}
               max={50}
               defaultValue={a.A5}
-              className="w-full rounded-xl border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm"
+              className="w-full rounded-xl border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm dark:bg-[var(--card)]"
             />
           </div>
           <div>
@@ -150,7 +154,7 @@ export function Fragebogen1Form({
               name="A6"
               required
               defaultValue={a.A6}
-              className="w-full rounded-xl border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm"
+              className="w-full rounded-xl border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm dark:bg-[var(--card)]"
             >
               <option value="">—</option>
               {A6_OPTIONS.map((o) => (
@@ -171,7 +175,7 @@ export function Fragebogen1Form({
               name="B1"
               required
               defaultValue={b.B1}
-              className="w-full rounded-xl border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm"
+              className="w-full rounded-xl border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm dark:bg-[var(--card)]"
             >
               <option value="">—</option>
               {B1_OPTIONS.map((o) => (
@@ -187,7 +191,7 @@ export function Fragebogen1Form({
               name="B2"
               required
               defaultValue={b.B2}
-              className="w-full rounded-xl border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm"
+              className="w-full rounded-xl border border-[var(--card-border)] bg-white px-3 py-2 text-sm dark:bg-[var(--card)]"
             >
               {[1, 2, 3, 4, 5, 6, 7].map((n) => (
                 <option key={n} value={n}>
@@ -202,7 +206,7 @@ export function Fragebogen1Form({
               name="B3"
               required
               defaultValue={b.B3}
-              className="w-full rounded-xl border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm"
+              className="w-full rounded-xl border border-[var(--card-border)] bg-white px-3 py-2 text-sm dark:bg-[var(--card)]"
             >
               {[1, 2, 3, 4, 5, 6, 7].map((n) => (
                 <option key={n} value={n}>
@@ -234,7 +238,7 @@ export function Fragebogen1Form({
                 name={key}
                 required
                 defaultValue={c[key]}
-                className="w-full rounded-xl border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm"
+                className="w-full rounded-xl border border-[var(--card-border)] bg-white px-3 py-2 text-sm dark:bg-[var(--card)]"
               >
                 {[1, 2, 3, 4, 5, 6, 7].map((n) => (
                   <option key={n} value={n}>
@@ -256,7 +260,7 @@ export function Fragebogen1Form({
               rows={3}
               defaultValue={d.D1 ?? ""}
               spellCheck={false}
-              className="w-full rounded-xl border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm"
+              className="w-full rounded-xl border border-[var(--card-border)] bg-white px-3 py-2 text-sm dark:bg-[var(--card)]"
             />
           </div>
           <div>
@@ -266,7 +270,7 @@ export function Fragebogen1Form({
               rows={3}
               defaultValue={d.D2 ?? ""}
               spellCheck={false}
-              className="w-full rounded-xl border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm"
+              className="w-full rounded-xl border border-[var(--card-border)] bg-white px-3 py-2 text-sm dark:bg-[var(--card)]"
             />
           </div>
           <div>
@@ -276,7 +280,7 @@ export function Fragebogen1Form({
               rows={3}
               defaultValue={d.D3 ?? ""}
               spellCheck={false}
-              className="w-full rounded-xl border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm"
+              className="w-full rounded-xl border border-[var(--card-border)] bg-white px-3 py-2 text-sm dark:bg-[var(--card)]"
             />
           </div>
           <div>
@@ -286,7 +290,7 @@ export function Fragebogen1Form({
               rows={3}
               defaultValue={d.D4 ?? ""}
               spellCheck={false}
-              className="w-full rounded-xl border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm"
+              className="w-full rounded-xl border border-[var(--card-border)] bg-white px-3 py-2 text-sm dark:bg-[var(--card)]"
             />
           </div>
         </div>

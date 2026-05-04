@@ -41,7 +41,7 @@ function LikertSelect({
       name={name}
       required
       defaultValue={defaultValue}
-      className="w-full rounded-lg border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm"
+      className="w-full rounded-lg border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm dark:bg-[var(--card)]"
     >
       {[1, 2, 3, 4, 5, 6, 7].map((n) => (
         <option key={n} value={n}>
@@ -63,7 +63,11 @@ export function Fragebogen4Form({
   const iv = initialValues;
 
   return (
-    <form action={action} data-assistant-form="1" className="space-y-8">
+    <form
+      action={action}
+      data-assistant-form="1"
+      className="space-y-8 [&_section]:border-zinc-300 [&_section]:bg-white [&_input]:border-zinc-300 [&_input]:bg-white [&_select]:border-zinc-300 [&_select]:bg-[var(--background)] [&_textarea]:border-zinc-300 [&_textarea]:bg-white dark:[&_section]:border-[var(--card-border)] dark:[&_section]:bg-[var(--card)] dark:[&_input]:border-[var(--card-border)] dark:[&_input]:bg-[var(--card)] dark:[&_select]:border-[var(--card-border)] dark:[&_select]:bg-[var(--card)] dark:[&_textarea]:border-[var(--card-border)] dark:[&_textarea]:bg-[var(--card)]"
+    >
       {assistantEmbed ? <input type="hidden" name="assistant_embed" value="1" /> : null}
       <section className="rounded-xl border border-[var(--card-border)] p-6">
         <h3 className="mb-4 text-sm font-semibold text-[var(--foreground)]">{t.fb4SectionUsability}</h3>
@@ -98,7 +102,7 @@ export function Fragebogen4Form({
               rows={2}
               defaultValue={iv?.O1 != null ? String(iv.O1) : ""}
               spellCheck={false}
-              className="w-full rounded-lg border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm"
+              className="w-full rounded-lg border border-[var(--card-border)] bg-white px-3 py-2 text-sm dark:bg-[var(--card)]"
             />
           </div>
           <div>
@@ -108,7 +112,7 @@ export function Fragebogen4Form({
               rows={2}
               defaultValue={iv?.O2 != null ? String(iv.O2) : ""}
               spellCheck={false}
-              className="w-full rounded-lg border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm"
+              className="w-full rounded-lg border border-[var(--card-border)] bg-white px-3 py-2 text-sm dark:bg-[var(--card)]"
             />
           </div>
           <div>
@@ -118,7 +122,7 @@ export function Fragebogen4Form({
               rows={2}
               defaultValue={iv?.O3 != null ? String(iv.O3) : ""}
               spellCheck={false}
-              className="w-full rounded-lg border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm"
+              className="w-full rounded-lg border border-[var(--card-border)] bg-white px-3 py-2 text-sm dark:bg-[var(--card)]"
             />
           </div>
         </div>
@@ -166,7 +170,7 @@ export function Fragebogen4Form({
               rows={3}
               defaultValue={iv?.I1 != null ? String(iv.I1) : ""}
               spellCheck={false}
-              className="w-full rounded-lg border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm"
+              className="w-full rounded-lg border border-[var(--card-border)] bg-white px-3 py-2 text-sm dark:bg-[var(--card)]"
             />
           </div>
           <div>
@@ -176,7 +180,7 @@ export function Fragebogen4Form({
               rows={3}
               defaultValue={iv?.I2 != null ? String(iv.I2) : ""}
               spellCheck={false}
-              className="w-full rounded-lg border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm"
+              className="w-full rounded-lg border border-[var(--card-border)] bg-white px-3 py-2 text-sm dark:bg-[var(--card)]"
             />
           </div>
           <div>
@@ -186,7 +190,7 @@ export function Fragebogen4Form({
               rows={3}
               defaultValue={iv?.I3 != null ? String(iv.I3) : ""}
               spellCheck={false}
-              className="w-full rounded-lg border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm"
+              className="w-full rounded-lg border border-[var(--card-border)] bg-white px-3 py-2 text-sm dark:bg-[var(--card)]"
             />
           </div>
           <div>
@@ -196,7 +200,7 @@ export function Fragebogen4Form({
               rows={3}
               defaultValue={iv?.I4 != null ? String(iv.I4) : ""}
               spellCheck={false}
-              className="w-full rounded-lg border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm"
+              className="w-full rounded-lg border border-[var(--card-border)] bg-white px-3 py-2 text-sm dark:bg-[var(--card)]"
             />
           </div>
           <div>
@@ -206,7 +210,7 @@ export function Fragebogen4Form({
               rows={3}
               defaultValue={iv?.I5 != null ? String(iv.I5) : ""}
               spellCheck={false}
-              className="w-full rounded-lg border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm"
+              className="w-full rounded-lg border border-[var(--card-border)] bg-white px-3 py-2 text-sm dark:bg-[var(--card)]"
             />
           </div>
         </div>
