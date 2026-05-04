@@ -7,6 +7,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { getTranslations } from "@/lib/i18n";
 import { fetchApi } from "@/lib/apiClient";
 import { SUBMIT_BUTTON_PENDING_CLASS } from "@/lib/submitButtonStyle";
+import { CollapsibleDetails } from "@/components/CollapsibleDetails";
 
 export function RegisterForm() {
   const { locale } = useLanguage();
@@ -16,6 +17,7 @@ export function RegisterForm() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -23,6 +25,11 @@ export function RegisterForm() {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    if (!privacyAccepted) {
+      setError(t.auth.registerPrivacyRequired);
+      setLoading(false);
+      return;
+    }
     try {
       const res = await fetchApi("/api/auth/register", {
         method: "POST",
@@ -32,6 +39,7 @@ export function RegisterForm() {
           email: email.trim(),
           password,
           locale,
+          privacyAccepted: true,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -88,6 +96,36 @@ export function RegisterForm() {
         />
         <p className="mt-1 text-xs text-[var(--muted)]">{t.auth.passwordMinHint}</p>
       </div>
+      <CollapsibleDetails
+        defaultOpen={false}
+        className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] px-4 py-3"
+        summaryClassName="cursor-pointer select-none text-sm font-medium text-teal-700 hover:underline dark:text-teal-300"
+        contentClassName="mt-3 max-h-[min(22rem,55vh)] overflow-y-auto border-t border-[var(--card-border)] pt-3 text-xs leading-relaxed text-[var(--muted)]"
+        label={t.auth.registerPrivacyToggle}
+      >
+        {t.auth.registerPrivacyBody.split("\n\n").map((para, i) => (
+          <p key={i} className={i > 0 ? "mt-3" : ""}>
+            {para}
+          </p>
+        ))}
+      </CollapsibleDetails>
+      <label className="flex cursor-pointer items-start gap-3 text-sm text-[var(--foreground)]">
+        <input
+          type="checkbox"
+          name="privacyAccepted"
+          required
+          aria-required="true"
+          checked={privacyAccepted}
+          onChange={(e) => setPrivacyAccepted(e.target.checked)}
+          className="mt-1 h-4 w-4 shrink-0 rounded border-[var(--card-border)] text-teal-600 focus:ring-teal-500"
+        />
+        <span>
+          {t.auth.registerPrivacyCheckbox}
+          <span className="ml-1 text-rose-600" aria-hidden>
+            *
+          </span>
+        </span>
+      </label>
       {error && <p className="text-sm text-rose-600 dark:text-rose-400">{error}</p>}
       <button
         type="submit"

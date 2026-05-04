@@ -49,6 +49,11 @@ export const translations = {
       verifyBackToLogin: "Back to sign in",
       verifyInvalidCode: "Invalid or expired code.",
       verifyResendSent: "If the account exists and is not yet verified, a new code was sent.",
+      registerPrivacyCheckbox: "I have read the privacy information and accept it.",
+      registerPrivacyToggle: "Show privacy information (GDPR)",
+      registerPrivacyBody:
+        "Controller under the GDPR: the operator of this application.\n\nWhen you register, we process the email address you provide, a password you choose (stored only as a secure hash), and optionally a display name. The purpose is to set up and secure your user account and to provide the study features.\n\nThe legal basis is Art. 6(1)(b) GDPR (performance of a contract / steps prior to entering a contract) and, where you tick the box, Art. 6(1)(a) GDPR (consent).\n\nWe only share your data with third parties where necessary to perform the contract (for example an email delivery provider) or where required by law.\n\nYou have the right of access, rectification, erasure, restriction of processing, data portability, and to object to processing. You may withdraw consent at any time with effect for the future.\n\nYou also have the right to lodge a complaint with a supervisory authority.\n\nFurther details on retention periods and specific processing may be provided in a full privacy policy if available.",
+      registerPrivacyRequired: "Please accept the privacy information to register.",
     },
     common: {
       resumeWizard: "Resume Wizard",
@@ -957,6 +962,12 @@ export const translations = {
       verifyBackToLogin: "Zur Anmeldung",
       verifyInvalidCode: "Ungültiger oder abgelaufener Code.",
       verifyResendSent: "Falls das Konto existiert und noch nicht bestätigt ist, wurde ein neuer Code gesendet.",
+      registerPrivacyCheckbox:
+        "Ich habe die Datenschutzinformationen gelesen und erkläre mich mit der Verarbeitung meiner personenbezogenen Daten im beschriebenen Umfang einverstanden.",
+      registerPrivacyToggle: "Datenschutzinformationen (DSGVO) einblenden",
+      registerPrivacyBody:
+        "Verantwortlicher im Sinne der Datenschutz-Grundverordnung (DSGVO) ist der Betreiber dieser Anwendung.\n\nBei der Registrierung verarbeiten wir die von Ihnen angegebene E-Mail-Adresse, ein von Ihnen gewähltes Passwort (gespeichert ausschließlich als kryptografischer Hash) sowie optional einen Anzeigenamen. Zweck ist die Einrichtung und Sicherung Ihres Nutzerkontos sowie die Bereitstellung der Funktionen dieser Studien-/Arbeitsumgebung.\n\nRechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO (Vertragserfüllung bzw. vorvertragliche Maßnahmen) sowie — soweit erforderlich — Art. 6 Abs. 1 lit. a DSGVO (Einwilligung durch Setzen der Checkbox).\n\nEine Weitergabe Ihrer Daten an Dritte erfolgt nur, soweit dies zur Vertragserfüllung erforderlich ist (z. B. Versand von E-Mails über einen technischen Dienstleister) oder gesetzlich vorgeschrieben ist.\n\nSie haben das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung, Datenübertragbarkeit sowie — bei berechtigtem Interesse — Widerspruch gegen die Verarbeitung. Eine erteilte Einwilligung können Sie mit Wirkung für die Zukunft widerrufen.\n\nAußerdem haben Sie das Recht, sich bei einer Datenschutz-Aufsichtsbehörde zu beschweren.\n\nWeitere Einzelheiten (z. B. Speicherdauer, Empfänger, technische Maßnahmen) können in einer vollständigen Datenschutzerklärung aufgeführt werden, sofern diese separat bereitgestellt wird.",
+      registerPrivacyRequired: "Bitte akzeptieren Sie die Datenschutzinformationen, um fortzufahren.",
     },
     common: {
       resumeWizard: "Assistent fortsetzen",

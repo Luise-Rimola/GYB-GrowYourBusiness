@@ -20,6 +20,18 @@ export async function POST(req: Request) {
     const name = typeof body.name === "string" ? body.name.trim() || null : null;
     const locale = body.locale === "en" ? "en" : "de";
 
+    if (body.privacyAccepted !== true) {
+      return NextResponse.json(
+        {
+          error:
+            locale === "en"
+              ? "You must accept the privacy information to register."
+              : "Bitte akzeptieren Sie die Datenschutzinformationen, um fortzufahren.",
+        },
+        { status: 400 },
+      );
+    }
+
     if (!EMAIL_RE.test(emailRaw)) {
       return NextResponse.json({ error: "Ungültige E-Mail-Adresse." }, { status: 400 });
     }
