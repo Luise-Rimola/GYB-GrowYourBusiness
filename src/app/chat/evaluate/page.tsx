@@ -15,6 +15,13 @@ export default async function ChatEvaluatePage({
   const company = await getOrCreateDemoCompany();
   const evaluations = await getFeatureEvaluations(company.id, "chat");
   const fv = t.featureEvaluation;
+  const lang = locale === "en" ? "en" : "de";
+  const quant = {
+    spss: `/api/export?scope=advisor&format=spss&lang=${lang}&anon=1`,
+    pdf: `/api/export?scope=advisor&format=pdf&lang=${lang}&anon=1`,
+    excel: `/api/export?scope=advisor&format=excel&lang=${lang}&anon=1`,
+    isEn: locale === "en",
+  };
 
   return (
     <FeatureEvaluationEvaluateContent
@@ -27,6 +34,8 @@ export default async function ChatEvaluatePage({
       evaluations={evaluations}
       emptyHistory={t.chat.evaluateEmpty}
       fv={fv}
+      downloadsLocale={locale}
+      quantExportLinks={quant}
       openTextExcelHref={`/api/export/open-answers?section=advisor&lang=${locale}`}
       openTextExcelLabel={
         locale === "en" ? "Excel: open text answers only" : "Excel: nur offene Textantworten"

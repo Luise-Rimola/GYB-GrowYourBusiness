@@ -433,11 +433,12 @@ async function buildScenarioEvaluationsSpssTable(
   };
 }
 
+/** Mittelwert der fünf Likert-Items (Skala 1–5), für Export wie gespeichert (nicht 0–100). */
 function overallScoreFromAdvisorLikerts(a: number, s: number, r: number, c: number, st: number): string {
   const vals = [a, s, r, c, st].filter((n) => Number.isFinite(n) && n >= 1 && n <= 5);
   if (vals.length !== 5) return "";
   const mean = vals.reduce((x, y) => x + y, 0) / 5;
-  return String(Math.round((mean / 5) * 100));
+  return String(Math.round(mean * 100) / 100);
 }
 
 /** Berater-Evaluation (Chat + Entscheidungen): eine Zeile pro `FeatureEvaluation`. */
@@ -452,17 +453,17 @@ async function buildAdvisorEvaluationsSpssTable(
     "evaluation_id",
     "date",
     "evaluation_kind",
-    "answer_quality_pct",
-    "source_quality_pct",
-    "realism_pct",
-    "clarity_pct",
-    "structure_pct",
+    "answer_quality",
+    "source_quality",
+    "realism",
+    "clarity",
+    "structure",
     "hallucination_present",
     "hallucination_notes",
     "strengths",
     "weaknesses",
     "improvement_suggestions",
-    "overall_score_pct",
+    "overall_mean_1_to_5",
   ];
 
   const [evalRows, participant] = await Promise.all([
@@ -488,11 +489,11 @@ async function buildAdvisorEvaluationsSpssTable(
       anonymize ? `advisor_eval_${idx + 1}` : r.id,
       toIsoDate(r.createdAt),
       r.kind,
-      likert1To5AsPercentString(a),
-      likert1To5AsPercentString(s),
-      likert1To5AsPercentString(real),
-      likert1To5AsPercentString(c),
-      likert1To5AsPercentString(st),
+      String(a),
+      String(s),
+      String(real),
+      String(c),
+      String(st),
       boolStr(Boolean(r.hallucinationPresent)),
       anonymize ? "" : (r.hallucinationNotes ?? ""),
       anonymize ? "" : (r.strengths ?? ""),

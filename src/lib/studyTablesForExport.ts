@@ -93,7 +93,8 @@ const QUESTION_TEXT_BY_KEY: Record<string, string> = {
   fb5T4: "Sonstige Anmerkungen zu Akzeptanz und Nutzung im Alltag?",
 };
 
-function resolveQuestionText(questionnaireType: string, itemKey: string, locale: Locale): string {
+/** Lesbare Frage für qualitative Freitext-Exports (Excel/Übersicht). */
+export function qualitativeItemQuestionLabel(locale: Locale, questionnaireType: string, itemKey: string): string {
   const keyed = QUESTION_TEXT_BY_KEY[`${questionnaireType}${itemKey}`];
   if (keyed) return keyed;
   if (ALL_LIKERT_SCALE_KEYS.has(itemKey)) return studyScaleLabel(locale, itemKey);
@@ -282,7 +283,7 @@ export async function buildStudyTables(companyId: string, locale: Locale): Promi
         r.questionnaireType.toUpperCase(),
         r.category ? (phaseLabels[r.category as keyof typeof phaseLabels] ?? r.category) : "Global",
         item.itemKey,
-        resolveQuestionText(r.questionnaireType, item.itemKey, locale),
+        qualitativeItemQuestionLabel(locale, r.questionnaireType, item.itemKey),
         answer || "—",
         toIso(r.createdAt),
       ]);

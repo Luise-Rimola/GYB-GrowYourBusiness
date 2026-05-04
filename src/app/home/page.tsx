@@ -132,7 +132,7 @@ async function HomePageContent({
           >
             {t.home.startAssistant}
           </Link>
-          <HomeExportPackageButton locale={locale} autoOpen={params.openExport === "1"} showButton={false} />
+          <HomeExportPackageButton locale={locale} autoOpen={params.openExport === "1"} />
         </div>
       </header>
 

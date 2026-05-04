@@ -31,7 +31,9 @@ import {
   buildFb4PhaseDirectCompareWideTable,
   buildFb5ClosingLikertWideTable,
   buildStudyTables,
+  qualitativeItemQuestionLabel,
 } from "@/lib/studyTablesForExport";
+import { getStudyCategoryLabels, type StudyCategoryKey } from "@/lib/studyCategoryContext";
 import {
   encodeNumericAnswerForStudySpss,
   isStudyQuestionItemIncludedInSpss,
@@ -393,30 +395,110 @@ async function buildDocumentEvaluationRowsTable(
   return { headers, rows: rowObjs.map((o) => o.row) };
 }
 
-function buildQualitativeAnswersTable(participants: LoadedParticipant[]): { headers: string[]; rows: string[][] } {
-  const categoryToPhase = new Map(CORE_PHASES.map((p) => [p.category, p.slug]));
-  const rows: string[][] = [];
+type QualitativeAnswerRow = {
+  participantLabel: string;
+  phaseLabel: string;
+  questionnaire: string;
+  itemKey: string;
+  questionLabel: string;
+  answer: string;
+  savedAt: string;
+};
+
+function pickLatestResponsePerForm(responses: LoadedResponse[]): LoadedResponse[] {
+  const best = new Map<string, LoadedResponse>();
+  for (const r of responses) {
+    const key = `${r.questionnaireType}\0${r.category ?? ""}`;
+    const prev = best.get(key);
+    if (!prev || r.createdAt.getTime() > prev.createdAt.getTime()) best.set(key, r);
+  }
+  return sortResponsesForStudyExport([...best.values()]);
+}
+
+function categoryPhaseLabel(locale: Locale, category: string | null): string {
+  if (!category) {
+    return locale === "en" ? "Overall (not tied to a topic area)" : "Gesamt (ohne Themenbereich)";
+  }
+  const labels = getStudyCategoryLabels(locale);
+  return labels[category as StudyCategoryKey] ?? category;
+}
+
+function buildQualitativeAnswerRows(participants: LoadedParticipant[], locale: Locale): QualitativeAnswerRow[] {
+  const out: QualitativeAnswerRow[] = [];
   for (const p of participants) {
-    for (const r of p.responses) {
+    const participantLabel = (p.externalId ?? "").trim() || p.id;
+    const latest = pickLatestResponsePerForm(p.responses);
+    for (const r of latest) {
+      const phaseLabel = categoryPhaseLabel(locale, r.category);
+      const qUpper = r.questionnaireType.toUpperCase();
       for (const [itemKey, item] of r.itemMap.entries()) {
         const answer = (item.valueStr ?? "").trim();
         if (!answer) continue;
-        rows.push([
-          p.id,
-          categoryToPhase.get(r.category ?? "") ?? "global",
-          r.questionnaireType,
+        out.push({
+          participantLabel,
+          phaseLabel,
+          questionnaire: qUpper,
           itemKey,
+          questionLabel: qualitativeItemQuestionLabel(locale, r.questionnaireType, itemKey),
           answer,
-          r.createdAt.toISOString(),
-        ]);
+          savedAt: r.createdAt.toISOString(),
+        });
       }
     }
   }
-  rows.sort((a, b) => (a[0] + a[1] + a[2] + a[3] + a[5]).localeCompare(b[0] + b[1] + b[2] + b[3] + b[5]));
-  return {
-    headers: ["participant_id", "phase", "questionnaire", "question_key", "answer_text", "timestamp"],
-    rows,
-  };
+  out.sort((a, b) =>
+    `${a.participantLabel} ${a.questionnaire} ${a.itemKey} ${a.savedAt}`.localeCompare(
+      `${b.participantLabel} ${b.questionnaire} ${b.itemKey} ${b.savedAt}`,
+    ),
+  );
+  return out;
+}
+
+function buildQualitativeAnswersTable(
+  participants: LoadedParticipant[],
+  locale: Locale,
+): { headers: string[]; rows: string[][] } {
+  const qualRows = buildQualitativeAnswerRows(participants, locale);
+  const headers =
+    locale === "en"
+      ? ["participant_id", "topic_area", "questionnaire", "item_key", "question_wording", "answer_text", "saved_at_utc"]
+      : ["teilnehmer_id", "themenbereich", "fragebogen", "item_schluessel", "fragentext", "antworttext", "gespeichert_utc"];
+  const rows = qualRows.map((r) => [
+    r.participantLabel,
+    r.phaseLabel,
+    r.questionnaire,
+    r.itemKey,
+    r.questionLabel,
+    r.answer,
+    r.savedAt,
+  ]);
+  return { headers, rows };
+}
+
+function htmlEsc(s: string): string {
+  return s
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+}
+
+function qualitativeAnswersToExcelHtml(locale: Locale, rows: QualitativeAnswerRow[]): string {
+  const isEn = locale === "en";
+  const title = isEn
+    ? "Study — open text answers (latest saved version per form)"
+    : "Studie — offene Textantworten (jeweils letzte gespeicherte Version je Fragebogen)";
+  const th = isEn
+    ? ["Participant", "Topic area", "Form", "Item", "Question", "Answer", "Saved (UTC)"]
+    : ["Teilnehmer", "Themenbereich", "Fragebogen", "Item", "Frage", "Antwort", "Gespeichert (UTC)"];
+  const head = `<tr>${th.map((h) => `<th>${htmlEsc(h)}</th>`).join("")}</tr>`;
+  const body = rows
+    .map(
+      (r) =>
+        `<tr><td>${htmlEsc(r.participantLabel)}</td><td>${htmlEsc(r.phaseLabel)}</td><td>${htmlEsc(r.questionnaire)}</td><td>${htmlEsc(r.itemKey)}</td><td style="white-space:pre-wrap">${htmlEsc(r.questionLabel)}</td><td style="white-space:pre-wrap">${htmlEsc(r.answer)}</td><td>${htmlEsc(r.savedAt)}</td></tr>`,
+    )
+    .join("");
+  return `<!doctype html><html><head><meta charset="utf-8"><title>${htmlEsc(title)}</title><style>body{font-family:Arial,sans-serif;font-size:12px}table{border-collapse:collapse;margin-top:8px}th,td{border:1px solid #ccc;padding:6px 8px;vertical-align:top}th{background:#f5f5f5}</style></head><body><h2>${htmlEsc(title)}</h2><table>${head}${body}</table></body></html>`;
 }
 
 function buildExportSchema(headersByFile: Record<string, string[]>): Record<string, unknown> {
@@ -424,6 +506,7 @@ function buildExportSchema(headersByFile: Record<string, string[]>): Record<stri
     version: 1,
     encoding: "utf-8",
     delimiter: ",",
+    qualitative_open_answers_file: "qualitative_answers.xls (HTML table for Excel; latest response per questionnaire+category; text fields only)",
     column_naming: "<phase>_<condition>_<variable>",
     phases: CORE_PHASES.map((p) => p.slug),
     document_evaluation_planning_phases: [...DOCUMENT_EVAL_PLANNING_PHASE_SLUGS, DOCUMENT_EVAL_PHASE_UNCATEGORIZED],
@@ -437,7 +520,7 @@ function buildExportSchema(headersByFile: Record<string, string[]>): Record<stri
         name,
         {
           row_unit:
-            name === "qualitative_answers.csv"
+            name === "qualitative_answers.xls"
               ? "answer"
               : name === "document_evaluation.csv"
                 ? "evaluated_document"
@@ -793,19 +876,25 @@ export async function GET(req: NextRequest) {
     csv = tableRowsToCommaCsvQuotedAll(table);
     filename = "document_evaluation.csv";
   } else if (wantsQualitative) {
-    const table = buildQualitativeAnswersTable(participants);
-    csv = tableRowsToCommaCsv(table);
-    filename = "qualitative_answers.csv";
+    const qualRows = buildQualitativeAnswerRows(participants, locale);
+    const html = qualitativeAnswersToExcelHtml(locale, qualRows);
+    const qualFilename = locale === "en" ? "qualitative_open_answers.xls" : "qualitative_offene_antworten.xls";
+    return new NextResponse(html, {
+      headers: {
+        "Content-Type": "application/vnd.ms-excel; charset=utf-8",
+        "Content-Disposition": `attachment; filename="${qualFilename}"`,
+      },
+    });
   } else if (wantsExportSchema) {
     const surveyCore = buildSurveyCoreWideTable(participants);
     const comparison = buildComparisonWideTable(participants);
     const docEval = await buildDocumentEvaluationRowsTable(company.id, locale, participants);
-    const qualitative = buildQualitativeAnswersTable(participants);
+    const qualitative = buildQualitativeAnswersTable(participants, locale);
     const schema = buildExportSchema({
       "survey_core_wide.csv": surveyCore.headers,
       "comparison_wide.csv": comparison.headers,
       "document_evaluation.csv": docEval.headers,
-      "qualitative_answers.csv": qualitative.headers,
+      "qualitative_answers.xls": qualitative.headers,
     });
     return new NextResponse(JSON.stringify(schema, null, 2), {
       headers: {

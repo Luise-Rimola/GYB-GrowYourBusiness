@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { submitFeatureEvaluationAction } from "@/app/actions";
+import { AdvisorEvaluationExportLinks } from "@/components/AdvisorEvaluationExportLinks";
 import { Section } from "@/components/Section";
 import type { FeatureEvaluationKind, FeatureEvaluationRecord } from "@/lib/featureEvaluations";
+import type { Locale } from "@/lib/i18n";
 
 type Fv = {
   quality: string;
@@ -37,6 +39,17 @@ type Props = {
   /** Optional: Excel nur mit offenen Textfeldern (Berater-Evaluation). */
   openTextExcelHref?: string;
   openTextExcelLabel?: string;
+  /** Optional: SPSS/PDF/Excel für `scope=advisor` (Likert + Metadaten, anonymisiert). */
+  quantExportLinks?: {
+    spss: string;
+    pdf: string;
+    excel: string;
+    isEn: boolean;
+  };
+  /** Für Beschriftungen im Download-Bereich (wenn kein quantExportLinks). */
+  downloadsLocale?: Locale;
+  /** Wenn false: kein Zurück-Link (z. B. eingebettet in Reiter auf `/chat`). Standard: true. */
+  showBackLink?: boolean;
 };
 
 function scoreLineFromTemplate(tpl: string, ev: FeatureEvaluationRecord) {
@@ -60,19 +73,39 @@ export function FeatureEvaluationEvaluateContent({
   fv,
   openTextExcelHref,
   openTextExcelLabel,
+  quantExportLinks,
+  downloadsLocale,
+  showBackLink = true,
 }: Props) {
+  const downloadIsEn = quantExportLinks?.isEn ?? downloadsLocale === "en";
   return (
     <div className="space-y-8">
       <Section
         title={title}
         description={description}
         actions={
-          <Link
-            href={backHref}
-            className="rounded-xl border border-teal-600 px-4 py-2 text-sm font-medium text-teal-700 transition hover:bg-teal-50 dark:border-teal-500 dark:text-teal-300 dark:hover:bg-teal-950/50"
-          >
-            {backLabel}
-          </Link>
+          showBackLink || quantExportLinks || openTextExcelHref ? (
+            <div className="flex max-w-[min(100%,42rem)] flex-col items-stretch gap-2 sm:max-w-none sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
+              {showBackLink ? (
+                <Link
+                  href={backHref}
+                  className="inline-flex justify-center rounded-xl border border-teal-600 px-4 py-2 text-sm font-medium text-teal-700 transition hover:bg-teal-50 dark:border-teal-500 dark:text-teal-300 dark:hover:bg-teal-950/50 sm:order-2"
+                >
+                  {backLabel}
+                </Link>
+              ) : null}
+              {(quantExportLinks || openTextExcelHref) && (
+                <div className="flex flex-wrap justify-center gap-2 sm:order-1 sm:justify-end">
+                  <AdvisorEvaluationExportLinks
+                    quant={quantExportLinks}
+                    openTextExcelHref={openTextExcelHref}
+                    openTextExcelLabel={openTextExcelLabel}
+                    variant="compact"
+                  />
+                </div>
+              )}
+            </div>
+          ) : undefined
         }
       >
         <form action={submitFeatureEvaluationAction} className="space-y-5">
@@ -165,6 +198,31 @@ export function FeatureEvaluationEvaluateContent({
             </button>
           </div>
         </form>
+
+        {(quantExportLinks || openTextExcelHref) && (
+          <div className="mt-8 border-t border-[var(--card-border)] pt-6">
+            <p className="mb-1 text-sm font-semibold text-[var(--foreground)]">
+              {downloadIsEn ? "Downloads for analysis" : "Downloads zur Auswertung"}
+            </p>
+            <p className="mb-3 text-xs text-[var(--muted)]">
+              {quantExportLinks
+                ? downloadIsEn
+                  ? "SPSS: CSV with numeric ratings. PDF: tables + context. Excel: HTML table. Open-text Excel: free-text fields only (anon=1 uses anonymized labels)."
+                  : "SPSS: CSV mit numerischen Bewertungen. PDF: Tabellen + Kontext. Excel: HTML-Tabelle. Excel Freitext: nur offene Textfelder (anon=1 = anonymisierte Kennungen)."
+                : downloadIsEn
+                  ? "Open-text Excel: free-text fields only."
+                  : "Excel Freitext: nur offene Textfelder."}
+            </p>
+            <div className="mb-1">
+              <AdvisorEvaluationExportLinks
+                quant={quantExportLinks}
+                openTextExcelHref={openTextExcelHref}
+                openTextExcelLabel={openTextExcelLabel}
+                variant="default"
+              />
+            </div>
+          </div>
+        )}
       </Section>
 
       <Section title={fv.historyTitle} description={fv.historyDesc}>
@@ -210,17 +268,6 @@ export function FeatureEvaluationEvaluateContent({
             })}
           </div>
         )}
-        {openTextExcelHref && openTextExcelLabel ? (
-          <div className="mt-4">
-            <a
-              href={openTextExcelHref}
-              download
-              className="inline-flex items-center justify-center rounded-xl border border-[var(--card-border)] px-4 py-2 text-sm font-medium transition hover:bg-[var(--background)]"
-            >
-              {openTextExcelLabel}
-            </a>
-          </div>
-        ) : null}
       </Section>
     </div>
   );

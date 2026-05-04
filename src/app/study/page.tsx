@@ -620,10 +620,12 @@ export default async function StudyPage({
               </a>
               <a
                 href={`/api/study/export?part=qualitative_answers&lang=${locale}`}
-                download="qualitative_answers.csv"
+                download={
+                  locale === "en" ? "qualitative_open_answers.xls" : "qualitative_offene_antworten.xls"
+                }
                 className="inline-flex items-center justify-center rounded-xl border border-[var(--card-border)] px-4 py-3 text-sm font-medium transition hover:bg-[var(--background)]"
               >
-                {isEn ? "Qualitative answers (CSV)" : "Qualitative Antworten (CSV)"}
+                {isEn ? "Open text answers (Excel)" : "Offene Textantworten (Excel)"}
               </a>
               <a
                 href={`/api/export/open-answers?section=fb23&lang=${locale}`}

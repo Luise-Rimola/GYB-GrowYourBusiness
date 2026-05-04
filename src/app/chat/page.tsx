@@ -6,6 +6,12 @@ import { getOrCreateDemoCompany } from "@/lib/demo";
 import { ConfirmDeleteForm } from "@/components/ConfirmDeleteForm";
 import { getServerLocale } from "@/lib/locale";
 import { getTranslations } from "@/lib/i18n";
+import { getFeatureEvaluations } from "@/lib/featureEvaluations";
+import { AdvisorEvaluationExportLinks } from "@/components/AdvisorEvaluationExportLinks";
+import {
+  FeatureEvaluationHistoryTable,
+  type FeatureEvaluationHistoryLabels,
+} from "@/components/FeatureEvaluationHistoryTable";
 
 async function createThread(formData: FormData) {
   "use server";
@@ -106,11 +112,44 @@ export default async function ChatPage({
     });
     redirect(`/chat/${thread.id}`);
   }
-  const threads = await prisma.chatThread.findMany({
-    where: { companyId: company.id },
-    include: { messages: true },
-    orderBy: { createdAt: "desc" },
-  });
+
+  const [threads, chatEvaluations] = await Promise.all([
+    prisma.chatThread.findMany({
+      where: { companyId: company.id },
+      include: { messages: true },
+      orderBy: { createdAt: "desc" },
+    }),
+    getFeatureEvaluations(company.id, "chat"),
+  ]);
+
+  const fv = t.featureEvaluation;
+  const evalTableLabels: FeatureEvaluationHistoryLabels = {
+    empty: t.chat.evalTableEmpty,
+    colDate: t.chat.evalColDate,
+    colAnswerQ: t.chat.evalColAnswerQ,
+    colSourceQ: t.chat.evalColSourceQ,
+    colRealism: t.chat.evalColRealism,
+    colClarity: t.chat.evalColClarity,
+    colStructure: t.chat.evalColStructure,
+    colHalluc: t.chat.evalColHalluc,
+    colHallucNotes: t.chat.evalColHallucNotes,
+    colStrengths: t.chat.evalColStrengths,
+    colWeaknesses: t.chat.evalColWeaknesses,
+    colImprove: t.chat.evalColImprove,
+    hallucYes: fv.hallucYes,
+    hallucNo: fv.hallucNo,
+  };
+
+  const exportLang = locale === "en" ? "en" : "de";
+  const advisorQuant = {
+    spss: `/api/export?scope=advisor&format=spss&lang=${exportLang}&anon=1`,
+    pdf: `/api/export?scope=advisor&format=pdf&lang=${exportLang}&anon=1`,
+    excel: `/api/export?scope=advisor&format=excel&lang=${exportLang}&anon=1`,
+    isEn: locale === "en",
+  };
+  const advisorOpenTextHref = `/api/export/open-answers?section=advisor&lang=${locale}`;
+  const advisorOpenTextLabel =
+    locale === "en" ? "Excel: open text answers only" : "Excel: nur offene Textantworten";
 
   return (
     <div className="space-y-8">
@@ -143,7 +182,7 @@ export default async function ChatPage({
             type="submit"
             className="rounded-full bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-800"
           >
-            {locale === "de" ? "Neuer Chat" : "New chat"}
+            {t.chat.newChat}
           </button>
         </form>
 
@@ -186,6 +225,25 @@ export default async function ChatPage({
             ))
           )}
         </div>
+      </Section>
+
+      <Section
+        title={t.chat.evalOverviewTitle}
+        description={t.chat.evalOverviewDesc}
+        actions={
+          <AdvisorEvaluationExportLinks
+            quant={advisorQuant}
+            openTextExcelHref={advisorOpenTextHref}
+            openTextExcelLabel={advisorOpenTextLabel}
+            variant="compact"
+          />
+        }
+      >
+        <FeatureEvaluationHistoryTable
+          evaluations={chatEvaluations}
+          labels={evalTableLabels}
+          locale={locale === "en" ? "en" : "de"}
+        />
       </Section>
     </div>
   );
