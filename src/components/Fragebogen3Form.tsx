@@ -137,6 +137,7 @@ export function Fragebogen3Form({
                 name="O1"
                 rows={2}
                 defaultValue={initialValues?.O1 != null ? String(initialValues.O1) : ""}
+                spellCheck={false}
                 className="w-full rounded-lg border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm"
               />
             </div>
@@ -146,6 +147,7 @@ export function Fragebogen3Form({
                 name="O2"
                 rows={2}
                 defaultValue={initialValues?.O2 != null ? String(initialValues.O2) : ""}
+                spellCheck={false}
                 className="w-full rounded-lg border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm"
               />
             </div>
@@ -155,6 +157,7 @@ export function Fragebogen3Form({
                 name="O3"
                 rows={2}
                 defaultValue={initialValues?.O3 != null ? String(initialValues.O3) : ""}
+                spellCheck={false}
                 className="w-full rounded-lg border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm"
               />
             </div>

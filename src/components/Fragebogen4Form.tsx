@@ -97,6 +97,7 @@ export function Fragebogen4Form({
               name="O1"
               rows={2}
               defaultValue={iv?.O1 != null ? String(iv.O1) : ""}
+              spellCheck={false}
               className="w-full rounded-lg border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm"
             />
           </div>
@@ -106,6 +107,7 @@ export function Fragebogen4Form({
               name="O2"
               rows={2}
               defaultValue={iv?.O2 != null ? String(iv.O2) : ""}
+              spellCheck={false}
               className="w-full rounded-lg border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm"
             />
           </div>
@@ -115,6 +117,7 @@ export function Fragebogen4Form({
               name="O3"
               rows={2}
               defaultValue={iv?.O3 != null ? String(iv.O3) : ""}
+              spellCheck={false}
               className="w-full rounded-lg border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm"
             />
           </div>
@@ -162,6 +165,7 @@ export function Fragebogen4Form({
               name="I1"
               rows={3}
               defaultValue={iv?.I1 != null ? String(iv.I1) : ""}
+              spellCheck={false}
               className="w-full rounded-lg border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm"
             />
           </div>
@@ -171,6 +175,7 @@ export function Fragebogen4Form({
               name="I2"
               rows={3}
               defaultValue={iv?.I2 != null ? String(iv.I2) : ""}
+              spellCheck={false}
               className="w-full rounded-lg border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm"
             />
           </div>
@@ -180,6 +185,7 @@ export function Fragebogen4Form({
               name="I3"
               rows={3}
               defaultValue={iv?.I3 != null ? String(iv.I3) : ""}
+              spellCheck={false}
               className="w-full rounded-lg border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm"
             />
           </div>
@@ -189,6 +195,7 @@ export function Fragebogen4Form({
               name="I4"
               rows={3}
               defaultValue={iv?.I4 != null ? String(iv.I4) : ""}
+              spellCheck={false}
               className="w-full rounded-lg border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm"
             />
           </div>
@@ -198,6 +205,7 @@ export function Fragebogen4Form({
               name="I5"
               rows={3}
               defaultValue={iv?.I5 != null ? String(iv.I5) : ""}
+              spellCheck={false}
               className="w-full rounded-lg border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm"
             />
           </div>

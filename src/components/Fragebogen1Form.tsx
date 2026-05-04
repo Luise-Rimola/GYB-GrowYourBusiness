@@ -255,6 +255,7 @@ export function Fragebogen1Form({
               name="D1"
               rows={3}
               defaultValue={d.D1 ?? ""}
+              spellCheck={false}
               className="w-full rounded-xl border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm"
             />
           </div>
@@ -264,6 +265,7 @@ export function Fragebogen1Form({
               name="D2"
               rows={3}
               defaultValue={d.D2 ?? ""}
+              spellCheck={false}
               className="w-full rounded-xl border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm"
             />
           </div>
@@ -273,6 +275,7 @@ export function Fragebogen1Form({
               name="D3"
               rows={3}
               defaultValue={d.D3 ?? ""}
+              spellCheck={false}
               className="w-full rounded-xl border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm"
             />
           </div>
@@ -282,6 +285,7 @@ export function Fragebogen1Form({
               name="D4"
               rows={3}
               defaultValue={d.D4 ?? ""}
+              spellCheck={false}
               className="w-full rounded-xl border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm"
             />
           </div>

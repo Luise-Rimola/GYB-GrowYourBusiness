@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { CollapsibleDetails } from "@/components/CollapsibleDetails";
 import { fetchApi } from "@/lib/apiClient";
+import { translations, type Locale } from "@/lib/i18n";
 
 type Props = {
   locale: "de" | "en";
@@ -17,21 +18,59 @@ type ExportEntry = {
   excel: string;
 };
 
+type StudyDownloadLink = { href: string; label: string };
+
+function studyQuestionnaireLinks(lang: Locale): { numericCsv: StudyDownloadLink[]; openText: StudyDownloadLink[] } {
+  const st = translations[lang].study;
+  const isEn = lang === "en";
+  return {
+    numericCsv: [
+      { href: `/api/study/export?part=fb1&lang=${lang}`, label: st.studyExportSpssFb1 },
+      { href: `/api/study/export?part=survey_core_wide&lang=${lang}`, label: st.studyExportSpssF23 },
+      { href: `/api/study/export?part=comparison_wide&lang=${lang}`, label: st.studyExportSpssFb4 },
+      { href: `/api/study/export?part=fb5&lang=${lang}`, label: st.studyExportSpssFb5 },
+      { href: `/api/study/export?part=full&lang=${lang}`, label: st.studyExportSpssFull },
+    ],
+    openText: [
+      {
+        href: `/api/study/export?part=qualitative_answers&lang=${lang}`,
+        label: isEn ? "Open text answers (Excel)" : "Offene Textantworten (Excel)",
+      },
+      {
+        href: `/api/export/open-answers?section=fb23&lang=${lang}`,
+        label: isEn ? "Excel: FB2 & FB3 open answers only" : "Excel: FB2 & FB3 nur offene Antworten",
+      },
+      {
+        href: `/api/export/open-answers?section=fb4&lang=${lang}`,
+        label: isEn ? "Excel: FB4 open & interview text only" : "Excel: FB4 nur offene & Interview-Texte",
+      },
+      {
+        href: `/api/study/export?part=export_schema&lang=${lang}`,
+        label: isEn ? "Export schema (JSON)" : "Export-Schema (JSON)",
+      },
+    ],
+  };
+}
+
 export function HomeExportPackageButton({ locale, autoOpen = false, showButton = true }: Props) {
   const isEn = locale === "en";
   const [open, setOpen] = useState(false);
   const [sending, setSending] = useState(false);
   const [message, setMessage] = useState("");
 
-  const entries = useMemo<ExportEntry[]>(() => {
+  const studyLinks = useMemo(() => studyQuestionnaireLinks(locale), [locale]);
+
+  const otherEntries = useMemo<ExportEntry[]>(() => {
     const lang = isEn ? "en" : "de";
     return [
-      { label: isEn ? "Questionnaires" : "Fragebögen", spss: `/api/export?scope=study&format=spss&lang=${lang}&anon=1`, pdf: `/api/export?scope=study&format=pdf&lang=${lang}&anon=1`, excel: `/api/export?scope=study&format=excel&lang=${lang}&anon=1` },
       { label: isEn ? "Document evaluation" : "Dokumente Evaluation", spss: `/api/export?scope=artifacts&format=spss&lang=${lang}&anon=1`, pdf: `/api/export?scope=artifacts&format=pdf&lang=${lang}&anon=1`, excel: `/api/export?scope=artifacts&format=excel&lang=${lang}&anon=1` },
       { label: isEn ? "Use case evaluation" : "Use Case Evaluation", spss: `/api/export?scope=usecase&format=spss&lang=${lang}&anon=1`, pdf: `/api/export?scope=usecase&format=pdf&lang=${lang}&anon=1`, excel: `/api/export?scope=usecase&format=excel&lang=${lang}&anon=1` },
       { label: isEn ? "Advisor evaluation" : "Berater Evaluation", spss: `/api/export?scope=advisor&format=spss&lang=${lang}&anon=1`, pdf: `/api/export?scope=advisor&format=pdf&lang=${lang}&anon=1`, excel: `/api/export?scope=advisor&format=excel&lang=${lang}&anon=1` },
     ];
   }, [isEn]);
+
+  const studyPdfHref = `/api/export?scope=study&format=pdf&lang=${locale}&anon=1`;
+  const studyExcelHref = `/api/export?scope=study&format=excel&lang=${locale}&anon=1`;
 
   const docsPdfZipLink = useMemo(() => `/api/export/documents-pdf-zip?lang=${isEn ? "en" : "de"}`, [isEn]);
   const docsExcelZipLink = useMemo(() => `/api/export/documents-excel-zip?lang=${isEn ? "en" : "de"}`, [isEn]);
@@ -65,7 +104,20 @@ export function HomeExportPackageButton({ locale, autoOpen = false, showButton =
   const openMailDraft = () => {
     if (typeof window === "undefined") return;
     const base = window.location.origin;
-    const lines = entries.flatMap((entry) => [
+    const qTitle = isEn ? "Questionnaires" : "Fragebögen";
+    const qNumeric = studyLinks.numericCsv.map((l) => `- ${l.label}: ${base}${l.href}`);
+    const qOpen = studyLinks.openText.map((l) => `- ${l.label}: ${base}${l.href}`);
+    const questionnaireLines = [
+      `${qTitle}:`,
+      isEn ? "Numeric / wide CSV:" : "Zahlen- / Breit-CSV:",
+      ...qNumeric,
+      isEn ? "Open text & schema:" : "Freitext & Schema:",
+      ...qOpen,
+      `- PDF: ${base}${studyPdfHref}`,
+      `- Excel: ${base}${studyExcelHref}`,
+      "",
+    ];
+    const lines = otherEntries.flatMap((entry) => [
       `${entry.label}:`,
       `- SPSS: ${base}${entry.spss}`,
       `- PDF: ${base}${entry.pdf}`,
@@ -75,6 +127,7 @@ export function HomeExportPackageButton({ locale, autoOpen = false, showButton =
     const body = [
       isEn ? "Anonymized export package:" : "Anonymisiertes Exportpaket:",
       "",
+      ...questionnaireLines,
       ...lines,
       `${isEn ? "All generated documents (PDF ZIP)" : "Alle erstellten Dokumente (PDF-ZIP)"}: ${base}${docsPdfZipLink}`,
       `${isEn ? "All generated documents (Excel ZIP)" : "Alle erstellten Dokumente (Excel-ZIP)"}: ${base}${docsExcelZipLink}`,
@@ -102,8 +155,8 @@ export function HomeExportPackageButton({ locale, autoOpen = false, showButton =
             </h3>
             <p className="mt-2 text-sm text-[var(--muted)]">
               {isEn
-                ? "Questionnaires, document evaluation, use-case evaluation, advisor evaluation (each as SPSS/PDF/Excel), plus all created documents as PDF ZIP or Excel ZIP."
-                : "Fragebögen, Dokumente-Evaluation, Use-Case-Evaluation, Berater-Evaluation (jeweils SPSS/PDF/Excel) plus alle erstellten Dokumente als PDF-ZIP oder Excel-ZIP."}
+                ? "Questionnaires: separate CSV blocks (FB1, FB2/3 phases, FB4 comparison, FB5, full package), open-text exports, and one PDF/Excel overview. Other areas each offer SPSS/PDF/Excel, plus all created documents as PDF or Excel ZIP. Likert items in evaluation SPSS CSVs use the same 1–5 scale as in the app."
+                : "Fragebögen: getrennte CSV-Blöcke (FB1, FB2/3-Phasen, FB4-Direktvergleich, FB5, Komplettpaket), Freitext-Exporte sowie ein gemeinsames PDF/Excel. Für die übrigen Bereiche jeweils SPSS/PDF/Excel plus alle erstellten Dokumente als ZIP. Likert-Werte in den Evaluations-SPSS-CSV-Dateien entsprechen der Skala 1–5 wie in der App."}
             </p>
             <CollapsibleDetails
               defaultOpen={false}
@@ -113,7 +166,56 @@ export function HomeExportPackageButton({ locale, autoOpen = false, showButton =
               label={isEn ? "Download individual evaluations" : "Einzelne Evaluationen herunterladen"}
             >
               <div className="space-y-3">
-                {entries.map((entry) => (
+                <div className="rounded-xl border border-[var(--card-border)] bg-[var(--background)]/40 p-3">
+                  <div className="text-sm font-semibold text-[var(--foreground)]">
+                    {isEn ? "Questionnaires" : "Fragebögen"}
+                  </div>
+                  <p className="mt-1 text-xs text-[var(--muted)]">
+                    {isEn
+                      ? "Same sections as on the Study page: numeric CSV per block, then open-text Excel/JSON; PDF/Excel are the combined report."
+                      : "Wie auf der Studien-Seite: zuerst Zahlen-CSV pro Block, dann Freitext-Excel/JSON; PDF/Excel sind der gemeinsame Bericht."}
+                  </p>
+                  <p className="mt-2 text-xs font-medium text-[var(--foreground)]">
+                    {isEn ? "CSV (blocks)" : "CSV (Abschnitte)"}
+                  </p>
+                  <div className="mt-1 flex flex-wrap gap-2">
+                    {studyLinks.numericCsv.map((l) => (
+                      <a
+                        key={l.href}
+                        href={l.href}
+                        className="rounded-lg border border-teal-300 px-3 py-1 text-xs font-semibold text-teal-700 hover:bg-teal-50"
+                      >
+                        {l.label}
+                      </a>
+                    ))}
+                  </div>
+                  <p className="mt-3 text-xs font-medium text-[var(--foreground)]">
+                    {isEn ? "Open text & schema" : "Freitext & Schema"}
+                  </p>
+                  <div className="mt-1 flex flex-wrap gap-2">
+                    {studyLinks.openText.map((l) => (
+                      <a
+                        key={l.href}
+                        href={l.href}
+                        className="rounded-lg border border-teal-300 px-3 py-1 text-xs font-semibold text-teal-700 hover:bg-teal-50"
+                      >
+                        {l.label}
+                      </a>
+                    ))}
+                  </div>
+                  <p className="mt-3 text-xs font-medium text-[var(--foreground)]">
+                    {isEn ? "Combined report" : "Gesamtbericht"}
+                  </p>
+                  <div className="mt-1 flex flex-wrap gap-2">
+                    <a href={studyPdfHref} className="rounded-lg border border-teal-300 px-3 py-1 text-xs font-semibold text-teal-700 hover:bg-teal-50">
+                      PDF
+                    </a>
+                    <a href={studyExcelHref} className="rounded-lg border border-teal-300 px-3 py-1 text-xs font-semibold text-teal-700 hover:bg-teal-50">
+                      Excel
+                    </a>
+                  </div>
+                </div>
+                {otherEntries.map((entry) => (
                   <div key={entry.label} className="rounded-xl border border-[var(--card-border)] bg-[var(--background)]/40 p-3">
                     <div className="text-sm font-semibold text-[var(--foreground)]">{entry.label}</div>
                     <div className="mt-2 flex flex-wrap gap-2">

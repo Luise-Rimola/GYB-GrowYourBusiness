@@ -317,15 +317,16 @@ function toIsoDate(v: Date | string): string {
   return d.toISOString().slice(0, 10);
 }
 
-/** Likert 1–5 aus `userEvaluationJson` als 0–100 %-Skala für SPSS. */
-function likert1To5AsPercentString(v: unknown): string {
+/** Likert 1–5 aus `userEvaluationJson` als Rohwert (gleiche Skala wie App / PDF-Excel). */
+function likert1To5RawString(v: unknown): string {
   if (v === null || v === undefined) return "";
   const n = typeof v === "number" ? v : Number(String(v).trim());
   if (!Number.isFinite(n)) return "";
   const clamped = Math.min(5, Math.max(1, n));
-  return String(Math.round((clamped / 5) * 100));
+  return String(Math.round(clamped));
 }
 
+/** Mittelwert der Likert-Items in `userEvaluationJson` (Skala 1–5). */
 function overallScoreFromUserEval(ev: Record<string, unknown>): string {
   const keys = [
     "verstaendlichkeit",
@@ -344,7 +345,7 @@ function overallScoreFromUserEval(ev: Record<string, unknown>): string {
   }
   if (vals.length === 0) return "";
   const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
-  return String(Math.round((mean / 5) * 100));
+  return String(Math.round(mean * 100) / 100);
 }
 
 /** Szenario-/Use-Case-Evaluierung: eine Zeile pro abgeschlossener Bewertung (wie Übersicht `userPrefers` gesetzt). */
@@ -372,7 +373,7 @@ async function buildScenarioEvaluationsSpssTable(
     "practicability",
     "trust",
     "source_quality",
-    "overall_score",
+    "overall_mean_1_to_5",
   ];
 
   const [evalRows, participant] = await Promise.all([
@@ -414,14 +415,14 @@ async function buildScenarioEvaluationsSpssTable(
       String(s.userConfidence),
       s.aiConfidence == null ? "" : String(s.aiConfidence),
       s.userConfidenceInAi == null ? "" : String(s.userConfidenceInAi),
-      likert1To5AsPercentString(ev.verstaendlichkeit),
-      likert1To5AsPercentString(ev.relevanz),
-      likert1To5AsPercentString(ev.nuetzlichkeit),
-      likert1To5AsPercentString(ev.vollstaendigkeit),
-      likert1To5AsPercentString(ev.nachvollziehbarkeit),
-      likert1To5AsPercentString(ev.praktikabilitaet),
-      likert1To5AsPercentString(ev.vertrauen),
-      likert1To5AsPercentString(ev.quellenqualitaet),
+      likert1To5RawString(ev.verstaendlichkeit),
+      likert1To5RawString(ev.relevanz),
+      likert1To5RawString(ev.nuetzlichkeit),
+      likert1To5RawString(ev.vollstaendigkeit),
+      likert1To5RawString(ev.nachvollziehbarkeit),
+      likert1To5RawString(ev.praktikabilitaet),
+      likert1To5RawString(ev.vertrauen),
+      likert1To5RawString(ev.quellenqualitaet),
       overallScoreFromUserEval(ev),
     ];
   });

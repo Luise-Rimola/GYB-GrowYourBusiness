@@ -91,6 +91,7 @@ export function VoiceTextarea({
         placeholder={placeholder}
         rows={rows}
         disabled={disabled}
+        spellCheck={false}
         className={className}
       />
       <div className="absolute right-3 top-3 flex flex-col items-end gap-1">

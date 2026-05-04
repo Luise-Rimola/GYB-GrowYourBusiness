@@ -90,6 +90,7 @@ export function Fragebogen5Form({
                 name="T1"
                 rows={3}
                 defaultValue={initialValues?.T1 != null ? String(initialValues.T1) : ""}
+                spellCheck={false}
                 className="w-full rounded-lg border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm"
               />
             </div>
@@ -99,6 +100,7 @@ export function Fragebogen5Form({
                 name="T2"
                 rows={3}
                 defaultValue={initialValues?.T2 != null ? String(initialValues.T2) : ""}
+                spellCheck={false}
                 className="w-full rounded-lg border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm"
               />
             </div>
@@ -108,6 +110,7 @@ export function Fragebogen5Form({
                 name="T3"
                 rows={3}
                 defaultValue={initialValues?.T3 != null ? String(initialValues.T3) : ""}
+                spellCheck={false}
                 className="w-full rounded-lg border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm"
               />
             </div>
@@ -117,6 +120,7 @@ export function Fragebogen5Form({
                 name="T4"
                 rows={3}
                 defaultValue={initialValues?.T4 != null ? String(initialValues.T4) : ""}
+                spellCheck={false}
                 className="w-full rounded-lg border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm"
               />
             </div>
